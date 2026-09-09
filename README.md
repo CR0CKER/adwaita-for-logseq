@@ -105,7 +105,28 @@ npm run build     # concatenates src/css/* into themes/adwaita.css, bundles the 
 ```
 
 Then Logseq → Settings → Advanced → Developer mode, and **Load unpacked plugin** on the
-repo directory.
+repo directory. The two themes appear in Settings → Themes like any installed theme.
+
+### Why the themes are registered in code, not in package.json
+
+The conventional way to ship a theme is `logseq.themes` in package.json. Doing that makes
+the host resolve the stylesheet to an `assets://` URL — which Logseq OG (Electron 43)
+rewrites to `file://`, and a `file://` subresource of an `lsp://` document is blocked
+outright:
+
+```
+Not allowed to load local resource: file:///…/themes/adwaita.css
+```
+
+The theme then shows up in the picker and silently does nothing. Official 0.10.13
+(Electron 27) loads the same `assets://` URL fine, so this only bites on newer Electron —
+but it bites both marketplace *and* unpacked installs there.
+
+Registering at runtime with `logseq.provideTheme()` and
+`logseq.resolveResourceFullUrl('themes/adwaita.css')` asks the SDK for the plugin's own
+static root instead, which is the scheme the host actually serves: `lsp://logseq.io/<id>/…`
+for an installed plugin, `lsp://logseq.com/external/<path>/…` for an unpacked one. Verified
+working both ways.
 
 `src/css/` is split so a colour is written down in exactly one place:
 

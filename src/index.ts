@@ -2,14 +2,22 @@ import '@logseq/libs';
 import type { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
 
 /**
- * The theme itself is plain CSS, registered through package.json's
- * `logseq.themes`. This entry point exists only so the machine-specific
- * choices — which accent GNOME is set to, whether the titlebar shows one
- * button or three — are settings instead of edits to the stylesheet.
+ * Two jobs:
  *
- * Everything it emits is a handful of custom properties on :root, injected
- * with provideStyle() so it lands after the theme sheet and wins without
- * !important.
+ * 1. Register the two themes. They are *not* declared in package.json's
+ *    `logseq.themes`, deliberately. That path makes the host resolve the
+ *    stylesheet to an `assets://` URL, which Logseq OG (Electron 43) rewrites
+ *    to `file://` — and a `file://` subresource of an `lsp://` document is
+ *    blocked outright: "Not allowed to load local resource". The theme then
+ *    appears in the picker and silently does nothing. Registering at runtime
+ *    with resolveResourceFullUrl() asks the SDK for the plugin's own static
+ *    root instead, which is the scheme the host actually serves.
+ *
+ * 2. Hold the machine-specific choices — which accent GNOME is set to,
+ *    whether the titlebar shows one button or three — as settings rather than
+ *    edits to the stylesheet. Everything it emits is a handful of custom
+ *    properties on :root, injected with provideStyle() so it lands after the
+ *    theme sheet and wins without !important.
  */
 
 /** libadwaita's @accent_bg_color per accent name. These nine hexes are the
@@ -159,7 +167,15 @@ function apply() {
   logseq.provideStyle({ key: 'adwaita-settings', style: css() });
 }
 
+function registerThemes() {
+  const url = logseq.resolveResourceFullUrl('themes/adwaita.css');
+  const pid = logseq.baseInfo.id;
+  logseq.provideTheme({ pid, name: 'Adwaita Dark', mode: 'dark', url, description: "GNOME's Adwaita, dark" });
+  logseq.provideTheme({ pid, name: 'Adwaita Light', mode: 'light', url, description: "GNOME's Adwaita, light" });
+}
+
 function main() {
+  registerThemes();
   logseq.useSettingsSchema(settings);
   apply();
   logseq.onSettingsChanged(apply);

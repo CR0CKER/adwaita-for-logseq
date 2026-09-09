@@ -15,20 +15,6 @@
   },
   "logseq": {
     "id": "logseq-adwaita-theme",
-    "icon": "./icon.png",
-    "themes": [
-      {
-        "name": "Adwaita Dark",
-        "mode": "dark",
-        "url": "./themes/adwaita.css",
-        "description": "GNOME's Adwaita, dark"
-      },
-      {
-        "name": "Adwaita Light",
-        "mode": "light",
-        "url": "./themes/adwaita.css",
-        "description": "GNOME's Adwaita, light"
-      }
-    ]
+    "icon": "./icon.png"
   }
 }
