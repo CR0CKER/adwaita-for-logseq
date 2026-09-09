@@ -218,6 +218,52 @@ html[data-theme] #left-sidebar .left-sidebar-inner {
   height: 100vh;
 }
 
+/* Section dividers, modelled on GNOME Files' sidebar.
+
+   libadwaita draws them as `.navigation-sidebar > separator { margin: 6px }` —
+   a 1px rule with 6px of air above and below, inset so it lines up with the row
+   highlights rather than spanning the full width. GTK paints list separators as
+   `currentColor var(--border-opacity)` = 15%, which is --adw-border.
+
+   That 15% is also what matches Files on screen. Sampling a Files sidebar gives
+   ground #2e2e32 and line #434346 — white at 10% *as rendered* — and a 1px line
+   declared at 15% renders to about that here, because at this display's 1.667
+   DPR it spreads across two device rows and each gets a share.
+
+   Drawn as an inset background gradient rather than a border, because a border
+   always spans the full box. `border-top: 0` clears the full-width line
+   logseq-awesome-ui draws here from --ls-guideline-color, so the two do not
+   stack. Without that plugin these rules are what puts dividers there at all. */
+html[data-theme] #left-sidebar .nav-content-item,
+html[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger {
+  border-top: 0;
+  margin-top: 6px;
+  padding-top: 7px;   /* 6px of air + the 1px line itself */
+  background-image: linear-gradient(var(--adw-border), var(--adw-border));
+  background-repeat: no-repeat;
+  background-position: var(--adw-sidebar-divider-inset) 0;
+  background-size:
+    calc(100% - 2 * var(--adw-sidebar-divider-inset)) 1px;
+}
+
+/* The vault button at the sidebar's foot sits inside the nav's own padding, so
+   its box already starts 8px in. It needs the remaining 6px, not the full
+   inset, to line up with the dividers above it — measured, both land at 14px. */
+html[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger {
+  background-position: 6px 0;
+  background-size: calc(100% - 12px) 1px;
+}
+
+/* Files has no divider directly under the header — only between groups. The
+   first .nav-content-item keeps its divider: the nav block above it is a
+   different group, exactly as Trash and Downloads are in Files. */
+html[data-theme] #left-sidebar nav.cp__menubar-repos {
+  border-top: 0;
+  background-image: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
 html[data-theme] #left-sidebar .left-sidebar-inner a.item {
   margin: 0 6px;
   padding: 6px 8px;

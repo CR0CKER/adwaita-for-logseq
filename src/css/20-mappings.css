@@ -124,6 +124,10 @@ html[data-theme][data-color] {
   /* Content gutter. Logseq's own is narrower; 24px matches a GNOME view. */
   --adw-content-padding: 24px;
 
+  /* Sidebar section dividers line up with the row highlights, which sit 14px
+     in from both edges. Measured off the rendered sidebar, not assumed. */
+  --adw-sidebar-divider-inset: 14px;
+
   /* Width reserved for the window-control cluster: three 24px circles with
      3px spacing plus 13px of padding. The plugin's close-only setting drops
      this to 44px. */
