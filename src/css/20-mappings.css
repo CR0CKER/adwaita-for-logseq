@@ -1,0 +1,117 @@
+/* ==========================================================================
+   Adwaita for Logseq — Logseq's variables, pointed at the Adwaita tokens
+
+   Colour-scheme independent: everything here is a var() reference, so the
+   same block serves light and dark and the two palette files are the only
+   place a colour is written down.
+
+   Logseq paints the same surface through four independent systems, and
+   setting one without the others leaves half the UI untouched:
+
+     1. --ls-*            the classic theme layer
+     2. --lx-gray-01..12  the shui/radix ramp — buttons, dropdowns, dialogs,
+                          cmdk and .references-blocks-item read *these*
+     3. shadcn HSL triplets, consumed as hsl(var(--primary))
+     4. element-level overrides further down Logseq's own sheet
+
+   (1)–(3) are covered here; (4) is handled in the structure sheet.
+   ========================================================================== */
+
+html[data-theme],
+html[data-theme][data-color] {
+  /* ---- 1. Logseq's classic variables ---------------------------------- */
+
+  --ls-primary-background-color:    var(--adw-view-bg);
+  --ls-secondary-background-color:  var(--adw-window-bg);
+  --ls-tertiary-background-color:   var(--adw-headerbar-bg);
+  --ls-quaternary-background-color: var(--adw-sidebar2-bg);
+  --ls-table-tr-even-background-color: var(--adw-table-stripe);
+
+  --ls-border-color:            var(--adw-border);
+  --ls-secondary-border-color:  var(--adw-border-soft);
+  --ls-tertiary-border-color:   var(--adw-border-soft);
+  --ls-block-bullet-color:      var(--adw-bullet);
+
+  --ls-primary-text-color:   var(--adw-fg);
+  --ls-secondary-text-color: var(--adw-fg-dim);
+  --ls-title-text-color:     var(--adw-fg);
+
+  --ls-block-highlight-color:      var(--adw-hover);
+
+  --ls-menu-hover-color:            var(--adw-hover);
+  --ls-header-button-background:    transparent;
+  --ls-left-sidebar-bg-color:       var(--adw-sidebar-bg);
+  --ls-left-sidebar-text-color:     var(--adw-fg);
+  --ls-left-sidebar-border-color:   var(--adw-border-soft);
+  /* .create fades the sidebar's bottom edge into --lx-gray-01 by default,
+     which leaves a band above the window edge whenever the sidebar is not the
+     same colour as the page. Fade into the sidebar itself so it disappears. */
+  --ls-left-sidebar-bottom-gradient: var(--adw-sidebar-bg);
+  --ls-right-sidebar-topbar-color:  var(--adw-headerbar-bg);
+  --ls-page-inline-code-bg-color:   var(--adw-fill);
+  /* .references-blocks-item paints itself with --lx-gray-03; quotes default to
+     --ls-secondary-background-color, which is a hair off the page and reads as
+     no background at all. Point them at the same surface. */
+  --ls-page-blockquote-bg-color:    var(--lx-gray-03);
+  --ls-page-blockquote-color:       var(--adw-fg);
+  --ls-page-inline-code-color:      var(--adw-fg);
+
+  --ls-error-text-color:   var(--adw-error);
+  --ls-success-text-color: var(--adw-success);
+  --ls-warning-text-color: var(--adw-warning);
+
+  --ls-scrollbar-foreground-color:  var(--adw-scrollbar-fg);
+  --ls-scrollbar-background-color:  transparent;
+  --ls-scrollbar-thumb-hover-color: var(--adw-scrollbar-fg-hover);
+
+  /* Chrome metrics — one Adwaita headerbar, nothing above it */
+  --ls-headbar-height: var(--adw-headerbar-h);
+  --ls-headbar-inner-top-padding: 0px;
+  --ls-win32-title-bar-height: 0px;
+
+  /* Typography. Adwaita Sans ships with GNOME 47+; Cantarell was the face
+     before that, and the generic stacks cover everything else. */
+  --ls-font-family: var(--adw-font-sans);
+  --ls-main-content-max-width: 810px;
+
+  /* ---- 2. shui / radix grey ramp -------------------------------------- */
+
+  --lx-gray-01: var(--adw-gray-01);
+  --lx-gray-02: var(--adw-gray-02);
+  --lx-gray-03: var(--adw-gray-03);
+  --lx-gray-04: var(--adw-gray-04);
+  --lx-gray-05: var(--adw-gray-05);
+  --lx-gray-06: var(--adw-gray-06);
+  --lx-gray-07: var(--adw-gray-07);
+  --lx-gray-08: var(--adw-gray-08);
+  --lx-gray-09: var(--adw-gray-09);
+  --lx-gray-10: var(--adw-gray-10);
+  --lx-gray-11: var(--adw-gray-11);
+  --lx-gray-12: var(--adw-gray-12);
+
+  --lx-popover-bg: var(--adw-popover-bg);
+}
+
+/* Metrics and fonts do not vary by colour scheme at all, so they sit outside
+   the [data-theme] blocks and stay overridable by the plugin's settings. */
+:root {
+  /* libadwaita's own values:
+       window.csd border-radius 15px · headerbar 47px (46 in CSD)
+       button/entry radius 9px, entry height 34px · popover radius 12px */
+  --adw-window-radius:  15px;
+  --adw-headerbar-h:    47px;
+  --adw-radius-button:  9px;
+  --adw-radius-entry:   9px;
+  --adw-radius-popover: 12px;
+
+  --adw-font-sans: "Adwaita Sans", Cantarell, system-ui, sans-serif;
+  --adw-font-mono: "Adwaita Mono", ui-monospace, monospace;
+
+  /* Content gutter. Logseq's own is narrower; 24px matches a GNOME view. */
+  --adw-content-padding: 24px;
+
+  /* Width reserved for the window-control cluster: three 24px circles with
+     3px spacing plus 13px of padding. The plugin's close-only setting drops
+     this to 44px. */
+  --adw-wc-width: 91px;
+}

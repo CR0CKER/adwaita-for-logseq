@@ -1,0 +1,131 @@
+/* ==========================================================================
+   Adwaita for Logseq — dark palette
+
+   Every value here is libadwaita's own, extracted from the shipped stylesheet
+   rather than sampled or guessed:
+
+     gresource extract /usr/lib64/libadwaita-1.so.0 \
+       /org/gnome/Adwaita/styles/default.css
+
+   The second selector is not redundant. Logseq ships a full palette under
+   `html[data-theme="dark"][data-color="<accent>"]` — the solarized-ish
+   "logseq" one is the default on a fresh install — which sets ~50 --ls-*
+   variables at specificity (0,2,1) and would outrank a plain
+   html[data-theme="dark"] block. Matching [data-color] ties that specificity,
+   and this sheet loads after the app's, so it wins on order.
+   ========================================================================== */
+
+html[data-theme="dark"],
+html[data-theme="dark"][data-color] {
+  /* Surfaces — @window_bg_color etc. from the dark block */
+  --adw-window-bg:      #222226;
+  --adw-view-bg:        #1d1d20;
+  --adw-headerbar-bg:   #2e2e32;
+  --adw-sidebar-bg:     #2e2e32;
+  --adw-sidebar2-bg:    #28282c;
+  --adw-popover-bg:     #36363a;
+  --adw-thumbnail-bg:   #39393d;
+
+  /* Text & lines. libadwaita derives all of these from currentColor:
+     --border-opacity 15%, --dim-opacity 55%, --disabled-opacity 50%. */
+  --adw-fg:             #ffffff;
+  --adw-fg-dim:         rgba(255, 255, 255, 0.55);
+  --adw-fg-disabled:    rgba(255, 255, 255, 0.50);
+  --adw-border:         rgba(255, 255, 255, 0.15);
+  --adw-border-soft:    rgba(255, 255, 255, 0.10);
+  --adw-hover:          rgba(255, 255, 255, 0.06);
+  --adw-active:         rgba(255, 255, 255, 0.12);
+  --adw-fill:           rgba(255, 255, 255, 0.10);
+  --adw-shade:          rgba(0, 0, 6, 0.36);
+  --adw-sidebar-divider: rgba(0, 0, 6, 0.25);
+
+  /* Window-control buttons (24px circles) and the modal scrim */
+  --adw-wc-hover:       rgba(255, 255, 255, 0.15);
+  --adw-wc-active:      rgba(255, 255, 255, 0.20);
+  --adw-overlay:        rgba(0, 0, 6, 0.45);
+  --adw-scrollbar-thumb: rgba(255, 255, 255, 0.28);
+
+  /* Accent derivation, dark.
+     libadwaita: accent_color = oklab(from accent_bg max(l, 0.85) a b) — the
+     standalone accent sits *lighter* than the fill on dark, for contrast.
+     --adw-accent-l is that knob; 0.763 is one notch darker than GNOME's own
+     0.85 and is exactly yellow_5 #e5a50a for the yellow accent. */
+  --adw-accent-l:            0.763;
+  --adw-standalone-oklab:    max(l, var(--adw-accent-l)) a b;
+  --adw-accent-bg-oklab:     min(l, 0.674) a b;
+  --adw-accent-hover-oklab:  max(l, 0.85) a b;
+  --adw-accent-fg:           #ffffff;
+
+  /* Semantic — the dark block's own values */
+  --adw-success:        #8ff0a4;
+  --adw-warning:        #f9f06b;
+  --adw-error:          #f66151;
+  --adw-orange:         #ff7800;
+
+  /* shui / radix grey ramp. 01 = deepest surface, 12 = text. The first four
+     steps are the Adwaita surfaces above, so shui components land on the same
+     greys as the classic --ls-* ones. */
+  --adw-gray-01: #1d1d20;
+  --adw-gray-02: #222226;
+  --adw-gray-03: #2e2e32;
+  --adw-gray-04: #36363a;
+  --adw-gray-05: #3d3d42;
+  --adw-gray-06: #45454a;
+  --adw-gray-07: #55555b;
+  --adw-gray-08: #6b6b72;
+  --adw-gray-09: #85858c;
+  --adw-gray-10: #9d9da5;
+  --adw-gray-11: #c0bfbc;   /* light_4 */
+  --adw-gray-12: #ffffff;
+
+  /* radix's own alpha steps for a dark ramp, neutralised to white */
+  --adw-gray-01-alpha: hsla(0, 0%, 100%, 0);
+  --adw-gray-02-alpha: hsla(0, 0%, 100%, 0.026);
+  --adw-gray-03-alpha: hsla(0, 0%, 100%, 0.056);
+  --adw-gray-04-alpha: hsla(0, 0%, 100%, 0.077);
+  --adw-gray-05-alpha: hsla(0, 0%, 100%, 0.103);
+  --adw-gray-06-alpha: hsla(0, 0%, 100%, 0.129);
+  --adw-gray-07-alpha: hsla(0, 0%, 100%, 0.172);
+  --adw-gray-08-alpha: hsla(0, 0%, 100%, 0.249);
+  --adw-gray-09-alpha: hsla(0, 0%, 100%, 0.386);
+  --adw-gray-10-alpha: hsla(0, 0%, 100%, 0.446);
+  --adw-gray-11-alpha: hsla(0, 0%, 100%, 0.592);
+  --adw-gray-12-alpha: hsla(0, 0%, 100%, 0.923);
+
+  /* Misc surfaces that need a literal rather than a token */
+  --adw-table-stripe: rgba(255, 255, 255, 0.04);
+  --adw-bullet:       rgba(255, 255, 255, 0.45);
+  --adw-scrollbar-fg: rgba(255, 255, 255, 0.20);
+  --adw-scrollbar-fg-hover: rgba(255, 255, 255, 0.35);
+
+  /* shadcn/shui HSL triplets, consumed as hsl(var(--primary)). Left alone,
+     every shui button and dialog stays a near-white pill. */
+  --background: 240 4.9% 12%;
+  --foreground: 0 0% 100%;
+  --card: 240 4% 19%;
+  --card-foreground: 0 0% 100%;
+  --popover: 240 4% 22%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 240 3.5% 28%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 4% 22%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 240 4% 19%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 240 4% 25%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 356 75% 43%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 4% 25%;
+  --input: 240 4% 25%;
+  --ring: 40 100% 39%;
+
+  /* Shadows — window.csd, measured from the same stylesheet */
+  --adw-window-shadow:
+      0 0 14px 5px rgb(0 0 0 / 15%),
+      0 0 5px 2px rgb(0 0 0 / 10%),
+      0 0 0 1px rgb(0 0 0 / 5%);
+  --adw-popover-shadow:
+      0 1px 2px rgb(0 0 0 / 30%),
+      0 6px 12px rgb(0 0 0 / 25%);
+}

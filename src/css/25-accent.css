@@ -1,0 +1,142 @@
+/* ==========================================================================
+   Adwaita for Logseq — accent
+
+   Priority: Logseq's own accent setting first, GNOME's as the fallback.
+
+   Logseq's accent picker (Settings → Accent color) writes data-color on
+   <html> and redefines --ls-link-text-color on the .dark-theme/.light-theme
+   wrapper. That wrapper contains the whole visible UI — header, both
+   sidebars, window controls and content — so a definition there wins for
+   everything by inheritance, whatever the specificity on <html>. The theme
+   therefore derives every accent-flavoured token from whatever
+   --ls-link-text-color resolves to at that point in the tree.
+
+   There is no CSS lever for reading the GNOME accent live: Chromium's
+   AccentColor system colour resolves to its own generic blue, not the GTK
+   one, and Highlight/SelectedItem likewise. Hence a setting rather than a
+   self-updating stylesheet.
+   ========================================================================== */
+
+:root {
+  /* libadwaita's @accent_bg_color for the accent picked in GNOME Settings.
+     The nine values are libadwaita's own — `strings libadwaita-1.so.0` returns
+     exactly these: blue #3584e4, teal #2190a4, green #3a944a, yellow #c88800,
+     orange #ed5b00, red #e62d42, pink #d56199, purple #9141ac, slate #6f8396.
+     The plugin's "GNOME accent" setting rewrites this one line. */
+  --adw-gnome-accent: #3584e4;
+}
+
+/* The standalone accent, derived per colour scheme: lighter than the fill on
+   dark, darker than it on light. Both clamps live in the palette files. */
+html[data-theme] {
+  --adw-accent-default: oklab(from var(--adw-gnome-accent) var(--adw-standalone-oklab));
+}
+
+/* The GNOME accent applies only when Logseq has no accent of its own.
+   Logseq's "logseq" swatch — the turquoise "Logseq classical color", second in
+   the picker, and the default on a fresh install — defines its accent on
+   <html> rather than on the theme wrapper like the named colours do, so an
+   unscoped html-level declaration here would silently outrank it. Scoping to
+   the no-accent case is what lets it through. */
+html[data-theme]:not([data-color]),
+html[data-theme][data-color=""],
+html[data-theme][data-color="none"] {
+  --ls-link-text-color: var(--adw-accent-default);
+}
+
+/* Everything accent-flavoured derives from --adw-accent, which is simply
+   whatever --ls-link-text-color resolves to at that point in the tree.
+
+   The group is declared twice because custom properties are substituted per
+   element: re-declaring --adw-accent deeper does *not* recompute the tokens
+   derived from it, so the whole group has to be restated on the wrapper. */
+html[data-theme],
+html[data-theme][data-color],
+html[data-theme] :is(.dark-theme, .light-theme) {
+  --adw-accent:       var(--ls-link-text-color, var(--adw-accent-default));
+  /* the fill sits where accent_bg_color does, relative to the standalone one */
+  --adw-accent-bg:    oklab(from var(--adw-accent) var(--adw-accent-bg-oklab));
+  --adw-accent-hover: oklab(from var(--adw-accent) var(--adw-accent-hover-oklab));
+  --adw-selection:    color-mix(in srgb, var(--adw-accent-bg) 30%, transparent);
+
+  --ls-link-text-hover-color:     var(--adw-accent-hover);
+  --ls-link-ref-text-color:       var(--adw-accent);
+  --ls-link-ref-text-hover-color: var(--adw-accent-hover);
+  --ls-tag-text-color:            var(--adw-accent);
+  --ls-tag-text-hover-color:      var(--adw-accent-hover);
+  --ls-active-primary-color:      var(--adw-accent-bg);
+  --ls-active-secondary-color:    var(--adw-accent);
+  --ls-page-checkbox-color:       var(--adw-accent-bg);
+  --ls-focus-ring-color:          var(--adw-accent-bg);
+  --ls-selection-background-color: var(--adw-selection);
+  --ls-highlight-color-default:    var(--adw-selection);
+  --lx-accent-09: var(--adw-accent-bg);
+  --lx-accent-10: var(--adw-accent);
+  --lx-accent-11: var(--adw-accent);
+}
+
+/* Picking an accent in Logseq also re-tints the *neutral* ramp on the theme
+   wrapper: with data-color="orange", --lx-gray-03 becomes #232320 and
+   --ls-secondary-background-color #1c1c1a, which turns the linked-reference
+   and quote cards warm brown. Only the accent should follow the setting —
+   surfaces stay Adwaita. Restated here because the wrapper outranks the
+   <html> token block by depth. */
+html[data-theme] :is(.dark-theme, .light-theme) {
+  --lx-gray-01: var(--adw-gray-01);
+  --lx-gray-02: var(--adw-gray-02);
+  --lx-gray-03: var(--adw-gray-03);
+  --lx-gray-04: var(--adw-gray-04);
+  --lx-gray-05: var(--adw-gray-05);
+  --lx-gray-06: var(--adw-gray-06);
+  --lx-gray-07: var(--adw-gray-07);
+  --lx-gray-08: var(--adw-gray-08);
+  --lx-gray-09: var(--adw-gray-09);
+  --lx-gray-10: var(--adw-gray-10);
+  --lx-gray-11: var(--adw-gray-11);
+  --lx-gray-12: var(--adw-gray-12);
+
+  --lx-gray-01-alpha: var(--adw-gray-01-alpha);
+  --lx-gray-02-alpha: var(--adw-gray-02-alpha);
+  --lx-gray-03-alpha: var(--adw-gray-03-alpha);
+  --lx-gray-04-alpha: var(--adw-gray-04-alpha);
+  --lx-gray-05-alpha: var(--adw-gray-05-alpha);
+  --lx-gray-06-alpha: var(--adw-gray-06-alpha);
+  --lx-gray-07-alpha: var(--adw-gray-07-alpha);
+  --lx-gray-08-alpha: var(--adw-gray-08-alpha);
+  --lx-gray-09-alpha: var(--adw-gray-09-alpha);
+  --lx-gray-10-alpha: var(--adw-gray-10-alpha);
+  --lx-gray-11-alpha: var(--adw-gray-11-alpha);
+  --lx-gray-12-alpha: var(--adw-gray-12-alpha);
+
+  --ls-primary-background-color:    var(--adw-view-bg);
+  --ls-secondary-background-color:  var(--adw-window-bg);
+  --ls-tertiary-background-color:   var(--adw-headerbar-bg);
+  --ls-quaternary-background-color: var(--adw-sidebar2-bg);
+  --ls-table-tr-even-background-color: var(--adw-table-stripe);
+  --ls-page-properties-background-color:  var(--adw-sidebar2-bg);
+  --ls-block-properties-background-color: var(--adw-sidebar2-bg);
+  --ls-page-inline-code-bg-color:   var(--adw-fill);
+  --ls-block-highlight-color:       var(--adw-hover);
+  --ls-a-chosen-bg:                 var(--adw-hover);
+
+  --ls-primary-text-color:   var(--adw-fg);
+  --ls-secondary-text-color: var(--adw-fg-dim);
+  --ls-border-color:           var(--adw-border);
+  --ls-secondary-border-color: var(--adw-border-soft);
+}
+
+/* Plain buttons stay neutral — GNOME tints only suggested-action. Restated
+   per scheme because these are literal HSL triplets, not var() references. */
+html[data-theme="dark"] .dark-theme {
+  --primary: 240 3.5% 28%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 240 4% 25%;
+  --accent-foreground: 0 0% 100%;
+}
+
+html[data-theme="light"] .light-theme {
+  --primary: 240 6% 90%;
+  --primary-foreground: 240 10% 8%;
+  --accent: 240 9% 93%;
+  --accent-foreground: 240 10% 8%;
+}

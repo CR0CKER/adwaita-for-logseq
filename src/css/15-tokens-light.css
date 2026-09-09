@@ -1,0 +1,130 @@
+/* ==========================================================================
+   Adwaita for Logseq — light palette
+
+   Same source as the dark one, taken from the light (default) block of
+   libadwaita's default.css. The surfaces are *not* mirror images of the dark
+   ones: on light, the sidebar is darker than the view (#ebebed vs #ffffff),
+   where on dark it is lighter (#2e2e32 vs #1d1d20). Anything that assumed
+   "sidebar = lighter" would come out inverted here.
+
+   Foreground is @window_fg_color, RGB(0 0 6 / 80%) — GNOME never paints pure
+   black text on light.
+   ========================================================================== */
+
+html[data-theme="light"],
+html[data-theme="light"][data-color] {
+  /* Surfaces — @window_bg_color #fafafb, @view_bg_color #ffffff,
+     @sidebar_bg_color #ebebed, @secondary_sidebar_bg_color #f3f3f5,
+     @popover_bg_color #ffffff, @thumbnail_bg_color #ffffff */
+  --adw-window-bg:      #fafafb;
+  --adw-view-bg:        #ffffff;
+  --adw-headerbar-bg:   #ffffff;
+  --adw-sidebar-bg:     #ebebed;
+  --adw-sidebar2-bg:    #f3f3f5;
+  --adw-popover-bg:     #ffffff;
+  --adw-thumbnail-bg:   #ffffff;
+
+  /* Text & lines — the same opacity constants over rgb(0 0 6) */
+  --adw-fg:             rgba(0, 0, 6, 0.80);
+  --adw-fg-dim:         rgba(0, 0, 6, 0.55);
+  --adw-fg-disabled:    rgba(0, 0, 6, 0.50);
+  --adw-border:         rgba(0, 0, 6, 0.15);
+  --adw-border-soft:    rgba(0, 0, 6, 0.10);
+  --adw-hover:          rgba(0, 0, 6, 0.06);
+  --adw-active:         rgba(0, 0, 6, 0.12);
+  --adw-fill:           rgba(0, 0, 6, 0.10);
+  /* @shade_color and @sidebar_shade_color are 7% on light, not 25–36% */
+  --adw-shade:          rgba(0, 0, 6, 0.07);
+  --adw-sidebar-divider: rgba(0, 0, 6, 0.07);
+
+  --adw-wc-hover:       rgba(0, 0, 6, 0.10);
+  --adw-wc-active:      rgba(0, 0, 6, 0.16);
+  --adw-overlay:        rgba(0, 0, 6, 0.25);
+  --adw-scrollbar-thumb: rgba(0, 0, 6, 0.35);
+
+  /* Accent derivation, light — the mirror of the dark clamps.
+     libadwaita: accent_color = oklab(from accent_bg min(l, 0.5) a b), so the
+     standalone accent sits *darker* than the fill, which stays accent_bg.
+     Because the theme derives everything from whatever Logseq resolves
+     --ls-link-text-color to, the fill has to be derived back *up* from the
+     text colour instead: max(l, 0.62) is accent_bg's own lightness band. */
+  --adw-accent-l:            0.5;
+  --adw-standalone-oklab:    min(l, var(--adw-accent-l)) a b;
+  --adw-accent-bg-oklab:     max(l, 0.62) a b;
+  --adw-accent-hover-oklab:  min(l, 0.42) a b;
+  --adw-accent-fg:           #ffffff;
+
+  /* Semantic — the light block's values (darker than the dark block's, so
+     they stay readable on white) */
+  --adw-success:        #26a269;   /* green_5 */
+  --adw-warning:        #c64600;   /* orange_5 */
+  --adw-error:          #c01c28;   /* red_4 */
+  --adw-orange:         #e66100;   /* orange_4 */
+
+  /* Grey ramp, light. 01 = the lightest surface, 12 = text — the same
+     direction Logseq uses, so nothing downstream has to be inverted.
+     Steps 07–12 are GNOME's own light_4/light_5/dark_1..4. */
+  --adw-gray-01: #ffffff;
+  --adw-gray-02: #fafafb;
+  --adw-gray-03: #f3f3f5;
+  --adw-gray-04: #ebebed;
+  --adw-gray-05: #e0e0e4;
+  --adw-gray-06: #d5d5da;
+  --adw-gray-07: #c0bfbc;   /* light_4 */
+  --adw-gray-08: #9a9996;   /* light_5 */
+  --adw-gray-09: #77767b;   /* dark_1 */
+  --adw-gray-10: #5e5c64;   /* dark_2 */
+  --adw-gray-11: #3d3846;   /* dark_3 */
+  --adw-gray-12: #241f31;   /* dark_4 */
+
+  /* radix's alpha steps for a light ramp, neutralised to black */
+  --adw-gray-01-alpha: hsla(0, 0%, 0%, 0);
+  --adw-gray-02-alpha: hsla(0, 0%, 0%, 0.012);
+  --adw-gray-03-alpha: hsla(0, 0%, 0%, 0.035);
+  --adw-gray-04-alpha: hsla(0, 0%, 0%, 0.055);
+  --adw-gray-05-alpha: hsla(0, 0%, 0%, 0.078);
+  --adw-gray-06-alpha: hsla(0, 0%, 0%, 0.102);
+  --adw-gray-07-alpha: hsla(0, 0%, 0%, 0.141);
+  --adw-gray-08-alpha: hsla(0, 0%, 0%, 0.220);
+  --adw-gray-09-alpha: hsla(0, 0%, 0%, 0.439);
+  --adw-gray-10-alpha: hsla(0, 0%, 0%, 0.478);
+  --adw-gray-11-alpha: hsla(0, 0%, 0%, 0.565);
+  --adw-gray-12-alpha: hsla(0, 0%, 0%, 0.910);
+
+  --adw-table-stripe: rgba(0, 0, 6, 0.03);
+  --adw-bullet:       rgba(0, 0, 6, 0.45);
+  --adw-scrollbar-fg: rgba(0, 0, 6, 0.25);
+  --adw-scrollbar-fg-hover: rgba(0, 0, 6, 0.40);
+
+  /* shadcn/shui HSL triplets, light. Hue 240 at very low saturation is the
+     same near-neutral GNOME uses; lightness follows the surfaces above. */
+  --background: 240 20% 99%;
+  --foreground: 240 10% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 8%;
+  --primary: 240 6% 90%;
+  --primary-foreground: 240 10% 8%;
+  --secondary: 240 14% 96%;
+  --secondary-foreground: 240 10% 8%;
+  --muted: 240 14% 96%;
+  --muted-foreground: 240 4% 40%;
+  --accent: 240 9% 93%;
+  --accent-foreground: 240 10% 8%;
+  --destructive: 356 75% 43%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 86%;
+  --input: 240 6% 86%;
+  --ring: 40 100% 39%;
+
+  /* Shadows are softer on light — window.csd uses the same geometry with a
+     lower alpha, and the popover shadow drops to @popover_shade_color 7%. */
+  --adw-window-shadow:
+      0 0 14px 5px rgb(0 0 0 / 8%),
+      0 0 5px 2px rgb(0 0 0 / 6%),
+      0 0 0 1px rgb(0 0 0 / 5%);
+  --adw-popover-shadow:
+      0 1px 2px rgb(0 0 6 / 10%),
+      0 6px 12px rgb(0 0 6 / 10%);
+}

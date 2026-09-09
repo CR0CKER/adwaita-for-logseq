@@ -1,0 +1,38 @@
+name: Build and attach release zip
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build
+        run: |
+          npm install
+          npm run build
+
+      - name: Package
+        run: |
+          mkdir -p release/${{ github.event.repository.name }}
+          cp -r package.json index.html icon.png README.md LICENSE dist themes \
+            release/${{ github.event.repository.name }}/
+          cd release
+          zip -r ../${{ github.event.repository.name }}-${{ github.ref_name }}.zip .
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ github.event.repository.name }}-${{ github.ref_name }}.zip
+          generate_release_notes: true

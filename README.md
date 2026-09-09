@@ -1,0 +1,139 @@
+# Adwaita for Logseq
+
+Logseq that looks like it belongs on a GNOME desktop: one merged headerbar, Adwaita
+surfaces, round window-control buttons, GNOME's own metrics, in light and dark.
+
+![Adwaita Dark](screenshots/dark.png)
+
+![Adwaita Light](screenshots/light.png)
+
+Every colour and measurement comes out of libadwaita itself rather than being sampled
+from a screenshot:
+
+```
+gresource extract /usr/lib64/libadwaita-1.so.0 /org/gnome/Adwaita/styles/default.css
+```
+
+Window radius 15px, headerbar 47px, button and entry radius 9px, popover radius 12px;
+surfaces `#1d1d20` / `#2e2e32` / `#36363a` on dark and `#ffffff` / `#ebebed` / `#fafafb`
+on light; text at 80% opacity, borders at 15%, exactly as GNOME derives them.
+
+## Install
+
+From Logseq's marketplace: **Settings → Plugins → Marketplace → Themes → Adwaita**, then
+pick *Adwaita Dark* or *Adwaita Light* in **Settings → Themes**.
+
+## Three things the stylesheet cannot do for you
+
+CSS reaches the page, not the window. Without these the theme still applies, but it will
+not look like the screenshots — and each one takes a few seconds:
+
+**1. Turn the native title bar off.** Settings → General → *Native title bar* → off.
+This is what gives Logseq a frameless window with the merged headerbar and the window
+controls the theme styles. With it on, you get a GTK titlebar above a Logseq toolbar —
+two bars where GNOME apps have one.
+
+**2. Add the launch flags** to your `.desktop` file's `Exec=` line (on Linux, copy
+`/usr/share/applications/logseq.desktop` to `~/.local/share/applications/` first, so a
+package update does not overwrite it):
+
+```
+--enable-features=WaylandWindowDecorations,OverlayScrollbar --gtk-version=4
+```
+
+- `WaylandWindowDecorations` — Chromium draws the CSD frame: rounded corners, shadow,
+  resize edges on the frameless window.
+- `OverlayScrollbar` — **the scrollbars come from this flag, not from the theme.**
+  Logseq sets `scrollbar-color` on `:root`, and since Chromium 121 any specified
+  `scrollbar-color` or `scrollbar-width` makes every `::-webkit-scrollbar*` rule inert —
+  including `::-webkit-scrollbar-button { display: none }`. There is no CSS that removes
+  the stepper arrows or reclaims the reserved gutter. With the flag you get real GTK-style
+  overlay scrollbars: no buttons, no reserved width, fading out when idle. Without it,
+  Chromium's classic scrollbars, tinted to match.
+- `--gtk-version=4` — file dialogs render with GTK4/libadwaita.
+
+**3. Do not leave another plugin theme selected.** Plugin themes load after this one and
+will win.
+
+## Settings
+
+The theme is plain CSS; the plugin exists only to hold the handful of choices that differ
+between machines. Settings → Plugins → Adwaita → the gear icon.
+
+| Setting | Default | What it is for |
+|---|---|---|
+| GNOME accent colour | `blue` | Which accent GNOME Settings is on. **CSS cannot read it** — Chromium's `AccentColor` resolves to its own generic blue, not GTK's — so it has to be told. The nine choices are libadwaita's own `@accent_bg_color` values. |
+| Custom accent (hex) | `#3584e4` | Used when the accent above is `custom`. Give the *fill* colour; the text accent is derived. |
+| Accent lightness on dark | `0.763` | The oklab lightness floor for accent text on dark. GNOME's own is 0.85; 0.763 is a notch darker and more saturated. |
+| Window controls | `all` | Set to `close only` if your GNOME titlebar layout is `appmenu:close`. |
+| Content gutter | `24px` | Left and right padding of the content column. |
+| Hide link favicons | off | |
+| Hide the right sidebar's top bar | off | Leaves one continuous headerbar. |
+| Interface / monospace font | Adwaita Sans / Adwaita Mono | Adwaita Sans ships with GNOME 47+; Cantarell is the fallback. |
+
+### How the accent works
+
+Logseq's own accent wins. Pick one in **Settings → Accent color** and links, tags, refs,
+selection, the focus ring and checkboxes all follow it, while the surfaces stay Adwaita
+grey — Logseq normally re-tints its whole neutral ramp along with the accent, which turns
+linked-reference and quote cards warm; the theme puts the greys back.
+
+The *GNOME accent* setting is only the fallback, used when Logseq's accent is unset. From
+it the theme derives the same three values libadwaita does: the standalone accent for text
+(`oklab(from accent max(l, 0.763) a b)` on dark, `min(l, 0.5)` on light), the fill below
+it, and a hover step above.
+
+## Scope
+
+- **Linux/GNOME**, light and dark. It will apply anywhere, but the point of it is the
+  match with Adwaita.
+- Built against **Logseq 0.10.x and Logseq OG** (file-based graphs). The DB version has a
+  different component tree and is not covered.
+- The window frame's corner radius is Chromium's, not the theme's — it is painted outside
+  the web contents and no stylesheet can reach it.
+
+## Development
+
+```
+npm install
+npm run build     # concatenates src/css/* into themes/adwaita.css, bundles the plugin
+```
+
+Then Logseq → Settings → Advanced → Developer mode, and **Load unpacked plugin** on the
+repo directory.
+
+`src/css/` is split so a colour is written down in exactly one place:
+
+| File | |
+|---|---|
+| `10-tokens-dark.css` | the dark palette, from libadwaita |
+| `15-tokens-light.css` | the light palette, from libadwaita |
+| `20-mappings.css` | Logseq's `--ls-*`, the shui `--lx-gray-*` ramp and the shadcn HSL triplets, all pointed at those tokens — colour-scheme independent |
+| `25-accent.css` | accent derivation and the neutral-ramp restatement |
+| `30-structure.css` | headerbar, sidebar, window controls, widgets, content — geometry only, every colour a token |
+
+The structure rules are scoped `html[data-theme]`, not `html[data-theme="dark"]`, so one
+sheet serves both schemes and the palette files are the only difference between them.
+
+### Why some rules look over-specific
+
+Logseq paints the same surface through four independent systems, and there are two
+specificity traps worth knowing before editing:
+
+1. `--ls-*` — the classic theme layer.
+2. `--lx-gray-01..12` — the shui/radix ramp. Buttons, dropdowns, dialogs, cmdk and
+   `.references-blocks-item` read *these*, not the `--ls-*` vars.
+3. shadcn HSL triplets (`--primary`, `--popover`, `--ring`, …), consumed as
+   `hsl(var(--primary))`. Untouched, every shui button stays a near-white pill.
+4. Element-level overrides further down Logseq's own sheet.
+
+And: `html[data-theme="dark"][data-color="<accent>"]` activates a full ~50-variable
+palette at specificity (0,2,1) — the solarized-ish `logseq` one is the **default on a
+fresh install** — which outranks a plain `html[data-theme="dark"]` block. Every token
+block here therefore carries a second `[data-color]` selector to tie that specificity and
+win on order. The same palette paints `.ui__modal-panel` and the cmdk hints footer from
+`--lx-accent-01` at (0,3,1), which is why those two have their own rules.
+
+## Licence
+
+MIT.

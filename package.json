@@ -1,0 +1,34 @@
+{
+  "name": "logseq-adwaita-theme",
+  "version": "0.1.0",
+  "description": "Logseq as a native GNOME app: Adwaita surfaces, one merged headerbar, round window controls, light and dark.",
+  "author": "CR0CKER",
+  "license": "MIT",
+  "main": "index.html",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@logseq/libs": "^0.0.17",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  },
+  "logseq": {
+    "id": "logseq-adwaita-theme",
+    "icon": "./icon.png",
+    "themes": [
+      {
+        "name": "Adwaita Dark",
+        "mode": "dark",
+        "url": "./themes/adwaita.css",
+        "description": "GNOME's Adwaita, dark"
+      },
+      {
+        "name": "Adwaita Light",
+        "mode": "light",
+        "url": "./themes/adwaita.css",
+        "description": "GNOME's Adwaita, light"
+      }
+    ]
+  }
+}

@@ -1,0 +1,438 @@
+/* --------------------------------------------------------------------------
+   2. Typography
+   -------------------------------------------------------------------------- */
+
+html[data-theme] body,
+html[data-theme] .cp__header,
+html[data-theme] #left-sidebar,
+html[data-theme] .cp__right-sidebar,
+html[data-theme] textarea,
+html[data-theme] input,
+html[data-theme] button,
+html[data-theme] select {
+  font-family: var(--adw-font-sans);
+}
+
+html[data-theme] code,
+html[data-theme] pre,
+html[data-theme] .font-mono,
+html[data-theme] .CodeMirror,
+html[data-theme] .cm-editor {
+  font-family: var(--adw-font-mono);
+}
+
+/* --------------------------------------------------------------------------
+   3. The merged Adwaita headerbar
+      Files/Contacts put everything in one 47px bar, split at the sidebar edge.
+      .cp__header is already -webkit-app-region: drag, so dragging is free.
+   -------------------------------------------------------------------------- */
+
+html[data-theme] .cp__header,
+html[data-theme] #head {
+  height: var(--adw-headerbar-h);
+  min-height: var(--adw-headerbar-h);
+  padding-top: 0;
+  margin-top: 0;
+  /* Files/Contacts: the content-side headerbar is flat — same colour as the
+     view below it, no bottom shade. Only the sidebars are lighter. */
+  background-color: var(--adw-view-bg);
+  box-shadow: none;
+  border: none;
+}
+
+/* Left half of the bar continues the sidebar — but only while the sidebar is
+   open, otherwise a light block floats over the dark bar. The divider in Files
+   is a *darker* edge, not a light hairline (#2e2e32 → #28282c → #1d1d20). */
+html[data-theme] .cp__header > .l {
+  height: 100%;
+  padding-left: 6px;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+html[data-theme] .ls-left-sidebar-open .cp__header > .l {
+  background-color: var(--adw-sidebar-bg);
+  box-shadow: inset -1px 0 var(--adw-sidebar-divider);
+}
+
+html[data-theme] .cp__header > .r {
+  height: 100%;
+  padding-right: 8px;
+}
+
+/* header buttons: Adwaita flat icon buttons */
+html[data-theme] .cp__header .button {
+  height: 32px;
+  min-width: 32px;
+  border-radius: var(--adw-radius-button);
+  background: transparent;
+  color: var(--adw-fg);
+  opacity: .85;
+}
+
+html[data-theme] .cp__header .button:hover {
+  background-color: var(--adw-hover);
+  opacity: 1;
+}
+
+html[data-theme] .cp__header .button:active {
+  background-color: var(--adw-active);
+}
+
+html[data-theme] .cp__header .button .ti,
+html[data-theme] .cp__header .button .tie {
+  font-size: 17px;
+}
+
+/* --------------------------------------------------------------------------
+   4. Window controls — GNOME round buttons
+      All three are styled as 24px Adwaita circles. GNOME's own button-layout
+      (org.gnome.desktop.wm.preferences button-layout) is not readable from
+      CSS, so hiding minimise/maximise for an 'appmenu:close' desktop is the
+      plugin's "Window controls: close only" setting, not a default here.
+   -------------------------------------------------------------------------- */
+
+html[data-theme] .window-controls {
+  top: 0;
+  right: 0;
+  height: var(--adw-headerbar-h);
+  display: flex;
+  align-items: center;
+  padding-right: 13px;
+  gap: 3px;
+}
+
+html[data-theme] .window-controls .button {
+  /* Logseq's global `button { cursor: pointer }` puts a link hand on the
+     window controls; GTK titlebar buttons keep the plain arrow. */
+  cursor: default;
+  box-shadow: none;
+  border: none;
+  outline: none;
+  filter: none;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 5px;
+  border-radius: 100%;
+  background-color: var(--adw-fill);
+  color: var(--adw-fg);
+  opacity: 1;
+}
+
+html[data-theme] .window-controls .button:hover {
+  background-color: var(--adw-wc-hover);
+}
+
+html[data-theme] .window-controls .button:active {
+  background-color: var(--adw-wc-active);
+}
+
+html[data-theme] .window-controls .button svg,
+html[data-theme] .window-controls .button .ti {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+}
+
+/* Logseq ships a thin 16px X; GTK (and so Thunderbird's titlebar) draws
+   Adwaita's `window-close-symbolic` — an 8x8 cross with tapered ends inside a
+   16px box. Use that exact asset as a mask, taken verbatim from
+   /usr/share/icons/Adwaita/symbolic/ui/window-close-symbolic.svg, so the glyph
+   is GTK's own geometry rather than an approximation of it. */
+html[data-theme] .window-controls .button.close {
+  position: relative;
+}
+
+html[data-theme] .window-controls .button.close svg {
+  display: none;
+}
+
+html[data-theme] .window-controls .button.close::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20height%3D%2216px%22%20viewBox%3D%220%200%2016%2016%22%20width%3D%2216px%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%20%3Cpath%20d%3D%22m%204%204%20h%201%20h%200.03125%20c%200.253906%200.011719%200.511719%200.128906%200.6875%200.3125%20l%202.28125%202.28125%20l%202.3125%20-2.28125%20c%200.265625%20-0.230469%200.445312%20-0.304688%200.6875%20-0.3125%20h%201%20v%201%20c%200%200.285156%20-0.035156%200.550781%20-0.25%200.75%20l%20-2.28125%202.28125%20l%202.25%202.25%20c%200.1875%200.1875%200.28125%200.453125%200.28125%200.71875%20v%201%20h%20-1%20c%20-0.265625%200%20-0.53125%20-0.09375%20-0.71875%20-0.28125%20l%20-2.28125%20-2.28125%20l%20-2.28125%202.28125%20c%20-0.1875%200.1875%20-0.453125%200.28125%20-0.71875%200.28125%20h%20-1%20v%20-1%20c%200%20-0.265625%200.09375%20-0.53125%200.28125%20-0.71875%20l%202.28125%20-2.25%20l%20-2.28125%20-2.28125%20c%20-0.210938%20-0.195312%20-0.304688%20-0.46875%20-0.28125%20-0.75%20z%20m%200%200%22%2F%3E%20%3C%2Fsvg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20height%3D%2216px%22%20viewBox%3D%220%200%2016%2016%22%20width%3D%2216px%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%20%3Cpath%20d%3D%22m%204%204%20h%201%20h%200.03125%20c%200.253906%200.011719%200.511719%200.128906%200.6875%200.3125%20l%202.28125%202.28125%20l%202.3125%20-2.28125%20c%200.265625%20-0.230469%200.445312%20-0.304688%200.6875%20-0.3125%20h%201%20v%201%20c%200%200.285156%20-0.035156%200.550781%20-0.25%200.75%20l%20-2.28125%202.28125%20l%202.25%202.25%20c%200.1875%200.1875%200.28125%200.453125%200.28125%200.71875%20v%201%20h%20-1%20c%20-0.265625%200%20-0.53125%20-0.09375%20-0.71875%20-0.28125%20l%20-2.28125%20-2.28125%20l%20-2.28125%202.28125%20c%20-0.1875%200.1875%20-0.453125%200.28125%20-0.71875%200.28125%20h%20-1%20v%20-1%20c%200%20-0.265625%200.09375%20-0.53125%200.28125%20-0.71875%20l%202.28125%20-2.25%20l%20-2.28125%20-2.28125%20c%20-0.210938%20-0.195312%20-0.304688%20-0.46875%20-0.28125%20-0.75%20z%20m%200%200%22%2F%3E%20%3C%2Fsvg%3E");
+  -webkit-mask-size: 16px 16px;
+  mask-size: 16px 16px;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+
+/* The stock rules reserve 144px for three 48px buttons. Adwaita's are 24px
+   with 3px spacing, so the cluster is 3x24 + 2x3 + 13px of padding. The
+   close-only setting narrows this to 37px. */
+html[data-theme] .ls-window-controls:not(.ls-right-sidebar-open) .cp__header > .r,
+html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header > .r {
+  margin-right: var(--adw-wc-width);
+}
+
+html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__right-sidebar-topbar,
+html[data-theme] .ls-window-controls:not(.ls-right-sidebar-open) .cp__right-sidebar-topbar {
+  margin-right: var(--adw-wc-width);
+}
+
+html[data-theme].is-fullscreen .cp__header > .r {
+  margin-right: 8px;
+}
+
+/* GNOME shows the plain arrow on buttons; the pointing hand is for hyperlinks
+   only. Logseq's global `button { cursor: pointer }` puts a hand on all app
+   chrome. Content links, page refs and tags are left alone — those *are* links. */
+html[data-theme] .cp__header button,
+html[data-theme] .cp__header a,
+html[data-theme] .cp__header .button,
+html[data-theme] .cp__right-sidebar-topbar button,
+html[data-theme] .cp__right-sidebar-topbar a,
+html[data-theme] #left-sidebar a.item,
+html[data-theme] #left-sidebar .nav-header a,
+html[data-theme] #left-sidebar .nav-content-item .header,
+html[data-theme] .cp__menubar-repos .ui__dropdown-trigger,
+html[data-theme] .menu-link,
+html[data-theme] .ui__dropdown-menu-item,
+html[data-theme] .ui__button,
+html[data-theme] .ui__modal-panel button,
+html[data-theme] .settings-modal button,
+html[data-theme] .settings-modal .it {
+  cursor: default;
+}
+
+/* --------------------------------------------------------------------------
+   5. Sidebar
+   -------------------------------------------------------------------------- */
+
+html[data-theme] #left-sidebar,
+html[data-theme] #left-sidebar .left-sidebar-inner {
+  background-color: var(--adw-sidebar-bg);
+  border-right: none;
+  box-shadow: inset -1px 0 var(--adw-sidebar-divider);
+  /* The column is sized by its content (.wrap is `100vh - 50px` plus a
+     margin-top the awesomeUI plugin rewrites), so it stops a few px short of
+     the window and leaves a dark strip along the bottom edge. #left-sidebar is
+     position:fixed at top:0, so pinning it to the viewport is safe. */
+  height: 100vh;
+}
+
+html[data-theme] #left-sidebar .left-sidebar-inner a.item {
+  margin: 0 6px;
+  padding: 6px 8px;
+  border-radius: var(--adw-radius-button);
+  color: var(--adw-fg);
+  transition: background-color .1s ease-out;
+}
+
+html[data-theme] #left-sidebar .left-sidebar-inner a.item:hover {
+  background-color: var(--adw-hover);
+}
+
+html[data-theme] #left-sidebar .left-sidebar-inner a.item.active {
+  background-color: var(--adw-active);
+  color: var(--adw-fg);
+  font-weight: 500;
+}
+
+html[data-theme] .cp__menubar-repos .ui__dropdown-trigger {
+  background-color: transparent;
+}
+
+/* The right sidebar runs the full window height and its topbar is hidden, so
+   its first item's controls would land under the window close button. Reserve
+   the headerbar band — the pane then gets its own header segment, as in a
+   GNOME triple-pane window. */
+html[data-theme] .ls-window-controls .cp__right-sidebar-inner {
+  padding-top: var(--adw-headerbar-h);
+}
+
+html[data-theme] .cp__right-sidebar-inner,
+html[data-theme] .cp__right-sidebar {
+  background-color: var(--adw-sidebar2-bg);
+  border-left: none;
+  box-shadow: inset 1px 0 var(--adw-sidebar-divider);
+}
+
+/* --------------------------------------------------------------------------
+   6. Widgets — buttons, entries, menus, dialogs
+   -------------------------------------------------------------------------- */
+
+html[data-theme] .ui__button,
+html[data-theme] button.ui__button,
+html[data-theme] .ui__modal .button,
+html[data-theme] .settings-modal .button {
+  min-height: 24px;
+  padding: 5px 10px;
+  border-radius: var(--adw-radius-button);
+  font-weight: 700;
+}
+
+html[data-theme] input[type="text"],
+html[data-theme] input[type="search"],
+html[data-theme] input[type="password"],
+html[data-theme] .form-input,
+html[data-theme] .cp__cmdk-search-input {
+  min-height: 34px;
+  padding-left: 9px;
+  padding-right: 9px;
+  border: none;
+  border-radius: var(--adw-radius-entry);
+  background-color: var(--adw-fill);
+  color: var(--adw-fg);
+}
+
+html[data-theme] input:focus-visible,
+html[data-theme] .form-input:focus-visible {
+  outline: 2px solid var(--adw-accent-bg);
+  outline-offset: -1px;
+}
+
+html[data-theme] .menu-links-outer,
+html[data-theme] .menu-links-wrapper,
+html[data-theme] .dropdown-wrapper,
+html[data-theme] .ui__popover-content,
+html[data-theme] [data-radix-popper-content-wrapper] > * {
+  background-color: var(--adw-popover-bg);
+  border: 1px solid var(--adw-border-soft);
+  border-radius: var(--adw-radius-popover);
+  box-shadow: var(--adw-popover-shadow);
+  padding: 6px;
+}
+
+/* the wrapper is nested inside .dropdown-wrapper — only the outer gets chrome */
+html[data-theme] .dropdown-wrapper .menu-links-wrapper,
+html[data-theme] .menu-links-outer .menu-links-wrapper,
+html[data-theme] .dropdown-wrapper .menu-links-outer {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+html[data-theme] .menu-link,
+html[data-theme] .ui__dropdown-menu-item {
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+html[data-theme] .menu-link,
+html[data-theme] .menu-link a,
+html[data-theme] .ui__dropdown-menu-item {
+  color: var(--adw-fg);
+  opacity: 1;
+}
+
+html[data-theme] .menu-link:hover,
+html[data-theme] .ui__dropdown-menu-item:hover {
+  background-color: var(--adw-hover);
+  color: var(--adw-fg);
+}
+
+html[data-theme] .ui__modal-panel,
+html[data-theme] .settings-modal,
+html[data-theme] .cp__cmdk,
+html[data-theme] .ui__dialog-content {
+  background-color: var(--adw-popover-bg);
+  border: 1px solid var(--adw-border-soft);
+  border-radius: var(--adw-window-radius);
+  box-shadow: var(--adw-window-shadow);
+}
+
+html[data-theme] .ui__modal-overlay .opacity-75 {
+  background-color: var(--adw-overlay);
+}
+
+/* Cascade trap #7, inside the dialogs. A fresh Logseq defaults to
+   data-color="logseq", and that solarized palette paints the modal frame and
+   the cmdk hints footer from --lx-accent-01 (#004152) at specificity (0,3,1),
+   above a plain html[data-theme] block. Matching [data-color] ties the
+   specificity and custom.css wins on order. Measured over CDP: without this,
+   .ui__modal-panel borders and .hints' top edge come out dark teal. */
+html[data-theme][data-color] .ui__modal-panel,
+html[data-theme][data-color] .cp__cmdk > .hints {
+  border-color: var(--adw-border-soft);
+}
+
+/* Same palette also paints <html> itself #002b36; it shows wherever the body
+   does not cover, e.g. overscroll. */
+html[data-theme][data-color] {
+  background-color: var(--adw-view-bg);
+}
+
+/* The search field is flush with the dialog's top edge, so the entry focus
+   ring below draws over the panel's rounded corner and reads as a coloured
+   hairline along the top and part-way down both sides. GNOME does not ring a
+   dialog's search entry — it is the only field in there. */
+html[data-theme] .cp__cmdk input:focus-visible {
+  outline: none;
+}
+
+/* GNOME overlay scrollbars.
+   The stepper arrows and the reserved gutter come from Chromium's classic
+   scrollbars; no CSS removes them, because Logseq sets `scrollbar-color` on
+   :root and any specified scrollbar-color/width makes the ::-webkit-scrollbar
+   pseudos inert. The launcher therefore passes
+   `--enable-features=OverlayScrollbar`, which gives real overlay scrollbars:
+   no buttons, no reserved width (gutter measures 0px), fading in on scroll and
+   out when idle, exactly like GTK. All that is left here is the colour — the
+   tint applies to the overlay thumb without turning overlay mode off. */
+html[data-theme],
+html[data-theme] body,
+html[data-theme] * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--adw-scrollbar-thumb) transparent;
+}
+
+html[data-theme] ::selection {
+  background-color: var(--adw-selection);
+}
+
+/* --------------------------------------------------------------------------
+   7. Content
+   -------------------------------------------------------------------------- */
+
+html[data-theme] #main-content-container,
+html[data-theme] .cp__sidebar-main-content {
+  background-color: var(--adw-view-bg);
+}
+
+/* the blockquote var is overridden further down the cascade by the shipped
+   theme, so paint the element itself — same surface as .references-blocks-item */
+html[data-theme] blockquote {
+  background-color: var(--lx-gray-03);
+  color: var(--adw-fg);
+  border-left-color: var(--adw-border);
+  border-radius: 0.25rem;
+}
+
+html[data-theme] .cp__right-sidebar-inner blockquote {
+  background-color: var(--lx-gray-04);
+}
+
+html[data-theme] .block-marker {
+  color: var(--adw-orange);
+}
+
+html[data-theme] .form-checkbox,
+html[data-theme] .form-radio {
+  background-color: var(--adw-accent-bg);
+  border-radius: 5px;
+}
+
+html[data-theme] .dark .color-level {
+  background-color: var(--adw-view-bg);
+}
+
+
+/* --------------------------------------------------------------------------
+   8. Content gutter
+   -------------------------------------------------------------------------- */
+
+/* GNOME views breathe more than Logseq's default. Driven by a token so the
+   plugin's "Content padding" setting can move it. */
+html[data-theme] .cp__sidebar-main-content > div {
+  padding: 0 var(--adw-content-padding);
+}
