@@ -87,8 +87,13 @@ it, and a hover step above.
 
 - **Linux/GNOME**, light and dark. It will apply anywhere, but the point of it is the
   match with Adwaita.
-- Built against **Logseq 0.10.x and Logseq OG** (file-based graphs). The DB version has a
-  different component tree and is not covered.
+- Verified against **Logseq 0.10.13** and **Logseq OG** (file-based graphs), by applying
+  the sheet in both and comparing computed styles — surfaces, headerbar height, sidebar
+  and fonts match. Logseq 2.x is not covered: the DB-graph UI has a different component
+  tree and has not been tested.
+- Three rules target components 0.10.13 does not have (`.ui__dialog-content`,
+  `.ui__popover-content`, `.cm-editor`); they simply do not match there, and
+  `.ui__modal-panel` and `.CodeMirror` cover the same ground.
 - The window frame's corner radius is Chromium's, not the theme's — it is painted outside
   the web contents and no stylesheet can reach it.
 
