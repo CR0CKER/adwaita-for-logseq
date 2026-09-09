@@ -305,6 +305,10 @@ html[data-theme][data-color] {
   --ls-menu-hover-color:            var(--adw-hover);
   --ls-header-button-background:    transparent;
   --ls-left-sidebar-bg-color:       var(--adw-sidebar-bg);
+  /* 0.10.x paints .left-sidebar-inner from an unprefixed variable; OG uses the
+     --ls- one above. The sidebar is also painted directly in the structure
+     sheet, so this is belt and braces. */
+  --left-sidebar-bg-color:          var(--adw-sidebar-bg);
   --ls-left-sidebar-text-color:     var(--adw-fg);
   --ls-left-sidebar-border-color:   var(--adw-border-soft);
   /* .create fades the sidebar's bottom edge into --lx-gray-01 by default,
@@ -797,8 +801,7 @@ html[data-theme] .settings-modal .button {
 html[data-theme] input[type="text"],
 html[data-theme] input[type="search"],
 html[data-theme] input[type="password"],
-html[data-theme] .form-input,
-html[data-theme] .cp__cmdk-search-input {
+html[data-theme] .form-input {
   min-height: 34px;
   padding-left: 9px;
   padding-right: 9px;

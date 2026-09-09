@@ -272,8 +272,7 @@ html[data-theme] .settings-modal .button {
 html[data-theme] input[type="text"],
 html[data-theme] input[type="search"],
 html[data-theme] input[type="password"],
-html[data-theme] .form-input,
-html[data-theme] .cp__cmdk-search-input {
+html[data-theme] .form-input {
   min-height: 34px;
   padding-left: 9px;
   padding-right: 9px;
