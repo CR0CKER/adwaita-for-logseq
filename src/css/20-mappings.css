@@ -60,6 +60,16 @@ html[data-theme][data-color] {
   --ls-page-blockquote-color:       var(--adw-fg);
   --ls-page-inline-code-color:      var(--adw-fg);
 
+  /* Variables the solarized `logseq` palette also defines and that nothing
+     else here reaches. Left alone they keep their teal defaults and leak into
+     the UI wherever a component reads them — --ls-guideline-color is the one
+     logseq-awesome-ui draws the left sidebar's section separators with. */
+  --ls-guideline-color:            var(--adw-border-soft);
+  --ls-block-bullet-border-color:  var(--adw-border);
+  --ls-cloze-text-color:           var(--adw-success);
+  --ls-selection-text-color:       var(--adw-fg);
+  --ls-pie-bg-color:               var(--adw-fill);
+
   --ls-error-text-color:   var(--adw-error);
   --ls-success-text-color: var(--adw-success);
   --ls-warning-text-color: var(--adw-warning);
