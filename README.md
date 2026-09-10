@@ -71,21 +71,27 @@ between machines. Settings → Plugins → Adwaita → the gear icon.
 
 ### How the accent works
 
-The *Accent colour* setting wins by default. From it the theme derives the same three
-values libadwaita does: the standalone accent for text (`oklab(from accent max(l, 0.763)
-a b)` on dark, `min(l, 0.5)` on light), the fill below it, and a hover step above. Links,
-tags, refs, selection, the focus ring and checkboxes all follow.
+Both pickers work, and which one wins depends on whether you have actually chosen an
+accent in Logseq:
 
-Set it to **follow Logseq** and Logseq's own **Settings → Accent color** drives instead,
-with the GNOME accent used only when that is set to none.
+| Logseq's Settings → Accent color | What you get |
+|---|---|
+| its default (the turquoise "logseq" swatch), or none | the plugin's **Accent colour** |
+| any other accent — purple, orange, teal… | that accent |
 
-Either way the surfaces stay Adwaita grey. Logseq normally re-tints its whole neutral ramp
-along with the accent, which turns linked-reference and quote cards warm; the theme puts
-the greys back.
+Logseq is not accent-less out of the box: it ships with `data-color="logseq"` already set.
+Treating that as "unset" is what lets the plugin's setting mean anything on a fresh
+install, while still yielding the moment you pick something deliberately. Set the plugin's
+Accent colour to **follow Logseq** to let the turquoise default win too.
 
-Note that Logseq is *not* accent-less out of the box — it ships with `data-color="logseq"`,
-the turquoise "Logseq classical color". That is why an explicit choice here has to override
-it rather than merely fall back to it.
+From whichever accent wins, the theme derives the same three values libadwaita does: the
+standalone accent for text (`oklab(from accent max(l, 0.763) a b)` on dark, `min(l, 0.5)`
+on light), the fill below it, and a hover step above. Links, tags, refs, selection, the
+focus ring and checkboxes all follow.
+
+The surfaces never do. Logseq normally re-tints its whole neutral ramp along with the
+accent, which turns linked-reference and quote cards warm; the theme puts the greys back —
+verified `#2e2e32` under the default, purple and orange alike.
 
 ## Scope
 

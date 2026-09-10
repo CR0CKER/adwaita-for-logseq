@@ -134,15 +134,21 @@ function css(): string {
 html[data-theme="dark"][data-color] { --adw-accent-l: ${lightness}; }`,
   ];
 
-  // The stylesheet only falls back to the GNOME accent when Logseq has no
-  // accent of its own — but Logseq ships with data-color="logseq" set, so that
-  // fallback almost never fires and the setting above would look inert. An
-  // explicit choice therefore redeclares --ls-link-text-color on the theme
-  // wrapper, which is where Logseq's own accent palettes declare it: same
-  // specificity, and this block is injected after them.
+  // Logseq is not accent-less out of the box: it ships with data-color="logseq",
+  // the turquoise "Logseq classical color". The stylesheet's own fallback only
+  // covers the genuinely unset cases, so on a default install the setting above
+  // would look inert. Treat that shipped default as unset too — it is a default,
+  // not a choice — and redeclare --ls-link-text-color on the theme wrapper,
+  // where Logseq's accent palettes declare it: same specificity, injected after.
+  //
+  // Deliberately *not* matched: any other data-color. Pick purple in Logseq's
+  // own Settings → Accent color and purple still wins, exactly as before.
   if (!follows) {
-    rules.push(`html[data-theme][data-color] :is(.dark-theme, .light-theme),
-html[data-theme] :is(.dark-theme, .light-theme) {
+    const unset = ['', 'none', 'logseq'].map(
+      (v) => `html[data-theme][data-color="${v}"] :is(.dark-theme, .light-theme)`
+    );
+    unset.push('html[data-theme]:not([data-color]) :is(.dark-theme, .light-theme)');
+    rules.push(`${unset.join(',\n')} {
   --ls-link-text-color: var(--adw-accent-default);
 }`);
   }
