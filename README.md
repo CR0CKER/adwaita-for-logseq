@@ -25,7 +25,10 @@ Download the zip from the [latest release](https://github.com/CR0CKER/adwaita-fo
 **Settings → Advanced → Developer mode** and use **Plugins → Load unpacked plugin** on the
 unzipped folder. Then pick *Adwaita Dark* or *Adwaita Light* in **Settings → Themes**.
 
-(A Logseq marketplace listing is planned; this section will point there once it exists.)
+A Logseq marketplace listing has been submitted
+([logseq/marketplace#898](https://github.com/logseq/marketplace/pull/898)) and is awaiting
+review. Once it is merged, the theme installs from Logseq's own plugin marketplace; until
+then, use the release zip above.
 
 ## Three things the stylesheet cannot do for you
 
@@ -186,6 +189,11 @@ scratch window, so `requestAnimationFrame` never fires and Logseq stops re-rende
 light/dark switch times out ("the app never switched to light") and pages created through
 the API never appear. The task-marker case detects this and skips; the others fail.
 
+Known gap: `openGraph()` does not actually open the seeded graph on OG — the app stays on
+its demo graph ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)). The two
+cases marked `needs: ['graph']` therefore run against the demo graph; they pass because it
+carries the same sidebar and search UI, but the seeded journal content is never used.
+
 **`./scripts/redcheck.sh`** proves the suite is not vacuous. Every assertion here was
 written after its bug was already fixed, so the usual red-then-green order was impossible;
 this script reconstructs the red half by putting the pre-fix code back — from git history,
@@ -202,6 +210,26 @@ node scripts/extract-logseq-vars.mjs og /path/to/Logseq/resources/app/css/style.
 Logseq 2.x packs its stylesheet inside `app.asar`; dump it from a running instance first
 with `node scripts/dump-app-css.mjs <devtools-port> /tmp/db-style.css`, then run the
 extractor on that file.
+
+### Releasing
+
+A release is a pushed `v*` tag; `.github/workflows/publish.yml` builds the plugin, zips it
+and attaches the zip **and** `package.json` to a GitHub Release (Logseq reads the latter for
+the version and update checks). The marketplace manifest carries no version — it installs
+the latest GitHub release — so a new release needs no marketplace PR.
+
+```
+npm version 0.1.2 --no-git-tag-version   # bumps package.json and package-lock.json together
+# CHANGELOG: move [Unreleased] under a dated ## [0.1.2] heading, update the compare links
+npm run build && npm test && ./scripts/redcheck.sh
+npm run test:live -- --target=og         # screen unlocked
+git commit -m "chore: prepare v0.1.2" CHANGELOG.md package.json package-lock.json
+git tag -a v0.1.2 -m "Adwaita for Logseq 0.1.2"
+git push origin master && git push origin v0.1.2
+```
+
+Then check the run went green and the release carries both assets:
+`gh release view v0.1.2 --json assets`.
 
 ### Why the themes are registered in code, not in package.json
 

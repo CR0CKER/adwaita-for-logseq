@@ -5,6 +5,12 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Added
+
+- README: the marketplace submission (logseq/marketplace#898), a Releasing
+  section, and the live suite's known gap — `openGraph()` stays on the demo
+  graph (#2).
+
 ## [0.1.1] - 2026-09-10
 
 ### Changed
