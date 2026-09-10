@@ -16,7 +16,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GNOME_ACCENTS } from '../../src/settings-css.ts';
-import { declaredValue, REPO_ROOT } from '../lib/css.mjs';
+import { declaredValue, readThemeCss, REPO_ROOT } from '../lib/css.mjs';
 import { applyOklabClamp, parseColor, over, contrastRatio, toHex } from '../lib/color.mjs';
 
 const AA_NORMAL = 4.5;
@@ -42,6 +42,20 @@ const SCHEMES = {
   light: scheme('15-tokens-light.css', /data-theme="light"/),
 };
 
+// The task marker (TODO / DOING / LATER / NOW / WAITING …). Read from the built
+// sheet, so THEME_CSS can point the check at an older stylesheet.
+const MARKER = /(^|,)\s*html\[data-theme\]\s+\.block-marker\s*(,|$)/;
+const marker = (prop) => declaredValue(readThemeCss(), MARKER, prop);
+// Logseq's own `.block-marker { opacity: .7 }`, which applies unless the
+// theme restates it.
+const LOGSEQ_MARKER_OPACITY = 0.7;
+
+test('task markers are painted in the standalone accent', () => {
+  // The accent the rest of the theme uses for text (links, tags), so markers
+  // follow both the GNOME accent setting and Logseq's own accent picker.
+  assert.equal(marker('color'), 'var(--adw-accent)');
+});
+
 for (const [mode, s] of Object.entries(SCHEMES)) {
   test(`${mode}: palette values are all present`, () => {
     for (const [k, v] of Object.entries(s)) assert.ok(v, `missing ${k} in the ${mode} palette`);
@@ -61,6 +75,23 @@ for (const [mode, s] of Object.entries(SCHEMES)) {
       }
     }
     assert.deepEqual(failures, [], `accent text below ${AA_NORMAL}:1:\n  ` + failures.join('\n  '));
+  });
+
+  test(`${mode}: task markers clear AA at the opacity they render with`, () => {
+    // The marker is small (85%) text, so it needs the full 4.5:1. The accent
+    // clears that opaque, but at Logseq's 0.7 every accent fails in both
+    // schemes — the opacity is part of the colour here.
+    const opacity = Number(marker('opacity') ?? LOGSEQ_MARKER_OPACITY);
+    const failures = [];
+    for (const [name, hex] of Object.entries(GNOME_ACCENTS)) {
+      const accent = applyOklabClamp(hex, s.standalone, { '--adw-accent-l': s.accentL });
+      for (const surfaceName of ['view', 'sidebar']) {
+        const surface = parseColor(s[surfaceName]).rgb;
+        const ratio = contrastRatio(over({ rgb: accent, alpha: opacity }, surface), surface);
+        if (ratio < AA_NORMAL) failures.push(`${name} at opacity ${opacity} on ${surfaceName}: ${ratio.toFixed(2)}:1`);
+      }
+    }
+    assert.deepEqual(failures, [], `task marker below ${AA_NORMAL}:1:\n  ` + failures.join('\n  '));
   });
 
   test(`${mode}: body and dimmed text clear AA on both surfaces`, () => {

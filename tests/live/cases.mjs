@@ -354,4 +354,78 @@ export const cases = [
       }
     },
   },
+
+  {
+    // Last on purpose: it creates a page and navigates to it. It needs no
+    // seeded graph — the API writes into whatever graph is open, demo included.
+    name: 'task markers are accent text at full opacity, and hover to the accent hover',
+    async run({ cdp, target }) {
+      const page = 'adwaita task markers';
+      const markers = ['TODO', 'DOING', 'LATER', 'NOW', 'WAITING'];
+      // Logseq only re-renders on animation frames, and a window the
+      // compositor is not painting — screen locked, window hidden — gets none:
+      // the page would never appear. Nothing can be checked then.
+      const painting = await cdp.evaluate(
+        `new Promise((r) => { requestAnimationFrame(() => r(true)); setTimeout(() => r(false), 2000); })`
+      );
+      if (!painting) return { skipped: 'the window is not painting frames (screen locked or window hidden)' };
+      await cdp.evaluate(`(async () => {
+        const api = window.logseq.api;
+        await api.create_page(${JSON.stringify(page)}, {}, { redirect: true, createFirstBlock: false });
+        for (const m of ${JSON.stringify(markers)}) await api.append_block_in_page(${JSON.stringify(page)}, m + ' task');
+        return true;
+      })()`);
+      try {
+        await waitFor(cdp, `document.querySelectorAll('.block-content .block-marker').length >= ${markers.length}`, {
+          label: 'the task blocks to render',
+          timeoutMs: 15000,
+        });
+      } catch (err) {
+        // OG is known to render .block-marker, so none there is a failure.
+        // Another build may mark tasks up differently: say so, never pass.
+        if (target.id === 'og') throw err;
+        return { skipped: 'no .block-marker rendered — this build marks tasks up differently' };
+      }
+
+      const got = await cdp.evaluateJson(`(() => {
+        const host = document.querySelector('.dark-theme') || document.body;
+        const probe = document.createElement('div');
+        host.appendChild(probe);
+        const read = (v) => { probe.style.color = v; return getComputedStyle(probe).color; };
+        const tokens = { accent: read('var(--adw-accent)'), hover: read('var(--adw-accent-hover)') };
+        probe.remove();
+        const markers = [...document.querySelectorAll('.block-content .block-marker')].map((el) => ({
+          text: el.textContent.trim(), color: getComputedStyle(el).color, opacity: getComputedStyle(el).opacity,
+        }));
+        return JSON.stringify({ tokens, markers });
+      })()`);
+      for (const m of got.markers) {
+        assert.equal(m.color, got.tokens.accent, `${m.text} marker colour`);
+        assert.equal(m.opacity, '1', `${m.text} marker must not be dimmed (Logseq's .7 fails AA)`);
+      }
+
+      // The switchable ones are links; the theme's rule outranks Logseq's own
+      // hover, so force :hover and check the cue survived.
+      await cdp.call('DOM.enable');
+      await cdp.call('CSS.enable');
+      const { root } = await cdp.call('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.call('DOM.querySelector', { nodeId: root.nodeId, selector: '.block-content .marker-switch' });
+      assert.ok(nodeId, 'no switchable (.marker-switch) marker rendered');
+      await cdp.call('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
+      // Logseq transitions link colour, so a read straight after forcing
+      // :hover lands mid-fade. Wait for two equal reads, then assert exactly.
+      let hovered;
+      try {
+        let previous;
+        for (const deadline = Date.now() + 3000; Date.now() < deadline; previous = hovered) {
+          await new Promise((r) => setTimeout(r, 100));
+          hovered = await cdp.evaluate(`getComputedStyle(document.querySelector('.block-content .marker-switch')).color`);
+          if (hovered === previous) break;
+        }
+      } finally {
+        await cdp.call('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+      }
+      assert.equal(hovered, got.tokens.hover, 'hovered marker colour');
+    },
+  },
 ];

@@ -5,6 +5,24 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Changed
+
+- Task markers (TODO, DOING, LATER, NOW, WAITING…) are painted in the standalone
+  accent, like links and tags, instead of a fixed orange, so they follow both the
+  plugin's accent setting and Logseq's own accent picker. Hovering a switchable
+  marker brightens it to the accent hover step, restoring Logseq's hover cue that
+  the old rule hid.
+
+### Fixed
+
+- Task markers failed WCAG AA: Logseq dims them to 70% opacity, which took the
+  old orange (down to 2.16:1 on the light sidebar) — and would take every
+  offered accent — below 4.5:1 at their 85% size. They now render at full opacity (lowest ratio 4.74:1, light sidebar).
+
+### Removed
+
+- The `--adw-orange` token, which only the task markers read.
+
 ## [0.1.0] - 2026-09-10
 
 ### Added

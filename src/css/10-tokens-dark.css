@@ -60,7 +60,6 @@ html[data-theme="dark"][data-color] {
   --adw-success:        #8ff0a4;
   --adw-warning:        #f9f06b;
   --adw-error:          #f66151;
-  --adw-orange:         #ff7800;
 
   /* shui / radix grey ramp. 01 = deepest surface, 12 = text. The first four
      steps are the Adwaita surfaces above, so shui components land on the same

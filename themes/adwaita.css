@@ -61,7 +61,6 @@ html[data-theme="dark"][data-color] {
   --adw-success:        #8ff0a4;
   --adw-warning:        #f9f06b;
   --adw-error:          #f66151;
-  --adw-orange:         #ff7800;
 
   /* shui / radix grey ramp. 01 = deepest surface, 12 = text. The first four
      steps are the Adwaita surfaces above, so shui components land on the same
@@ -192,7 +191,6 @@ html[data-theme="light"][data-color] {
   --adw-success:        #26a269;   /* green_5 */
   --adw-warning:        #c64600;   /* orange_5 */
   --adw-error:          #c01c28;   /* red_4 */
-  --adw-orange:         #e66100;   /* orange_4 */
 
   /* Grey ramp, light. 01 = the lightest surface, 12 = text — the same
      direction Logseq uses, so nothing downstream has to be inverted.
@@ -1034,8 +1032,18 @@ html[data-theme] .cp__right-sidebar-inner blockquote {
   background-color: var(--lx-gray-04);
 }
 
+/* Task markers (TODO, DOING, LATER, NOW, WAITING …) read as accent text, like
+   links and tags. Logseq dims them to opacity .7, which takes every accent
+   below AA at this 85% size, so the dimming goes. */
 html[data-theme] .block-marker {
-  color: var(--adw-orange);
+  color: var(--adw-accent);
+  opacity: 1;
+}
+
+/* A switchable marker is a link: keep Logseq's hover cue, which the rule above
+   outranks (0,2,1 over .marker-switch:hover's 0,2,0). */
+html[data-theme] .marker-switch:hover {
+  color: var(--adw-accent-hover);
 }
 
 html[data-theme] .form-checkbox,

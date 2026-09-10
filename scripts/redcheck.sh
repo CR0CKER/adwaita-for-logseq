@@ -151,6 +151,27 @@ sed -i '/--lx-accent-01: var(--adw-hover);/d; /--lx-accent-02: var(--adw-border-
 expect_red "accent steps 01-02 left teal in hover and border chrome" \
   tests/static/coverage.test.mjs "$t"
 
+# 10. Task markers left at Logseq's opacity .7, which takes every accent below AA.
+t="$(scratch_tree marker-dimmed)"
+python3 - "$t" <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+old = "html[data-theme] .block-marker {\n  color: var(--adw-accent);\n  opacity: 1;\n}"
+assert old in s, 'marker rule not found — update this mutation'
+p.write_text(s.replace(old, "html[data-theme] .block-marker {\n  color: var(--adw-accent);\n}"))
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "task markers dimmed to Logseq's opacity .7 (below AA)" \
+  tests/static/contrast.test.mjs "$t"
+
+# 11. Task markers painted in something other than the accent (they were orange).
+t="$(scratch_tree marker-colour)"
+sed -i 's/^  color: var(--adw-accent);$/  color: var(--adw-fg);/' "$t/src/css/30-structure.css"
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "task markers not painted in the accent" \
+  tests/static/contrast.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"
