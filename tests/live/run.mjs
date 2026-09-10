@@ -64,7 +64,14 @@ for (const target of resolveTargets(requested)) {
         continue;
       }
       try {
-        await c.run({ cdp: session.cdp, session, target, applyTheme, setMode });
+        const outcome = await c.run({ cdp: session.cdp, session, target, applyTheme, setMode });
+        if (outcome?.skipped) {
+          // A case that found nothing to check reports it, never passes silently.
+          console.log(`  ${dim(`skip  ${c.name}`)}`);
+          console.log(`        ${dim(outcome.skipped)}`);
+          skipped++;
+          continue;
+        }
         console.log(`  ${green('pass')}  ${c.name}`);
         ran++;
       } catch (err) {

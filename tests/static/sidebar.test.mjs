@@ -46,3 +46,17 @@ test('there is no divider directly under the header', () => {
   assert.ok(rule, 'the nav.cp__menubar-repos exception rule is missing');
   assert.match(rule.body, /background-image:\s*none/);
 });
+
+test('the sidebar background variable is re-pinned where Logseq 2.x shadows it', () => {
+  // 2.x redeclares --left-sidebar-bg-color on `main.theme-container-inner`, an
+  // element between <html> and the sidebar, as var(--lx-gray-02) — the darker
+  // window surface. That shadows the theme's <html>-level mapping, so the
+  // sidebar's section headers (which paint themselves from the variable)
+  // showed as dark blocks on the lighter sidebar.
+  const pinned = rules(css).some(
+    ({ selector, body }) =>
+      selector.includes('main.theme-container-inner') &&
+      /--left-sidebar-bg-color:\s*var\(--adw-sidebar-bg\)/.test(body)
+  );
+  assert.ok(pinned, '--left-sidebar-bg-color must be pinned to --adw-sidebar-bg on main.theme-container-inner');
+});

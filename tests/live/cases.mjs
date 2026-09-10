@@ -231,6 +231,40 @@ export const cases = [
   },
 
   {
+    name: 'sidebar section headers share the sidebar background',
+    async run({ cdp }) {
+      const got = await cdp.evaluateJson(`(() => {
+        const menu = document.getElementById('left-menu');
+        if (menu && !document.querySelector('.ls-left-sidebar-open')) menu.click();
+        return new Promise((resolve) => setTimeout(() => {
+          const inner = document.querySelector('#left-sidebar .left-sidebar-inner');
+          const headers = [...document.querySelectorAll('#left-sidebar .hd, #left-sidebar .nav-content-item .header')];
+          resolve(JSON.stringify({
+            sidebar: inner ? getComputedStyle(inner).backgroundColor : null,
+            headers: headers.map((h) => ({ text: (h.innerText || '').trim().slice(0, 20), bg: getComputedStyle(h).backgroundColor })),
+          }));
+        }, 1000));
+      })()`);
+      // Nothing rendered means nothing proven — say so instead of passing.
+      if (!got.headers.length) return { skipped: 'no sidebar section headers rendered on this build' };
+
+      // Logseq 2.x redeclares --left-sidebar-bg-color on an element between
+      // <html> and the sidebar, and its headers paint from that variable — so
+      // they came out as darker blocks. A header may be transparent or match
+      // the sidebar; anything else reads as a non-native box.
+      const off = got.headers.filter(
+        (h) => h.bg !== 'rgba(0, 0, 0, 0)' && h.bg !== 'transparent' && h.bg !== got.sidebar
+      );
+      assert.deepEqual(
+        off,
+        [],
+        `section headers painted differently from the sidebar (${got.sidebar}):\n` +
+          off.map((h) => `  "${h.text}": ${h.bg}`).join('\n')
+      );
+    },
+  },
+
+  {
     name: 'accent text clears AA against the live surfaces',
     async run({ cdp }) {
       const got = await cdp.evaluateJson(`(() => {

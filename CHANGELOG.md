@@ -52,6 +52,11 @@ All notable changes to this project are documented here, in
   theme's defaults won. Measured: the accent computed to the stored `#c88800`
   until the theme was selected, then to `#3584e4`. Those overrides are now
   `!important`, and a test requires it.
+- **Dark blocks behind the sidebar's section headers on Logseq 2.x.** 2.x
+  redeclares `--left-sidebar-bg-color` on `main.theme-container-inner`, between
+  `<html>` and the sidebar, as the darker window surface. That shadowed the
+  theme's mapping, and the headers ("Navigations", "Favorites", "Recent") paint
+  from the variable. It is now re-pinned on the same element.
 
 ### Known limitations
 
@@ -59,6 +64,12 @@ All notable changes to this project are documented here, in
   tier alone. CI proves the gates pass, not that a cascade rule wins.
 - On Logseq 2.x the suite skips the cases that need an open graph — seeding a
   file graph there is unsolved (see `tests/lib/targets.mjs`).
+- The live suite's light-mode case fails intermittently on Logseq OG with "the
+  app never switched to light within 20s": `set_theme_mode` is occasionally
+  ignored for a whole session, even when re-issued. Cause not established. It
+  is not a theme defect — the stylesheet's light palette is verified by the
+  static contrast tests and by the passing runs — but it is an open harness
+  issue, left failing rather than quarantined.
 - The sidebar divider inset is a fixed token (14px). It lines up with the row
   highlights when `logseq-awesome-ui` restyles the sidebar; on stock Logseq the
   rows sit at 22px, so the divider is 8px narrower than the highlight.

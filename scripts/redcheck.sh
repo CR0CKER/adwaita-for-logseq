@@ -131,6 +131,19 @@ sed -i 's/ !important;/;/g' "$t/src/settings-css.ts"
 expect_red "settings overrides lose to the theme sheet once it is (re)selected" \
   tests/static/override-order.test.mjs "$t"
 
+# 8. Logseq 2.x shadowing the sidebar variable, turning section headers dark.
+t="$(scratch_tree sidebar-shadow)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/20-mappings.css')
+s = p.read_text()
+s = re.sub(r"html\[data-theme\] main\.theme-container-inner \{\n  --left-sidebar-bg-color: var\(--adw-sidebar-bg\);\n\}\n", "", s)
+p.write_text(s)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "Logseq 2.x shadows --left-sidebar-bg-color, darkening section headers" \
+  tests/static/sidebar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

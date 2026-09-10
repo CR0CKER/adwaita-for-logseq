@@ -398,6 +398,17 @@ html[data-theme][data-color] {
   --adw-wc-width: 91px;
 }
 
+/* Logseq 2.x redeclares --left-sidebar-bg-color on `main.theme-container-inner`
+   — an element between <html> and the sidebar — as var(--lx-gray-02), the
+   darker window surface. That shadows the mapping above for everything inside
+   it. The sidebar panel still looked right only because the structure sheet
+   paints it directly; its section headers ("Navigations", "Favorites",
+   "Recent") paint themselves from the variable and came out as dark blocks.
+   Re-pin it on the same element, where it outranks 2.x's own rule. */
+html[data-theme] main.theme-container-inner {
+  --left-sidebar-bg-color: var(--adw-sidebar-bg);
+}
+
 /* ==========================================================================
    Adwaita for Logseq — accent
 
