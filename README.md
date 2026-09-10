@@ -190,6 +190,10 @@ cover. Regenerate when testing a new version:
 node scripts/extract-logseq-vars.mjs og /path/to/Logseq/resources/app/css/style.css
 ```
 
+Logseq 2.x packs its stylesheet inside `app.asar`; dump it from a running instance first
+with `node scripts/dump-app-css.mjs <devtools-port> /tmp/db-style.css`, then run the
+extractor on that file.
+
 ### Why the themes are registered in code, not in package.json
 
 The conventional way to ship a theme is `logseq.themes` in package.json. Doing that makes
