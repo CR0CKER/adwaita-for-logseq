@@ -34,5 +34,10 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2.6.2
         with:
-          files: ${{ github.event.repository.name }}-${{ github.ref_name }}.zip
+          # package.json is attached on its own as well as inside the zip: every
+          # marketplace reference release does this, and Logseq reads it for the
+          # version and update checks.
+          files: |
+            ${{ github.event.repository.name }}-${{ github.ref_name }}.zip
+            package.json
           generate_release_notes: true
