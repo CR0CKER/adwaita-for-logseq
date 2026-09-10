@@ -110,8 +110,14 @@ verified `#2e2e32` under the default, purple and orange alike.
 - Three rules target components 0.10.13 does not have (`.ui__dialog-content`,
   `.ui__popover-content`, `.cm-editor`); they simply do not match there, and
   `.ui__modal-panel` and `.CodeMirror` cover the same ground.
-- The window frame's corner radius is Chromium's, not the theme's — it is painted outside
-  the web contents and no stylesheet can reach it.
+- **Round window corners need Electron 43 or newer.** The frame is painted by Electron
+  outside the web contents, so no stylesheet can reach it. Electron 41 gave frameless
+  windows client-side decorations on Wayland — a shadow and resize edges — but rounded
+  corners only arrived in
+  [Electron 43.0.0](https://releases.electronjs.org/release/v43.0.0) ("On Linux,
+  frameless windows now have rounded corners by default"). Logseq OG is on 43 and gets
+  them; Logseq 2.0.1 is on Electron 42.3.0 and has square corners until Logseq ships a
+  newer Electron.
 
 ## Development
 

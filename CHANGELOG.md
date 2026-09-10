@@ -78,6 +78,9 @@ All notable changes to this project are documented here, in
   is not a theme defect — the stylesheet's light palette is verified by the
   static contrast tests and by the passing runs — but it is an open harness
   issue, left failing rather than quarantined.
+- Logseq 2.0.1 draws square window corners: it ships Electron 42.3.0, and
+  rounded corners for frameless windows on Linux arrived in Electron 43.0.0.
+  Nothing in the theme or its launch flags can change that.
 - The sidebar divider inset is a fixed token (14px). It lines up with the row
   highlights when `logseq-awesome-ui` restyles the sidebar; on stock Logseq the
   rows sit at 22px, so the divider is 8px narrower than the highlight.
