@@ -30,7 +30,10 @@ export const TARGETS = {
     // the suite refuses to guess. Point LOGSEQ_DB_BIN at the extracted binary.
     bin: process.env.LOGSEQ_DB_BIN || '',
     dotRoot: '.logseq',
-    flags: [],
+    // Same flags the README tells users to add. Without WaylandWindowDecorations
+    // Chromium draws no client-side frame, so the frameless window has square
+    // corners and no shadow — the suite would be testing an unsupported setup.
+    flags: ['--enable-features=WaylandWindowDecorations,OverlayScrollbar', '--gtk-version=4'],
     repoKey: 'current-repo',
     // 2.x stores graph selection differently (`current-repo`, plus a DB-graph
     // worker) and seeding a file graph the way OG allows was not made to work.
