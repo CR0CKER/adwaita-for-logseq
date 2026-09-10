@@ -63,7 +63,7 @@ export async function launch(target, { pluginPath = REPO_ROOT, settings = STARTU
     JSON.stringify({ theme: null, themes: { mode: 'dark' }, externals: [pluginPath] }, null, 2)
   );
   writeFileSync(join(dot, 'config/plugins.edn'), '{}\n');
-  writeFileSync(join(dot, 'settings/logseq-adwaita-theme.json'), JSON.stringify(settings, null, 2));
+  writeFileSync(join(dot, 'settings/gnome-adwaita-theme.json'), JSON.stringify(settings, null, 2));
 
   const port = pickPort();
   const proc = spawn(target.bin, [`--user-data-dir=${userData}`, `--remote-debugging-port=${port}`, ...target.flags], {
@@ -101,13 +101,13 @@ export async function applyTheme(session, mode = 'dark') {
   const { cdp } = session;
   await waitFor(
     cdp,
-    `Boolean(window.LSPluginCore.themes && window.LSPluginCore.themes.get('logseq-adwaita-theme'))`,
+    `Boolean(window.LSPluginCore.themes && window.LSPluginCore.themes.get('gnome-adwaita-theme'))`,
     { label: 'the plugin registering its themes', timeoutMs: 45000 }
   );
   const index = mode === 'dark' ? 0 : 1;
   await cdp.evaluate(`(async () => {
     const c = window.LSPluginCore;
-    const themes = c.themes.get('logseq-adwaita-theme');
+    const themes = c.themes.get('gnome-adwaita-theme');
     await c.selectTheme(themes[${index}], { effect: true, emit: true });
     return true;
   })()`);

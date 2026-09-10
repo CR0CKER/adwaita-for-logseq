@@ -42,8 +42,8 @@ All notable changes to this project are documented here, in
 - **Logseq's own accent picker went inert** after the above was fixed too
   broadly. An explicit choice now overrides only the intentless `data-color`
   values (unset, empty, `none`, `logseq`); a deliberately chosen accent wins.
-- The plugin listed itself as `logseq-adwaita-theme`; it now shows as
-  "Adwaita Theme".
+- The plugin identifies itself as `gnome-adwaita-theme` in Logseq's plugin list,
+  settings panel and menus.
 - **Five of the seven settings were silently ignored once the theme was
   selected** — accent colour, both fonts, the close-only width and accent
   lightness. The settings stylesheet relied on loading after the theme sheet,

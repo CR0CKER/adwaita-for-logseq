@@ -37,7 +37,7 @@ export const cases = [
     async run({ cdp }) {
       await waitFor(
         cdp,
-        `Boolean(document.querySelector('style[data-injected-style="adwaita-settings-logseq-adwaita-theme"]'))`,
+        `Boolean(document.querySelector('style[data-injected-style="adwaita-settings-gnome-adwaita-theme"]'))`,
         { label: 'the plugin to inject its settings stylesheet', timeoutMs: 20000 }
       );
       // Assert the COMPUTED value — what the user sees — not the settings

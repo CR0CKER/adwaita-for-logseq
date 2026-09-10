@@ -1,7 +1,7 @@
 {
-  "name": "logseq-adwaita-theme",
+  "name": "gnome-adwaita-theme",
   "version": "0.1.0",
-  "description": "Logseq as a native GNOME app: Adwaita surfaces, one merged headerbar, round window controls, light and dark.",
+  "description": "Makes Logseq look like a native app on the Linux GNOME desktop environment: Adwaita surfaces and metrics, one merged headerbar, round window controls. Light and dark.",
   "author": "CR0CKER",
   "license": "MIT",
   "main": "index.html",
@@ -17,8 +17,8 @@
     "typescript": "^5.6.0"
   },
   "logseq": {
-    "id": "logseq-adwaita-theme",
-    "title": "Adwaita Theme",
+    "id": "gnome-adwaita-theme",
+    "title": "gnome-adwaita-theme",
     "icon": "./icon.png"
   },
   "type": "module"
