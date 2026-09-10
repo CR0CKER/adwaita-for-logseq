@@ -32,10 +32,25 @@ export function parseRgb(value) {
   return { rgb: [+m[1] / 255, +m[2] / 255, +m[3] / 255], alpha };
 }
 
-/** Accepts a hex or an rgb()/rgba() string; returns linear-ish sRGB 0..1. */
+/**
+ * `oklab(0.763 0.035 0.137)` -> {rgb, alpha}.
+ *
+ * Chromium leaves a computed colour in oklab() when it came from relative
+ * colour syntax, which is exactly how this theme derives every accent — so a
+ * live probe of `--adw-accent` returns oklab(), not rgb().
+ */
+export function parseOklab(value) {
+  const m = value.match(/oklab\(\s*([\d.eE+-]+%?)\s+([\d.eE+-]+)\s+([\d.eE+-]+)/i);
+  if (!m) return null;
+  const L = m[1].endsWith('%') ? parseFloat(m[1]) / 100 : parseFloat(m[1]);
+  return { rgb: oklabToRgb([L, parseFloat(m[2]), parseFloat(m[3])]), alpha: 1 };
+}
+
+/** Accepts hex, rgb()/rgba(), or a computed oklab(); returns sRGB 0..1. */
 export function parseColor(value) {
-  const v = value.trim();
+  const v = String(value).trim();
   if (v.startsWith('#')) return { rgb: parseHex(v), alpha: 1 };
+  if (/^oklab\(/i.test(v)) return parseOklab(v);
   return parseRgb(v);
 }
 

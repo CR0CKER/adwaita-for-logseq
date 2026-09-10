@@ -97,10 +97,16 @@ verified `#2e2e32` under the default, purple and orange alike.
 
 - **Linux/GNOME**, light and dark. It will apply anywhere, but the point of it is the
   match with Adwaita.
-- Verified against **Logseq 0.10.13** and **Logseq OG** (file-based graphs), by applying
-  the sheet in both and comparing computed styles — surfaces, headerbar height, sidebar
-  and fonts match. Logseq 2.x is not covered: the DB-graph UI has a different component
-  tree and has not been tested.
+- Verified by an automated suite that drives the real app and asserts computed styles:
+
+  | Build | Status |
+  |---|---|
+  | **Logseq OG** (Electron 43) | full live suite passes |
+  | **Logseq 2.x** (2.0.1, DB build) | passes surfaces, light/dark, accent precedence and contrast; the two cases needing an open graph are skipped — seeding a file graph there is unsolved |
+  | **Logseq 0.10.13** | stylesheet verified by CDP probe; not in the live suite, because its renderer aborts unprompted on the development machine |
+
+  Logseq 2.x's `--ls-*` palette is a strict subset of OG's, so the theme's variable
+  coverage applies there unchanged.
 - Three rules target components 0.10.13 does not have (`.ui__dialog-content`,
   `.ui__popover-content`, `.cm-editor`); they simply do not match there, and
   `.ui__modal-panel` and `.CodeMirror` cover the same ground.
@@ -112,6 +118,45 @@ verified `#2e2e32` under the default, purple and orange alike.
 ```
 npm install
 npm run build     # concatenates src/css/* into themes/adwaita.css, bundles the plugin
+npm test          # static regression suite (this is what CI runs)
+npm run test:live # drives real Logseq builds — local only, needs a binary
+```
+
+### Tests
+
+Two tiers, because CI cannot run the app and text-matching a stylesheet cannot prove a
+cascade rule *wins* — and six of the seven bugs this suite locks down were cascade bugs.
+
+**Static (`npm test`, the CI gate).** Every `--ls-*` in Logseq's shipped solarized palette
+is overridden or allowlisted with a reason; no undefined `--adw-*` reference; the
+structure sheet stays scheme-agnostic and free of literal colours; every `[data-color]`
+specificity tie is present; all nine accents clear WCAG AA on both surfaces in both
+schemes; the settings logic behaves; and `themes/adwaita.css` matches a fresh build.
+
+**Live (`npm run test:live`, local only).** Launches a scratch instance with an isolated
+`HOME`, loads this repo as an unpacked plugin, selects the theme and asserts computed
+styles: surfaces, light/dark inversion, accent precedence, the search dialog's edges, and
+divider geometry.
+
+```
+npm run test:live -- --target=og      # one target
+LOGSEQ_OG_BIN=/path/to/Logseq-OG npm run test:live
+LOGSEQ_DB_BIN=/path/to/logseq npm run test:live -- --target=db
+```
+
+A target whose binary is missing is skipped with a reason, never silently passed.
+
+**`./scripts/redcheck.sh`** proves the suite is not vacuous. Every assertion here was
+written after its bug was already fixed, so the usual red-then-green order was impossible;
+this script reconstructs the red half by putting the pre-fix code back — from git history,
+or as a mutation in a scratch tree — and requires the matching test to fail.
+
+**Fixtures are version-scoped.** `tests/fixtures/logseq-vars.<target>.json` is extracted
+from one build's stylesheet, so a Logseq upgrade can introduce variables the theme does not
+cover. Regenerate when testing a new version:
+
+```
+node scripts/extract-logseq-vars.mjs og ~/.local/opt/logseq-og/resources/app/css/style.css
 ```
 
 Then Logseq → Settings → Advanced → Developer mode, and **Load unpacked plugin** on the

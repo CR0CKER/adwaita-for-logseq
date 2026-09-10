@@ -12,7 +12,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { readThemeCss, declaredVars, REPO_ROOT } from '../lib/css.mjs';
 
@@ -43,30 +43,40 @@ const ALLOWLIST = {
   '--ls-page-mark-color': 'highlight-mark text, identical under every Logseq accent',
 };
 
-const fixture = JSON.parse(
-  readFileSync(join(REPO_ROOT, 'tests/fixtures/logseq-vars.og.json'), 'utf8')
-);
+// One fixture per Logseq build under test, so a version that adds a variable
+// fails here rather than shipping a leak. Regenerate with
+// scripts/extract-logseq-vars.mjs when testing against a new build.
+const FIXTURE_DIR = join(REPO_ROOT, 'tests/fixtures');
+const fixtures = readdirSync(FIXTURE_DIR)
+  .filter((f) => /^logseq-vars\..+\.json$/.test(f))
+  .map((f) => JSON.parse(readFileSync(join(FIXTURE_DIR, f), 'utf8')));
+
+assert.ok(fixtures.length > 0, 'no logseq-vars fixtures found');
 
 const themeVars = declaredVars(readThemeCss());
 
-for (const mode of Object.keys(fixture.vars)) {
-  test(`every --ls-* in Logseq's ${mode} solarized palette is overridden or allowlisted`, () => {
-    const uncovered = Object.keys(fixture.vars[mode])
-      .filter((v) => !themeVars.has(v) && !(v in ALLOWLIST));
+for (const fixture of fixtures) {
+  for (const mode of Object.keys(fixture.vars)) {
+    test(`${fixture.target}: every --ls-* in the ${mode} solarized palette is overridden or allowlisted`, () => {
+      const uncovered = Object.keys(fixture.vars[mode])
+        .filter((v) => !themeVars.has(v) && !(v in ALLOWLIST));
 
-    assert.deepEqual(
-      uncovered,
-      [],
-      `these variables keep Logseq's solarized value and will leak:\n` +
-        uncovered.map((v) => `  ${v}: ${fixture.vars[mode][v]}`).join('\n')
-    );
-  });
+      assert.deepEqual(
+        uncovered,
+        [],
+        `these variables keep Logseq's solarized value and will leak:\n` +
+          uncovered.map((v) => `  ${v}: ${fixture.vars[mode][v]}`).join('\n')
+      );
+    });
+  }
 }
 
 test('the allowlist has no stale entries', () => {
-  const known = new Set(Object.values(fixture.vars).flatMap((v) => Object.keys(v)));
+  const known = new Set(
+    fixtures.flatMap((f) => Object.values(f.vars).flatMap((v) => Object.keys(v)))
+  );
   const stale = Object.keys(ALLOWLIST).filter((v) => !known.has(v));
-  assert.deepEqual(stale, [], 'allowlisted variables Logseq no longer declares — drop them');
+  assert.deepEqual(stale, [], 'allowlisted variables no Logseq build declares — drop them');
 });
 
 test('the guideline colour specifically is mapped to an Adwaita token', () => {

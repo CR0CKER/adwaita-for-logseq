@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      # The build must be reproducible: themes/adwaita.css is committed, and a
+      # source edit that was never rebuilt would otherwise ship silently.
+      - name: Working tree clean after build
+        run: git diff --exit-code
+
+      - name: Static regression suite
+        run: npm test
+
+      # Proves the suite is not vacuous: reconstructs each bug and requires the
+      # matching test to fail.
+      - name: Red-first check
+        run: ./scripts/redcheck.sh
