@@ -93,8 +93,10 @@ Accent colour to **follow Logseq** to let the turquoise default win too.
 
 From whichever accent wins, the theme derives the same three values libadwaita does: the
 standalone accent for text (`oklab(from accent max(l, 0.763) a b)` on dark, `min(l, 0.5)`
-on light), the fill below it, and a hover step above. Links, tags, refs, selection, the
-focus ring and checkboxes all follow.
+on light), the fill below it, and a hover step above. Links, tags, refs, task markers
+(TODO, DOING, LATER, NOW…), selection, the focus ring and checkboxes all follow. Task
+markers are drawn at full strength rather than Logseq's 70% opacity, which would take
+every accent below WCAG AA at the markers' small size.
 
 The surfaces never do. Logseq normally re-tints its whole neutral ramp along with the
 accent, which turns linked-reference and quote cards warm; the theme puts the greys back —
@@ -161,13 +163,15 @@ cascade rule *wins* — and most of the bugs this suite locks down were cascade 
 is overridden or allowlisted with a reason; no undefined `--adw-*` reference; the
 structure sheet stays scheme-agnostic and free of literal colours; every `[data-color]`
 specificity tie is present; all nine accents clear WCAG AA on both surfaces in both
-schemes; the settings logic behaves; and `themes/adwaita.css` matches a fresh build.
+schemes, as text and as task markers at the opacity they render with; the settings logic
+behaves; and `themes/adwaita.css` matches a fresh build.
 
 **Live (`npm run test:live`, local only).** Launches a scratch instance with an isolated
 `HOME`, loads this repo as an unpacked plugin, selects the theme and asserts computed
 styles: stored settings winning over the theme sheet, surfaces, light/dark inversion,
 accent precedence, the search dialog's edges, divider geometry, sidebar section headers,
-button hover colour, and accent contrast.
+button hover colour, accent contrast, and task markers (accent colour, full opacity, the
+accent hover step on hover).
 
 ```
 npm run test:live -- --target=og      # one target
@@ -176,6 +180,11 @@ LOGSEQ_DB_BIN=/path/to/logseq npm run test:live -- --target=db
 ```
 
 A target whose binary is missing is skipped with a reason, never silently passed.
+
+Run it with the screen **unlocked**. A locked session stops the compositor painting the
+scratch window, so `requestAnimationFrame` never fires and Logseq stops re-rendering: the
+light/dark switch times out ("the app never switched to light") and pages created through
+the API never appear. The task-marker case detects this and skips; the others fail.
 
 **`./scripts/redcheck.sh`** proves the suite is not vacuous. Every assertion here was
 written after its bug was already fixed, so the usual red-then-green order was impossible;

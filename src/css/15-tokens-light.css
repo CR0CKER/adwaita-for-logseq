@@ -59,7 +59,6 @@ html[data-theme="light"][data-color] {
   --adw-success:        #26a269;   /* green_5 */
   --adw-warning:        #c64600;   /* orange_5 */
   --adw-error:          #c01c28;   /* red_4 */
-  --adw-orange:         #e66100;   /* orange_4 */
 
   /* Grey ramp, light. 01 = the lightest surface, 12 = text — the same
      direction Logseq uses, so nothing downstream has to be inverted.

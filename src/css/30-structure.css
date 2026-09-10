@@ -457,8 +457,18 @@ html[data-theme] .cp__right-sidebar-inner blockquote {
   background-color: var(--lx-gray-04);
 }
 
+/* Task markers (TODO, DOING, LATER, NOW, WAITING …) read as accent text, like
+   links and tags. Logseq dims them to opacity .7, which takes every accent
+   below AA at this 85% size, so the dimming goes. */
 html[data-theme] .block-marker {
-  color: var(--adw-orange);
+  color: var(--adw-accent);
+  opacity: 1;
+}
+
+/* A switchable marker is a link: keep Logseq's hover cue, which the rule above
+   outranks (0,2,1 over .marker-switch:hover's 0,2,0). */
+html[data-theme] .marker-switch:hover {
+  color: var(--adw-accent-hover);
 }
 
 html[data-theme] .form-checkbox,
