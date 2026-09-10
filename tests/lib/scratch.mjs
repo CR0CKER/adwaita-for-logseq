@@ -46,7 +46,7 @@ function seedGraph(dir) {
   return dir;
 }
 
-export async function launch(target, { pluginPath = REPO_ROOT } = {}) {
+export async function launch(target, { pluginPath = REPO_ROOT, settings = STARTUP_SETTINGS } = {}) {
   const root = mkdtempSync(join(tmpdir(), `adwaita-live-${target.id}-`));
   const home = join(root, 'home');
   const userData = join(root, 'user-data');
@@ -63,7 +63,7 @@ export async function launch(target, { pluginPath = REPO_ROOT } = {}) {
     JSON.stringify({ theme: null, themes: { mode: 'dark' }, externals: [pluginPath] }, null, 2)
   );
   writeFileSync(join(dot, 'config/plugins.edn'), '{}\n');
-  writeFileSync(join(dot, 'settings/logseq-adwaita-theme.json'), JSON.stringify(STARTUP_SETTINGS, null, 2));
+  writeFileSync(join(dot, 'settings/logseq-adwaita-theme.json'), JSON.stringify(settings, null, 2));
 
   const port = pickPort();
   const proc = spawn(target.bin, [`--user-data-dir=${userData}`, `--remote-debugging-port=${port}`, ...target.flags], {
