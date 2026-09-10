@@ -22,6 +22,8 @@ import type { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
 
 /** libadwaita's @accent_bg_color per accent name. These nine hexes are the
  *  ones inside libadwaita-1.so.0 itself, not approximations. */
+const FOLLOW_LOGSEQ = 'follow Logseq';
+
 const GNOME_ACCENTS: Record<string, string> = {
   blue: '#3584e4',
   teal: '#2190a4',
@@ -73,20 +75,6 @@ const settings: SettingSchemaDesc[] = [
       'Set this to match your GNOME titlebar layout (org.gnome.desktop.wm.preferences button-layout). “Close only” hides minimise and maximise, for an appmenu:close desktop. Only applies with a frameless window — Settings → General → Native title bar off.',
   },
   {
-    key: 'contentPadding',
-    type: 'number',
-    default: 24,
-    title: 'Content gutter (px)',
-    description: 'Left and right padding of the main content column.',
-  },
-  {
-    key: 'hideFavicons',
-    type: 'boolean',
-    default: false,
-    title: 'Hide link favicons',
-    description: 'Drops the little site icons Logseq puts in front of external links.',
-  },
-  {
     key: 'hideRightSidebarTopbar',
     type: 'boolean',
     default: false,
@@ -114,8 +102,6 @@ type Settings = {
   customAccentHex?: string;
   accentLightnessDark?: number;
   windowControls?: string;
-  contentPadding?: number;
-  hideFavicons?: boolean;
   hideRightSidebarTopbar?: boolean;
   fontSans?: string;
   fontMono?: string;
@@ -130,13 +116,12 @@ function css(): string {
       : GNOME_ACCENTS[accentName] ?? GNOME_ACCENTS.blue;
 
   const lightness = Number(s.accentLightnessDark ?? 0.763);
-  const padding = Number(s.contentPadding ?? 24);
+  const follows = accentName === FOLLOW_LOGSEQ;
   const closeOnly = String(s.windowControls ?? 'all') === 'close only';
 
   const rules: string[] = [
     `:root {
   --adw-gnome-accent: ${accent};
-  --adw-content-padding: ${padding}px;
   --adw-font-sans: ${s.fontSans ?? '"Adwaita Sans", Cantarell, system-ui, sans-serif'};
   --adw-font-mono: ${s.fontMono ?? '"Adwaita Mono", ui-monospace, monospace'};${
     closeOnly ? '\n  --adw-wc-width: 44px;' : ''
@@ -149,12 +134,22 @@ function css(): string {
 html[data-theme="dark"][data-color] { --adw-accent-l: ${lightness}; }`,
   ];
 
+  // The stylesheet only falls back to the GNOME accent when Logseq has no
+  // accent of its own — but Logseq ships with data-color="logseq" set, so that
+  // fallback almost never fires and the setting above would look inert. An
+  // explicit choice therefore redeclares --ls-link-text-color on the theme
+  // wrapper, which is where Logseq's own accent palettes declare it: same
+  // specificity, and this block is injected after them.
+  if (!follows) {
+    rules.push(`html[data-theme][data-color] :is(.dark-theme, .light-theme),
+html[data-theme] :is(.dark-theme, .light-theme) {
+  --ls-link-text-color: var(--adw-accent-default);
+}`);
+  }
+
   if (closeOnly) {
     rules.push(`html[data-theme] .window-controls .button.minimize,
 html[data-theme] .window-controls .button.maximize-toggle { display: none; }`);
-  }
-  if (s.hideFavicons) {
-    rules.push(`:root { --favicons: none; }`);
   }
   if (s.hideRightSidebarTopbar) {
     rules.push(`html[data-theme] .cp__right-sidebar-topbar { display: none; }`);

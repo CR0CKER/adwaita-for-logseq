@@ -62,26 +62,30 @@ between machines. Settings → Plugins → Adwaita → the gear icon.
 
 | Setting | Default | What it is for |
 |---|---|---|
-| GNOME accent colour | `blue` | Which accent GNOME Settings is on. **CSS cannot read it** — Chromium's `AccentColor` resolves to its own generic blue, not GTK's — so it has to be told. The nine choices are libadwaita's own `@accent_bg_color` values. |
+| Accent colour | `blue` | Which accent GNOME Settings is on. **CSS cannot read it** — Chromium's `AccentColor` resolves to its own generic blue, not GTK's — so it has to be told. The nine choices are libadwaita's own `@accent_bg_color` values. Set it to `follow Logseq` to hand control back to Logseq's own accent picker. |
 | Custom accent (hex) | `#3584e4` | Used when the accent above is `custom`. Give the *fill* colour; the text accent is derived. |
 | Accent lightness on dark | `0.763` | The oklab lightness floor for accent text on dark. GNOME's own is 0.85; 0.763 is a notch darker and more saturated. |
 | Window controls | `all` | Set to `close only` if your GNOME titlebar layout is `appmenu:close`. |
-| Content gutter | `24px` | Left and right padding of the content column. |
-| Hide link favicons | off | |
 | Hide the right sidebar's top bar | off | Leaves one continuous headerbar. |
 | Interface / monospace font | Adwaita Sans / Adwaita Mono | Adwaita Sans ships with GNOME 47+; Cantarell is the fallback. |
 
 ### How the accent works
 
-Logseq's own accent wins. Pick one in **Settings → Accent color** and links, tags, refs,
-selection, the focus ring and checkboxes all follow it, while the surfaces stay Adwaita
-grey — Logseq normally re-tints its whole neutral ramp along with the accent, which turns
-linked-reference and quote cards warm; the theme puts the greys back.
+The *Accent colour* setting wins by default. From it the theme derives the same three
+values libadwaita does: the standalone accent for text (`oklab(from accent max(l, 0.763)
+a b)` on dark, `min(l, 0.5)` on light), the fill below it, and a hover step above. Links,
+tags, refs, selection, the focus ring and checkboxes all follow.
 
-The *GNOME accent* setting is only the fallback, used when Logseq's accent is unset. From
-it the theme derives the same three values libadwaita does: the standalone accent for text
-(`oklab(from accent max(l, 0.763) a b)` on dark, `min(l, 0.5)` on light), the fill below
-it, and a hover step above.
+Set it to **follow Logseq** and Logseq's own **Settings → Accent color** drives instead,
+with the GNOME accent used only when that is set to none.
+
+Either way the surfaces stay Adwaita grey. Logseq normally re-tints its whole neutral ramp
+along with the accent, which turns linked-reference and quote cards warm; the theme puts
+the greys back.
+
+Note that Logseq is *not* accent-less out of the box — it ships with `data-color="logseq"`,
+the turquoise "Logseq classical color". That is why an explicit choice here has to override
+it rather than merely fall back to it.
 
 ## Scope
 
