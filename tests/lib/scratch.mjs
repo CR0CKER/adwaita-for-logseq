@@ -16,6 +16,19 @@ import { connect, waitFor } from './cdp.mjs';
 
 const REPO_ROOT = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
 
+/**
+ * Plugin settings every live session starts with — deliberately NOT the
+ * defaults. A stored non-default setting is what exposed the startup bug: the
+ * plugin painted its defaults and ignored the saved values until a setting was
+ * changed. Seeding these on every run keeps that path under test.
+ */
+export const STARTUP_SETTINGS = {
+  gnomeAccent: 'yellow',
+  windowControls: 'close only',
+  hideRightSidebarTopbar: true,
+  disabled: false,
+};
+
 /** A port nobody else in this run is using. */
 function pickPort() {
   return 9600 + Math.floor(Math.random() * 300);
@@ -50,6 +63,7 @@ export async function launch(target, { pluginPath = REPO_ROOT } = {}) {
     JSON.stringify({ theme: null, themes: { mode: 'dark' }, externals: [pluginPath] }, null, 2)
   );
   writeFileSync(join(dot, 'config/plugins.edn'), '{}\n');
+  writeFileSync(join(dot, 'settings/logseq-adwaita-theme.json'), JSON.stringify(STARTUP_SETTINGS, null, 2));
 
   const port = pickPort();
   const proc = spawn(target.bin, [`--user-data-dir=${userData}`, `--remote-debugging-port=${port}`, ...target.flags], {
@@ -97,11 +111,15 @@ export async function applyTheme(session, mode = 'dark') {
     await c.selectTheme(themes[${index}], { effect: true, emit: true });
     return true;
   })()`);
-  // The theme arrives as a <link>; a token resolving is proof it loaded and
-  // applied, where the link element merely existing is not.
+  // Wait for the token to resolve to *this mode's* value. "Non-empty" was the
+  // original check and it made the light case flaky: switching dark -> light,
+  // --adw-view-bg is already set from the dark palette, so the wait returned
+  // at once and the probe raced the switch.
+  const expected = mode === 'dark' ? '#1d1d20' : '#ffffff';
   await waitFor(
     cdp,
-    `getComputedStyle(document.documentElement).getPropertyValue('--adw-view-bg').trim().length > 0`,
+    `document.documentElement.dataset.theme === ${JSON.stringify(mode)} &&
+     getComputedStyle(document.documentElement).getPropertyValue('--adw-view-bg').trim() === ${JSON.stringify(expected)}`,
     { label: `the ${mode} stylesheet to apply`, timeoutMs: 20000 }
   );
 }
@@ -116,16 +134,29 @@ export async function applyTheme(session, mode = 'dark') {
  */
 export async function setMode(session, mode) {
   const { cdp } = session;
-  const used = await cdp.evaluate(`(() => {
-    if (window.logseq?.api?.set_theme_mode) { window.logseq.api.set_theme_mode(${JSON.stringify(mode)}); return 'api'; }
-    return 'none';
-  })()`);
-  if (used === 'none') throw new Error('no logseq.api.set_theme_mode on this build — cannot switch mode honestly');
-  await waitFor(cdp, `document.documentElement.dataset.theme === ${JSON.stringify(mode)}`, {
-    label: `the app to switch to ${mode}`,
-    timeoutMs: 10000,
-  });
-  return used;
+  const available = await cdp.evaluate(`Boolean(window.logseq?.api?.set_theme_mode)`);
+  if (!available) throw new Error('no logseq.api.set_theme_mode on this build — cannot switch mode honestly');
+
+  // Logseq drops a mode switch issued while a freshly opened graph is still
+  // initialising: no data-theme transition happens at all, and the state
+  // reads the old mode beforehand. Measured: 2-4 of 5 sessions when switching
+  // right after the graph opened, 0 of 6 after a 10 s settle, and 0 of 8 for
+  // later switches in the same session. So re-issue the call until the DOM
+  // reflects it — a bounded wait for a precondition, not a retried assertion.
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    await cdp.evaluate(`window.logseq.api.set_theme_mode(${JSON.stringify(mode)}); true`);
+    try {
+      await waitFor(cdp, `document.documentElement.dataset.theme === ${JSON.stringify(mode)}`, {
+        label: `the app to switch to ${mode}`,
+        timeoutMs: 2000,
+      });
+      return;
+    } catch {
+      /* dropped during graph init — issue it again */
+    }
+  }
+  throw new Error(`the app never switched to ${mode} within 20s`);
 }
 
 /** Open the seeded file graph. Only meaningful where the target supports it. */

@@ -44,6 +44,14 @@ All notable changes to this project are documented here, in
   values (unset, empty, `none`, `logseq`); a deliberately chosen accent wins.
 - The plugin listed itself as `logseq-adwaita-theme`; it now shows as
   "Adwaita Theme".
+- **Five of the seven settings were silently ignored once the theme was
+  selected** — accent colour, both fonts, the close-only width and accent
+  lightness. The settings stylesheet relied on loading after the theme sheet,
+  but Logseq appends the theme's `<link>` whenever a theme is selected, and both
+  declared the same custom properties on the root at equal specificity, so the
+  theme's defaults won. Measured: the accent computed to the stored `#c88800`
+  until the theme was selected, then to `#3584e4`. Those overrides are now
+  `!important`, and a test requires it.
 
 ### Known limitations
 

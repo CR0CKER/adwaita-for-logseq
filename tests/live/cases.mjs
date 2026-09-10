@@ -11,6 +11,7 @@
  */
 import assert from 'node:assert/strict';
 import { parseRgb, parseColor, contrastRatio } from '../lib/color.mjs';
+import { waitFor } from '../lib/cdp.mjs';
 
 const ADWAITA = {
   dark: { view: 'rgb(29, 29, 32)', sidebar: 'rgb(46, 46, 50)', gray03: '#2e2e32' },
@@ -30,6 +31,40 @@ const probe = (cdp, spec) =>
   })()`);
 
 export const cases = [
+  {
+    // First on purpose: nothing may have touched a setting yet.
+    name: 'stored plugin settings win over the theme sheet once it is selected',
+    async run({ cdp }) {
+      await waitFor(
+        cdp,
+        `Boolean(document.querySelector('style[data-injected-style="adwaita-settings-logseq-adwaita-theme"]'))`,
+        { label: 'the plugin to inject its settings stylesheet', timeoutMs: 20000 }
+      );
+      // Assert the COMPUTED value — what the user sees — not the settings
+      // sheet's text. The text was right all along; the bug was that it lost:
+      // Logseq appends the theme <link> after the plugin's <style> whenever a
+      // theme is selected, and both declared --adw-gnome-accent on :root, so
+      // the theme's own #3584e4 default won on order. The harness selects the
+      // theme before this runs, which is exactly the losing sequence.
+      const got = await cdp.evaluateJson(`(() => {
+        const h = getComputedStyle(document.documentElement);
+        const mini = document.querySelector('.window-controls .button.minimize');
+        return JSON.stringify({
+          gnomeAccent: h.getPropertyValue('--adw-gnome-accent').trim(),
+          wcWidth: h.getPropertyValue('--adw-wc-width').trim(),
+          minimize: mini ? getComputedStyle(mini).display : '(no minimize button)',
+        });
+      })()`);
+      // STARTUP_SETTINGS seeds yellow and "close only" — non-defaults, so a
+      // settings sheet that loses to the theme's defaults fails here.
+      assert.equal(got.gnomeAccent, '#c88800', 'stored accent (yellow) lost to the theme sheet default');
+      assert.equal(got.wcWidth, '44px', 'stored "close only" lost to the theme sheet default');
+      if (got.minimize !== '(no minimize button)') {
+        assert.equal(got.minimize, 'none', 'minimise must be hidden under "close only"');
+      }
+    },
+  },
+
   {
     name: 'dark surfaces are Adwaita, not Logseq defaults',
     async run({ cdp }) {

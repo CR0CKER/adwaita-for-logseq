@@ -125,6 +125,12 @@ PY
 expect_red "cmdk search field keeps the focus ring that drew over the panel corner" \
   tests/static/tokens.test.mjs "$t"
 
+# 7. Settings relying on load order: lost whenever the theme link lands after them.
+t="$(scratch_tree override-order)"
+sed -i 's/ !important;/;/g' "$t/src/settings-css.ts"
+expect_red "settings overrides lose to the theme sheet once it is (re)selected" \
+  tests/static/override-order.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

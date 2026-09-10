@@ -55,8 +55,17 @@ export function resolveAccent(s: Settings): string | null {
 }
 
 /**
- * Build the settings stylesheet. Injected with `provideStyle`, so it lands
- * after the theme sheet and wins without `!important`.
+ * Build the settings stylesheet.
+ *
+ * Root-level overrides carry `!important`, deliberately. This sheet does NOT
+ * reliably load after the theme sheet: the plugin injects it at startup, and
+ * Logseq appends the theme's <link> whenever a theme is selected — at startup
+ * and on every theme or mode switch — so the link usually lands *after* it.
+ * Both declare these custom properties on the root at equal specificity, so
+ * without `!important` the theme's defaults won and five of the seven settings
+ * were silently ignored. An explicit user setting beating the theme's default
+ * is exactly what `!important` expresses; the theme itself never uses it on
+ * these properties (tests/static/override-order.test.mjs pins both halves).
  */
 export function buildSettingsCss(s: Settings): string {
   const accent = resolveAccent(s);
@@ -66,23 +75,25 @@ export function buildSettingsCss(s: Settings): string {
 
   const rules: string[] = [
     `:root {
-  --adw-gnome-accent: ${accent ?? GNOME_ACCENTS.blue};
-  --adw-font-sans: ${s.fontSans ?? DEFAULTS.fontSans};
-  --adw-font-mono: ${s.fontMono ?? DEFAULTS.fontMono};${closeOnly ? '\n  --adw-wc-width: 44px;' : ''}
+  --adw-gnome-accent: ${accent ?? GNOME_ACCENTS.blue} !important;
+  --adw-font-sans: ${s.fontSans ?? DEFAULTS.fontSans} !important;
+  --adw-font-mono: ${s.fontMono ?? DEFAULTS.fontMono} !important;${closeOnly ? '\n  --adw-wc-width: 44px !important;' : ''}
 }`,
     // Only the dark clamp is exposed: on light, libadwaita's min(l, 0.5) is
     // what keeps accent text readable on white, and lowering it further is a
     // contrast decision the user should not have to make.
     `html[data-theme="dark"],
-html[data-theme="dark"][data-color] { --adw-accent-l: ${lightness}; }`,
+html[data-theme="dark"][data-color] { --adw-accent-l: ${lightness} !important; }`,
   ];
 
   // Logseq is not accent-less out of the box: it ships with data-color="logseq",
   // the turquoise "Logseq classical color". The stylesheet's own fallback only
   // covers the genuinely unset cases, so on a default install the setting above
   // would look inert. Treat that shipped default as unset too — it is a default,
-  // not a choice — and redeclare --ls-link-text-color on the theme wrapper,
-  // where Logseq's accent palettes declare it: same specificity, injected after.
+  // not a choice — and redeclare --ls-link-text-color on the theme wrapper.
+  // This one does not depend on load order: at (0,3,1) it outranks Logseq's
+  // `html[data-color=x] .dark-theme` (0,2,1), and the solarized palette sits on
+  // <html> itself, which the wrapper beats by inheritance.
   //
   // Deliberately *not* matched: any other data-color. Pick purple in Logseq's
   // own Settings → Accent color and purple still wins, exactly as before.
