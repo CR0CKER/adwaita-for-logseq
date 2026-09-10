@@ -6,7 +6,10 @@
   "license": "MIT",
   "main": "index.html",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "test": "node --test \"tests/static/*.test.mjs\"",
+    "test:live": "node tests/live/run.mjs",
+    "test:all": "npm test && npm run test:live"
   },
   "devDependencies": {
     "@logseq/libs": "^0.0.17",
@@ -17,5 +20,6 @@
     "id": "logseq-adwaita-theme",
     "title": "Adwaita Theme",
     "icon": "./icon.png"
-  }
+  },
+  "type": "module"
 }

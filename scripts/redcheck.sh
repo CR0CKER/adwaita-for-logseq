@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Prove the regression suite is not vacuous.
+#
+# A test that has never been seen failing proves nothing. Every assertion here
+# was written after the bug it describes was already fixed, so the usual
+# red-then-green order was impossible — this script reconstructs the red half:
+# it puts the pre-fix code back and asserts the matching test FAILS.
+#
+# Two mechanisms:
+#   history  — check out the stylesheet as it was before the fix (git show)
+#   mutation — reintroduce the old behaviour in a scratch copy of the tree
+#
+# Usage: ./scripts/redcheck.sh
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+pass=0
+fail=0
+
+# Run one test file and require it to fail. Anything else is a broken check.
+#   expect_red <label> <test-file> [tree] [theme-css]
+# `env` rather than a VAR=value prefix: prefixing a *function* call leaves the
+# variable set in the shell afterwards, which would leak into later cases.
+expect_red() {
+  local label="$1"
+  local test_file="$2"
+  local tree="${3:-$REPO}"
+  local theme_css="${4:-}"
+  if (cd "$tree" && env ${theme_css:+THEME_CSS="$theme_css"} node --test "$test_file" >"$WORK/out.txt" 2>&1); then
+    printf '  \033[31mNOT RED\033[0m  %s\n' "$label"
+    printf '            %s passed against the pre-fix code — it does not detect this bug\n' "$test_file"
+    fail=$((fail + 1))
+  else
+    local detail
+    detail="$(grep -m1 -E "AssertionError|Error:" "$WORK/out.txt" | sed 's/^ *//' | cut -c1-96 || true)"
+    printf '  \033[32mred\033[0m      %s\n' "$label"
+    [ -n "$detail" ] && printf '            %s\n' "$detail"
+    pass=$((pass + 1))
+  fi
+}
+
+# A scratch copy of the tree that a mutation can be applied to.
+scratch_tree() {
+  # Separate declarations on purpose: `local a=$1 b=$WORK/$a` expands $a in the
+  # *outer* scope, because local's arguments are expanded before it assigns.
+  local name="$1"
+  local dest="$WORK/$name"
+  mkdir -p "$dest"
+  # node_modules is needed for the esbuild import in build.mjs; symlink it.
+  (cd "$REPO" && tar -c --exclude=node_modules --exclude=.git . ) | tar -x -C "$dest"
+  ln -s "$REPO/node_modules" "$dest/node_modules"
+  echo "$dest"
+}
+
+echo "== history: the stylesheet as it was before each fix =="
+
+git -C "$REPO" show e58b5b8^:themes/adwaita.css > "$WORK/pre-leaks.css"
+expect_red "solarized variables leaking (--ls-guideline-color and 7 siblings)" \
+  tests/static/coverage.test.mjs "$REPO" "$WORK/pre-leaks.css"
+
+git -C "$REPO" show 51a783b^:themes/adwaita.css > "$WORK/pre-dividers.css"
+expect_red "sidebar dividers before they were modelled on GNOME Files" \
+  tests/static/sidebar.test.mjs "$REPO" "$WORK/pre-dividers.css"
+
+echo
+echo "== mutation: the old behaviour put back into a scratch tree =="
+
+# 1. The accent setting was inert: it never overrode Logseq's shipped default.
+t="$(scratch_tree inert-accent)"
+python3 - "$t" <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/settings-css.ts')
+s = p.read_text()
+s = s.replace("""    const intentless = ['', 'none', 'logseq'].map(""", """    const intentless = [''].map(""")
+s = s.replace("""    intentless.push('html[data-theme]:not([data-color]) :is(.dark-theme, .light-theme)');""", "")
+p.write_text(s)
+PY
+expect_red "accent setting inert (never beats Logseq's shipped data-color=logseq)" \
+  tests/static/settings.test.mjs "$t"
+
+# 2. The over-correction: overriding every accent made Logseq's picker inert.
+t="$(scratch_tree greedy-accent)"
+python3 - "$t" <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/settings-css.ts')
+s = p.read_text()
+s = s.replace("""    const intentless = ['', 'none', 'logseq'].map(""",
+              """    const intentless = ['', 'none', 'logseq', 'purple', 'orange', 'teal'].map(""")
+p.write_text(s)
+PY
+expect_red "accent override too greedy (a deliberately chosen accent stops winning)" \
+  tests/static/settings.test.mjs "$t"
+
+# 3. An accent too dark to read on the dark surfaces.
+t="$(scratch_tree bad-contrast)"
+sed -i 's/--adw-accent-l:            0.763;/--adw-accent-l:            0.35;/' "$t/src/css/10-tokens-dark.css"
+expect_red "accent lightness dropped below the AA floor" \
+  tests/static/contrast.test.mjs "$t"
+
+# 4. A literal colour in the structure sheet, which cannot follow the scheme.
+t="$(scratch_tree literal-colour)"
+printf '\nhtml[data-theme] .canary { color: #ff00ff; }\n' >> "$t/src/css/30-structure.css"
+expect_red "a literal colour hard-coded into the structure sheet" \
+  tests/static/tokens.test.mjs "$t"
+
+# 5. A source edit that was never rebuilt — the stale-build trap.
+t="$(scratch_tree stale-build)"
+printf '\n/* edited but not rebuilt */\n' >> "$t/src/css/20-mappings.css"
+expect_red "src/css edited without rebuilding themes/adwaita.css" \
+  tests/static/build-fresh.test.mjs "$t"
+
+# 6. The cmdk focus ring that bled over the dialog's rounded corner.
+t="$(scratch_tree cmdk-ring)"
+python3 - "$t" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s = re.sub(r"html\[data-theme\] \.cp__cmdk input:focus-visible \{\n  outline: none;\n\}\n", "", s)
+p.write_text(s)
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "cmdk search field keeps the focus ring that drew over the panel corner" \
+  tests/static/tokens.test.mjs "$t"
+
+echo
+printf '%s\n' "-----------------------------------------------"
+printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"
+[ "$fail" -eq 0 ] || exit 1

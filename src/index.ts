@@ -1,5 +1,6 @@
 import '@logseq/libs';
 import type { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
+import { buildSettingsCss, FOLLOW_LOGSEQ, GNOME_ACCENTS, type Settings } from './settings-css';
 
 /**
  * Two jobs:
@@ -19,22 +20,6 @@ import type { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
  *    properties on :root, injected with provideStyle() so it lands after the
  *    theme sheet and wins without !important.
  */
-
-/** libadwaita's @accent_bg_color per accent name. These nine hexes are the
- *  ones inside libadwaita-1.so.0 itself, not approximations. */
-const FOLLOW_LOGSEQ = 'follow Logseq';
-
-const GNOME_ACCENTS: Record<string, string> = {
-  blue: '#3584e4',
-  teal: '#2190a4',
-  green: '#3a944a',
-  yellow: '#c88800',
-  orange: '#ed5b00',
-  red: '#e62d42',
-  pink: '#d56199',
-  purple: '#9141ac',
-  slate: '#6f8396',
-};
 
 const settings: SettingSchemaDesc[] = [
   {
@@ -97,75 +82,11 @@ const settings: SettingSchemaDesc[] = [
   },
 ];
 
-type Settings = {
-  gnomeAccent?: string;
-  customAccentHex?: string;
-  accentLightnessDark?: number;
-  windowControls?: string;
-  hideRightSidebarTopbar?: boolean;
-  fontSans?: string;
-  fontMono?: string;
-};
-
-function css(): string {
-  const s = (logseq.settings ?? {}) as Settings;
-  const accentName = String(s.gnomeAccent ?? 'blue');
-  const accent =
-    accentName === 'custom'
-      ? String(s.customAccentHex ?? '#3584e4').trim()
-      : GNOME_ACCENTS[accentName] ?? GNOME_ACCENTS.blue;
-
-  const lightness = Number(s.accentLightnessDark ?? 0.763);
-  const follows = accentName === FOLLOW_LOGSEQ;
-  const closeOnly = String(s.windowControls ?? 'all') === 'close only';
-
-  const rules: string[] = [
-    `:root {
-  --adw-gnome-accent: ${accent};
-  --adw-font-sans: ${s.fontSans ?? '"Adwaita Sans", Cantarell, system-ui, sans-serif'};
-  --adw-font-mono: ${s.fontMono ?? '"Adwaita Mono", ui-monospace, monospace'};${
-    closeOnly ? '\n  --adw-wc-width: 44px;' : ''
-  }
-}`,
-    // Only the dark clamp is exposed: on light, libadwaita's min(l, 0.5) is
-    // what keeps accent text readable on white, and lowering it further is a
-    // contrast decision the user should not have to make.
-    `html[data-theme="dark"],
-html[data-theme="dark"][data-color] { --adw-accent-l: ${lightness}; }`,
-  ];
-
-  // Logseq is not accent-less out of the box: it ships with data-color="logseq",
-  // the turquoise "Logseq classical color". The stylesheet's own fallback only
-  // covers the genuinely unset cases, so on a default install the setting above
-  // would look inert. Treat that shipped default as unset too — it is a default,
-  // not a choice — and redeclare --ls-link-text-color on the theme wrapper,
-  // where Logseq's accent palettes declare it: same specificity, injected after.
-  //
-  // Deliberately *not* matched: any other data-color. Pick purple in Logseq's
-  // own Settings → Accent color and purple still wins, exactly as before.
-  if (!follows) {
-    const unset = ['', 'none', 'logseq'].map(
-      (v) => `html[data-theme][data-color="${v}"] :is(.dark-theme, .light-theme)`
-    );
-    unset.push('html[data-theme]:not([data-color]) :is(.dark-theme, .light-theme)');
-    rules.push(`${unset.join(',\n')} {
-  --ls-link-text-color: var(--adw-accent-default);
-}`);
-  }
-
-  if (closeOnly) {
-    rules.push(`html[data-theme] .window-controls .button.minimize,
-html[data-theme] .window-controls .button.maximize-toggle { display: none; }`);
-  }
-  if (s.hideRightSidebarTopbar) {
-    rules.push(`html[data-theme] .cp__right-sidebar-topbar { display: none; }`);
-  }
-
-  return rules.join('\n\n');
-}
-
 function apply() {
-  logseq.provideStyle({ key: 'adwaita-settings', style: css() });
+  logseq.provideStyle({
+    key: 'adwaita-settings',
+    style: buildSettingsCss((logseq.settings ?? {}) as Settings),
+  });
 }
 
 function registerThemes() {
