@@ -5,6 +5,8 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-10
+
 ### Added
 
 - Adwaita Dark and Adwaita Light themes, with both palettes extracted from
@@ -84,3 +86,6 @@ All notable changes to this project are documented here, in
 - The sidebar divider inset is a fixed token (14px). It lines up with the row
   highlights when `logseq-awesome-ui` restyles the sidebar; on stock Logseq the
   rows sit at 22px, so the divider is 8px narrower than the highlight.
+
+[Unreleased]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/CR0CKER/adwaita-for-logseq/releases/tag/v0.1.0

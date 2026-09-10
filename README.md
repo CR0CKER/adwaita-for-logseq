@@ -21,7 +21,7 @@ on light; text at 80% opacity, borders at 15%, exactly as GNOME derives them.
 
 ## Install
 
-Download the zip from the latest [release](../../releases), unzip it, then in Logseq turn on
+Download the zip from the [latest release](https://github.com/CR0CKER/adwaita-for-logseq/releases/latest), unzip it, then in Logseq turn on
 **Settings → Advanced → Developer mode** and use **Plugins → Load unpacked plugin** on the
 unzipped folder. Then pick *Adwaita Dark* or *Adwaita Light* in **Settings → Themes**.
 
