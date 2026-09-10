@@ -144,6 +144,13 @@ PY2
 expect_red "Logseq 2.x shadows --left-sidebar-bg-color, darkening section headers" \
   tests/static/sidebar.test.mjs "$t"
 
+# 9. The subtle accent steps left teal, tinting ghost-button hovers and borders.
+t="$(scratch_tree chrome-accent)"
+sed -i '/--lx-accent-01: var(--adw-hover);/d; /--lx-accent-02: var(--adw-border-soft);/d' "$t/src/css/25-accent.css"
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "accent steps 01-02 left teal in hover and border chrome" \
+  tests/static/coverage.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

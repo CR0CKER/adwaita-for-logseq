@@ -88,3 +88,21 @@ test('the guideline colour specifically is mapped to an Adwaita token', () => {
     '--ls-guideline-color must resolve to an Adwaita token, not Logseq’s #0b4a5a'
   );
 });
+
+/**
+ * Logseq's solarized palette tints *chrome* with the subtle accent steps: its
+ * [data-color=logseq] rules paint ghost-button hovers, tooltip borders, the
+ * cmdk hints footer and more from var(--lx-accent-01/02) — teal. GNOME never
+ * tints chrome with the accent, so every step that palette spends on chrome
+ * must be neutralised to an Adwaita token. The fixture records which steps
+ * those are, per Logseq build, so a new one fails here.
+ */
+for (const fixture of fixtures) {
+  test(`${fixture.target}: accent steps Logseq spends on chrome are neutralised`, () => {
+    const css = readThemeCss();
+    const leaking = (fixture.chromeAccentSteps ?? []).filter(
+      (step) => !new RegExp(`${step}:\\s*var\\(--adw-(hover|active|fill|border|border-soft)\\)`).test(css)
+    );
+    assert.deepEqual(leaking, [], 'these steps still carry the accent into hover/border chrome');
+  });
+}

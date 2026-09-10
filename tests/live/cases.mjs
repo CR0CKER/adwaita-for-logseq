@@ -265,6 +265,75 @@ export const cases = [
   },
 
   {
+    name: 'ghost and header buttons hover grey, never accent-tinted',
+    async run({ cdp }) {
+      // Logseq's teal hover rule is
+      //   html[data-theme=dark][data-color=logseq] .ui__button.as-ghost:hover
+      // and 2.x only renders its header actions as .as-ghost with a graph
+      // open, which a fresh profile does not have. So add one synthetic ghost
+      // button carrying the real classes: the rule does not care where it sits,
+      // and what is under test is the theme's cascade against Logseq's own CSS,
+      // not Logseq's DOM. Real buttons are checked too, whenever present.
+      await cdp.evaluate(`(() => {
+        const b = document.createElement('button');
+        b.className = 'ui__button as-ghost';
+        b.dataset.button = 'icon';
+        b.id = 'adwaita-test-ghost';
+        (document.querySelector('.cp__header') || document.body).appendChild(b);
+        return true;
+      })()`);
+      try {
+        const doc = await cdp.call('DOM.getDocument', { depth: -1 });
+        await cdp.call('CSS.enable');
+        const { nodeIds } = await cdp.call('DOM.querySelectorAll', {
+          nodeId: doc.root.nodeId,
+          selector: '.ui__button.as-ghost, .cp__header .ui__button, .cp__header .button',
+        });
+
+        const hoverBg = async (nodeId) => {
+          await cdp.call('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
+          // Reading the computed style straight after forcing :hover can
+          // return the pre-hover value — observed: 'transparent' for a button
+          // whose hover is white 6%. Matching styles forces the recalc first.
+          await cdp.call('CSS.getMatchedStylesForNode', { nodeId });
+          const { computedStyle } = await cdp.call('CSS.getComputedStyleForNode', { nodeId });
+          await cdp.call('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+          return computedStyle.find((p) => p.name === 'background-color')?.value ?? '';
+        };
+
+        const tinted = [];
+        for (const nodeId of nodeIds) {
+          const bg = await hoverBg(nodeId);
+          const m = /rgba?\((\d+), (\d+), (\d+)/.exec(bg);
+          // --lx-accent-01 in the solarized palette is a teal: blue and green
+          // well above red. A GNOME flat button hovers neutral.
+          if (m && +m[3] > +m[1] + 12 && +m[2] > +m[1] + 10) tinted.push(bg);
+        }
+        assert.ok(nodeIds.length > 0, 'no buttons checked — the synthetic ghost failed to insert');
+        assert.deepEqual(tinted, [], `buttons hover accent-tinted: ${[...new Set(tinted)].join(', ')}`);
+
+        // "Not teal" is not the whole requirement — a ghost button should
+        // hover to the Adwaita hover grey, not to nothing.
+        const { nodeId: ghostId } = await cdp.call('DOM.querySelector', {
+          nodeId: doc.root.nodeId,
+          selector: '#adwaita-test-ghost',
+        });
+        const expected = await cdp.evaluate(`(() => {
+          const p = document.createElement('div');
+          document.body.appendChild(p);
+          p.style.backgroundColor = 'var(--adw-hover)';
+          const v = getComputedStyle(p).backgroundColor;
+          p.remove();
+          return v;
+        })()`);
+        assert.equal(await hoverBg(ghostId), expected, 'a ghost button must hover to --adw-hover');
+      } finally {
+        await cdp.evaluate(`(() => { document.getElementById('adwaita-test-ghost')?.remove(); return true; })()`);
+      }
+    },
+  },
+
+  {
     name: 'accent text clears AA against the live surfaces',
     async run({ cdp }) {
       const got = await cdp.evaluateJson(`(() => {

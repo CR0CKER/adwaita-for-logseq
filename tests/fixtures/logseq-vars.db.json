@@ -116,5 +116,9 @@
       "--ls-button-background-hsl": "200 98% 35%",
       "--ls-button-background": "hsl(var(--ls-button-background-hsl))"
     }
-  }
+  },
+  "chromeAccentSteps": [
+    "--lx-accent-01",
+    "--lx-accent-02"
+  ]
 }

@@ -57,6 +57,14 @@ All notable changes to this project are documented here, in
   `<html>` and the sidebar, as the darker window surface. That shadowed the
   theme's mapping, and the headers ("Navigations", "Favorites", "Recent") paint
   from the variable. It is now re-pinned on the same element.
+- **Teal hover on header buttons in Logseq 2.x** — and, from the same cause, a
+  teal tooltip border, whiteboard-button hover, installed-themes list hover and
+  form-input border. Every rule in Logseq that reads the two subtlest accent
+  steps (`--lx-accent-01`/`-02`) is scoped to the solarized palette and paints
+  chrome with them. Both are now neutral Adwaita tokens, so ghost buttons hover
+  to the Adwaita grey; steps 03+ keep the accent, where it carries meaning. The
+  fixture records which steps each Logseq build spends on chrome, so a new one
+  fails the coverage test.
 
 ### Known limitations
 

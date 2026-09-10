@@ -539,6 +539,19 @@ html[data-theme] :is(.dark-theme, .light-theme) {
 
   --ls-primary-text-color:   var(--adw-fg);
   --ls-secondary-text-color: var(--adw-fg-dim);
+
+  /* The two subtlest accent steps are chrome in Logseq's solarized palette,
+     not accent: every rule that reads them is scoped to [data-color=logseq]
+     and paints a hover background or a border — ghost-button hover (the header
+     buttons in 2.x), tooltip border, the cmdk hints footer, the whiteboard
+     button hover, a form-input border. In that palette they are teal. GNOME
+     never tints chrome with the accent, so both go neutral. Steps 03 and up
+     keep the accent: they carry real meaning (search-match highlight, the
+     keyboard-highlighted command row). tests/fixtures records which steps
+     each Logseq build spends on chrome. */
+  --lx-accent-01: var(--adw-hover);
+  --lx-accent-02: var(--adw-border-soft);
+
   --ls-border-color:           var(--adw-border);
   --ls-secondary-border-color: var(--adw-border-soft);
   --ls-tertiary-border-color:  var(--adw-border-soft);
