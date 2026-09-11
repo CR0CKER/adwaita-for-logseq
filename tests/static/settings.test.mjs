@@ -13,6 +13,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { rules } from '../lib/css.mjs';
 import { buildSettingsCss, resolveAccent, GNOME_ACCENTS, DEFAULTS, FOLLOW_LOGSEQ, TEXT_COLOURS } from '../../src/settings-css.ts';
 
 const OVERRIDE = '--ls-link-text-color: var(--adw-accent-default)';
@@ -82,6 +83,60 @@ test('"all" emits neither the hide rule nor the narrowed width', () => {
 test('the right-sidebar topbar toggle is off unless asked for', () => {
   assert.doesNotMatch(buildSettingsCss({}), /cp__right-sidebar-topbar/);
   assert.match(buildSettingsCss({ hideRightSidebarTopbar: true }), /cp__right-sidebar-topbar.*display:\s*none/s);
+});
+
+// Both builds render a Home button off the home page, but in different markup
+// (OG: `.button[title=Home]` in a tooltip wrapper; 2.x: a shui ghost button
+// with no title). Awesome UI keys on the OG title and misses 2.x; the icon
+// class is the one thing both share.
+test('the Home button stays unless asked to hide, and hiding is keyed on the shared icon', () => {
+  assert.doesNotMatch(buildSettingsCss({}), /ls-icon-home/);
+  const css = buildSettingsCss({ hideHomeButton: true });
+  assert.match(css, /#head \.r button:has\(> \.ls-icon-home\)\s*\{\s*display:\s*none;/);
+  assert.doesNotMatch(css, /title=Home/, 'an OG-only selector misses 2.x');
+});
+
+test('the graph picker stays at the top unless asked to move', () => {
+  const css = buildSettingsCss({});
+  for (const sel of ['cp__menubar-repos', 'sidebar-graphs', 'sidebar-header-container', '.create']) {
+    assert.ok(!css.includes(sel), `default emits nothing about ${sel}`);
+  }
+});
+
+test('the graph picker moves to the bottom on both builds, and OG’s Create button goes', () => {
+  const css = buildSettingsCss({ graphPickerAtBottom: true });
+  // Every declaration block whose selector list has a selector ending in `tail`.
+  const bodies = (tail) => {
+    const found = rules(css)
+      .filter(({ selector }) => selector.split(',').some((s) => s.trim().endsWith(tail)))
+      .map(({ body }) => body);
+    assert.ok(found.length, `no rule for … ${tail}`);
+    return found.join('\n');
+  };
+  // OG: nav.cp__menubar-repos holds the picker and the nav rows; 2.x:
+  // .sidebar-header-container holds .sidebar-graphs and the nav group. The
+  // holder dissolves so the picker becomes a flex item of .wrap, then goes last.
+  assert.match(bodies(' nav.cp__menubar-repos'), /display:\s*contents/);
+  assert.match(bodies(' .sidebar-header-container'), /display:\s*contents/);
+  assert.match(bodies('nav.cp__menubar-repos > .ui__dropdown-trigger'), /order:\s*1/);
+  assert.match(bodies('.sidebar-header-container > .sidebar-graphs'), /order:\s*1/);
+  // It replaces Create (OG only; 2.x has none in the sidebar).
+  assert.match(bodies(' .create'), /display:\s*none/);
+  // At the bottom, OG's dropdown must open upward or it runs off the window.
+  assert.match(bodies('.cp__menubar-repos .dropdown-wrapper'), /bottom:[^;]*100%[\s\S]*top:\s*auto/);
+});
+
+test('the moved picker out-ranks the theme’s "no divider on the first row" rule', () => {
+  // The settings sheet may load before the theme sheet, so a tie on
+  // specificity loses on order. The theme's trigger rule is
+  // html[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger.
+  const css = buildSettingsCss({ graphPickerAtBottom: true });
+  const divider = rules(css).find(
+    ({ selector, body }) => selector.includes('.ui__dropdown-trigger') && /background-image:\s*linear-gradient/.test(body)
+  );
+  assert.ok(divider, 'the moved picker draws a divider above itself');
+  assert.match(divider.selector, /#left-sidebar \.left-sidebar-inner nav\.cp__menubar-repos > \.ui__dropdown-trigger/);
+  assert.match(divider.selector, /#left-sidebar \.left-sidebar-inner \.sidebar-header-container > \.sidebar-graphs/);
 });
 
 test('fonts fall back to the documented stacks', () => {

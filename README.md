@@ -115,6 +115,8 @@ gear icon. (Its plugin id, which stored settings are keyed on, stays `gnome-adwa
 | Window controls | `all` | Set to `close only` if your GNOME titlebar layout is `appmenu:close`. |
 | Text colours | `GNOME apps (quiet)` | How colourful prose is. `Text Editor (Adwaita scheme)` colours headings teal, inline code violet and quote bars grey, as GNOME Text Editor does. Code blocks and highlights use the Adwaita scheme either way — see [Text colours](#text-colours). |
 | Hide the right sidebar's top bar | off | Leaves one continuous headerbar. |
+| Hide the Home button | off | Logseq shows Home in the headerbar whenever you are off the home page; Files has none. Back and the Journals row do the job, and `g h` still works. Keyed on the icon, so it works on OG and 2.x (Awesome UI's version misses 2.x). |
+| Graph picker at the bottom of the sidebar | off | Moves the graph dropdown from the top of the left sidebar to its bottom edge, with a divider above it; its menu opens upward. On OG it replaces the **Create** button (Search still creates pages); 2.x has no Create button there. Turn off Awesome UI's "Move vaults list to bottom" if you use it: the two place the same element differently. |
 | Interface / monospace font | Adwaita Sans / Adwaita Mono | Adwaita Sans ships with GNOME 47+; Cantarell is the fallback. |
 
 ### How the accent works
@@ -290,7 +292,12 @@ and that no visible text or icon in the headerbar or sidebar is anything but the
 foreground, with sidebar row icons dimmed to Files' 0.7; and the Files headerbar layout
 by geometry, with the sidebar open and closed — every control in its slot and 32px square,
 none overlapping, each reachable by a real pointer click, Adwaita icons drawn, and the main
-menu opening under its new position.
+menu opening under its new position. Two cases flip a setting through the host's own
+settings object and back: *Hide the Home button* (off the home page, where Logseq draws
+it) and *Graph picker at the bottom* (below the list, flush with the window's edge,
+reachable, nav rows keeping their inset, its menu opening inside the window). OG's graph
+dropdown renders only with a current graph, which the harness cannot give it (#2), so on
+OG that case checks Create is hidden and reports the rest skipped.
 
 **It runs both builds by default** — the theme has to work on OG and on 2.x, and their
 markup differs (2.x renders page titles as blocks, its header buttons as shui ghost buttons,

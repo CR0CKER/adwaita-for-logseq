@@ -53,6 +53,8 @@ export type Settings = {
   accentLightnessDark?: number;
   windowControls?: string;
   hideRightSidebarTopbar?: boolean;
+  hideHomeButton?: boolean;
+  graphPickerAtBottom?: boolean;
   textColours?: string;
   fontSans?: string;
   fontMono?: string;
@@ -137,6 +139,64 @@ html[data-theme] .window-controls .button.maximize-toggle { display: none; }`);
   if (s.hideRightSidebarTopbar) {
     rules.push(`html[data-theme] .cp__right-sidebar-topbar { display: none; }`);
   }
+  if (s.hideHomeButton) {
+    // Keyed on the icon: OG's button has title="Home", 2.x's has no title.
+    // OG's tooltip wrapper stays, empty: its inline display:inline makes it a
+    // 0px flex item, and .r has no gap there.
+    rules.push(`html[data-theme] #head .r button:has(> .ls-icon-home) { display: none; }`);
+  }
+  if (s.graphPickerAtBottom) {
+    rules.push(...GRAPH_PICKER_AT_BOTTOM);
+  }
 
   return rules.join('\n\n');
 }
+
+/**
+ * The graph picker at the bottom of the left sidebar, in place of OG's Create
+ * button. Both builds stack the sidebar as one flex column (.wrap): the
+ * element holding the picker, then a contents container that is `height:
+ * 100%` and shrinkable. Dissolving the holder (display: contents) makes the
+ * picker a flex item of .wrap; `order: 1` puts it last, and the contents
+ * container shrinks to leave it room. No fixed positioning, no magic heights:
+ * the list still scrolls above it and it follows a resized sidebar.
+ *
+ *   OG:  nav.cp__menubar-repos > [.ui__dropdown-trigger, .nav-header]
+ *   2.x: .sidebar-header-container > [.sidebar-graphs, .sidebar-content-group]
+ *
+ * The holder's inline padding (OG px-4, 2.x .75rem) goes with it, so it is put
+ * back on the children. The picker gets it as padding, not margin, so its
+ * divider can be inset from the sidebar's edge like the section dividers.
+ * Selectors carry #left-sidebar .left-sidebar-inner to out-rank the theme's
+ * "no divider on the first row" rule (1,3,1) whatever the load order.
+ */
+const GRAPH_PICKER_AT_BOTTOM = [
+  `html[data-theme] #left-sidebar .left-sidebar-inner nav.cp__menubar-repos,
+html[data-theme] #left-sidebar .left-sidebar-inner .sidebar-header-container { display: contents; }`,
+  `html[data-theme] #left-sidebar .left-sidebar-inner nav.cp__menubar-repos > :not(.ui__dropdown-trigger) { margin-inline: 1rem; }`,
+  `html[data-theme] #left-sidebar .left-sidebar-inner .sidebar-header-container > :not(.sidebar-graphs) {
+  margin-inline: .75rem;
+  margin-bottom: .25rem;
+}`,
+  `html[data-theme] #left-sidebar .left-sidebar-inner nav.cp__menubar-repos > .ui__dropdown-trigger,
+html[data-theme] #left-sidebar .left-sidebar-inner .sidebar-header-container > .sidebar-graphs {
+  order: 1;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 7px 0 6px;   /* 6px of air + the 1px divider; 6px to the window edge */
+  border-top: 0;
+  background-image: linear-gradient(var(--adw-border), var(--adw-border));
+  background-repeat: no-repeat;
+  background-position: var(--adw-sidebar-divider-inset) 0;
+  background-size: calc(100% - 2 * var(--adw-sidebar-divider-inset)) 1px;
+}`,
+  `html[data-theme] #left-sidebar .left-sidebar-inner nav.cp__menubar-repos > .ui__dropdown-trigger { padding-inline: 1rem; }`,
+  `html[data-theme] #left-sidebar .left-sidebar-inner .sidebar-header-container > .sidebar-graphs { padding-inline: .75rem; }`,
+  // OG's menu hangs below its trigger; at the window's bottom edge it has to
+  // open upward, as Logseq's own Create menu does.
+  `html[data-theme] #left-sidebar .left-sidebar-inner .cp__menubar-repos .dropdown-wrapper {
+  bottom: calc(100% + 6px);
+  top: auto;
+}`,
+  `html[data-theme] #left-sidebar .left-sidebar-inner .create { display: none; }`,
+];

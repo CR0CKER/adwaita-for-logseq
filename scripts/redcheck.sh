@@ -326,6 +326,34 @@ PY2
 expect_red "toggle under .r's window-drag region (a real click drags the window)" \
   tests/static/headerbar.test.mjs "$t"
 
+# 24. The Home button hidden by its OG-only title, as Awesome UI does: 2.x's
+#     ghost button has no title and stays.
+t="$(scratch_tree home-og-only)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/settings-css.ts')
+s = p.read_text()
+old = '#head .r button:has(> .ls-icon-home)'
+assert old in s, 'home rule not found — update this mutation'
+p.write_text(s.replace(old, '#head .button[title=Home]'))
+PY2
+expect_red "Home button hidden by OG's title only (2.x keeps it)" \
+  tests/static/settings.test.mjs "$t"
+
+# 25. The graph picker moved on OG only: 2.x's .sidebar-header-container left
+#     whole, so .sidebar-graphs cannot leave the top of the sidebar.
+t="$(scratch_tree picker-og-only)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/settings-css.ts')
+s = p.read_text()
+old = ",\nhtml[data-theme] #left-sidebar .left-sidebar-inner .sidebar-header-container { display: contents; }"
+assert old in s, 'picker holder rule not found — update this mutation'
+p.write_text(s.replace(old, " { display: contents; }"))
+PY2
+expect_red "graph picker moved on OG only (2.x's stays on top)" \
+  tests/static/settings.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"
