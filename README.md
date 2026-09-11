@@ -137,6 +137,29 @@ Known gap: inline code *inside* a highlight (`` ==`code`== ``) keeps Logseq's ow
 and dark text — Logseq sets that pair with `!important`, and the theme does not fight
 `!important` in content.
 
+## Troubleshooting
+
+**A change or an update does not show.** Logseq reads the theme's stylesheet when the
+theme is selected and the plugin's `package.json` when the plugin loads — not on every
+change. Re-select *Adwaita Dark* / *Adwaita Light* in Settings → Themes; for a new plugin
+title or a new setting, turn the plugin off and on in Settings → Plugins, or restart
+Logseq.
+
+**The sidebar or buttons look different from the screenshots** — grey text, other
+spacing. Another styling plugin is overriding the theme: plugins that restyle Logseq's
+chrome load after it and win. **Awesome UI** (`logseq-awesome-ui`) is a confirmed case —
+it kept sidebar text and buttons grey over the theme's. Turn it off, or its conflicting
+options; the theme covers the GNOME look on its own.
+
+**One thing (say, the quote bar) ignores the theme.** Check the graph's
+`logseq/custom.css`: a hand-written theme left there from before — an older Adwaita
+`custom.css` did exactly this — overrides rules at equal specificity. Emptying it hands
+the look back to the plugin.
+
+**"Text colours: Text Editor" seems to change nothing.** It recolours only headings inside
+notes, inline code and quote bars, as Text Editor does; a page with none of those looks
+the same under both settings. Code blocks and highlights use the Adwaita scheme either way.
+
 ## Scope
 
 - **Linux/GNOME**, light and dark. It will apply anywhere, but the point of it is the
@@ -175,6 +198,12 @@ npm run test:live # drives real Logseq builds — local only, needs a binary
 To try a change, turn on Logseq → Settings → Advanced → Developer mode and use **Load
 unpacked plugin** on the repo directory. The two themes appear in Settings → Themes like
 any installed theme.
+
+Logseq then runs whatever is checked out in that directory. After `npm run build`,
+re-select the theme (and toggle the plugin for `package.json` or settings changes). And
+since switching branches swaps the stylesheet under a running Logseq — while the ignored
+`dist/` build stays behind, so a setting can appear with no rules behind it — do side work
+in a `git worktree` rather than by switching branches in the directory Logseq loads.
 
 `src/css/` is split so a colour is written down in exactly one place:
 

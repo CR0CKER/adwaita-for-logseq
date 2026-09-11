@@ -41,6 +41,10 @@ All notable changes to this project are documented here, in
 - README: the marketplace submission (logseq/marketplace#898), a Releasing
   section, and the live suite's known gap — `openGraph()` stays on the demo
   graph (#2).
+- README: a Troubleshooting section (re-selecting the theme after an update,
+  Awesome UI overriding the sidebar and buttons, a leftover graph `custom.css`,
+  what "Text Editor" colours do and do not change), and how to reload an
+  unpacked build during development.
 
 ## [0.1.1] - 2026-09-10
 
