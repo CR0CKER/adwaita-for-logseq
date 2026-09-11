@@ -501,7 +501,8 @@ export const cases = [
           })),
           mark: { fg: cs('.ls-block mark')?.color, bg: cs('.ls-block mark')?.backgroundColor },
           heading: cs('.ls-block h2')?.color,
-          pageTitle: cs('.ls-page-title h1.title')?.color,
+          // OG: h1.title; Logseq 2.x renders the title as a block.
+          pageTitle: cs('#main-content-container h1.title, #main-content-container .ls-page-title .block-title-wrap')?.color,
           inlineCode: cs('.ls-block :not(pre) > code')?.color,
           quoteBorder: cs('.ls-block blockquote')?.borderLeftColor,
         });
@@ -562,6 +563,124 @@ export const cases = [
       assert.ok(got.icons.length > 0, 'no sidebar row icons rendered');
       const undimmed = got.icons.filter((i) => i.opacity !== '0.7');
       assert.deepEqual(undimmed, [], 'sidebar row icons must be at 0.7, as in Files');
+    },
+  },
+
+  {
+    // nautilus-window.ui / nautilus-toolbar.ui: the sidebar header holds Search,
+    // the app name and the Main Menu; the content header starts with the
+    // sidebar toggle and Back/Forward. Checked by geometry in both sidebar states.
+    name: 'headerbar is laid out like GNOME Files, sidebar open and closed',
+    async run({ cdp }) {
+      const measure = () =>
+        cdp.evaluateJson(`(() => {
+          const r = (sel) => { const e = document.querySelector(sel); if (!e || !e.offsetParent) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+          const items = { toggle: r('#left-menu'), search: r('#search-button'), back: r('.navigation.nav-left'), fwd: r('.navigation.nav-right'), menu: r('.toolbar-dots-btn'), rside: r('.toggle-right-sidebar') };
+          const present = Object.entries(items).filter(([, v]) => v);
+          const overlaps = [];
+          for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++) {
+            const [a, A] = present[i], [b, B] = present[j];
+            if (A.l < B.r - 0.5 && B.l < A.r - 0.5 && A.t < B.b && B.t < A.b) overlaps.push(a + '/' + b);
+          }
+          const mask = (sel) => { const e = document.querySelector(sel + ' .ui__icon'); if (!e) return null; const c = getComputedStyle(e, '::before'); return c.maskImage || c.webkitMaskImage; };
+          return JSON.stringify({
+            open: Boolean(document.querySelector('.ls-left-sidebar-open')),
+            width: innerWidth,
+            sidebar: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ls-left-sidebar-width')),
+            title: getComputedStyle(document.querySelector('#head > .l'), '::after').content,
+            items, overlaps,
+            masks: Object.fromEntries(['#left-menu', '.toggle-right-sidebar', '.toolbar-dots-btn', '.navigation.nav-left', '.navigation.nav-right'].map((s) => [s, mask(s)])),
+            // Electron resolves -webkit-app-region in document order: a *later*
+            // drag region covering a control turns a real mouse press there into
+            // a window drag — invisible to elementFromPoint and to CDP input,
+            // which both skip that step. Simulate it: controls under a later
+            // drag region.
+            dragged: (() => {
+              const drag = [...document.querySelectorAll('*')].filter((d) => getComputedStyle(d).webkitAppRegion === 'drag');
+              return Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
+                .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
+                .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); const x = b.left + b.width / 2, y = b.top + b.height / 2;
+                  return drag.some((d) => (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !d.contains(e) && !e.contains(d) && (() => { const r = d.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; })()); })
+                .map(([k]) => k);
+            })(),
+            // Which element a pointer at each control's centre actually reaches.
+            blocked: Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
+              .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
+              .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); return !e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)); })
+              .map(([k]) => k),
+          });
+        })()`);
+      // A real pointer click at the button's centre (CDP Input), not
+      // element.click(): the latter bypasses hit-testing, and the toggle once
+      // sat under .r's layer — clickable by script, dead to the mouse.
+      const realClick = async (sel) => {
+        const [x, y] = await cdp.evaluateJson(`(() => { const b = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return JSON.stringify([b.left + b.width / 2, b.top + b.height / 2]); })()`);
+        for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+      };
+      const setOpen = async (want) => {
+        const open = await cdp.evaluate(`Boolean(document.querySelector('.ls-left-sidebar-open'))`);
+        if (open !== want) await realClick('#left-menu');
+        await waitFor(cdp, `Boolean(document.querySelector('.ls-left-sidebar-open')) === ${want}`, { label: `sidebar ${want ? 'open' : 'closed'}`, timeoutMs: 5000 });
+        await new Promise((r) => setTimeout(r, 600)); // the header's own padding transition
+      };
+      const wasOpen = await cdp.evaluate(`Boolean(document.querySelector('.ls-left-sidebar-open'))`);
+      try {
+        await setOpen(false);
+        const closed = await measure();
+        if (closed.width < 640) return { skipped: `window is ${closed.width}px; the docked layout starts at 640px` };
+        for (const [sel, m] of Object.entries(closed.masks)) assert.match(m ?? '', /data:image\/svg\+xml/, `${sel} draws an Adwaita icon`);
+        assert.deepEqual(closed.overlaps, [], 'closed: header controls overlap');
+        assert.deepEqual(closed.blocked, [], 'closed: controls a pointer cannot reach');
+        assert.deepEqual(closed.dragged, [], 'closed: controls under a later window-drag region (a real press drags the window)');
+        assert.equal(closed.title, 'none', 'closed: no sidebar title');
+        assert.ok(closed.items.toggle.l < 12, 'closed: the toggle starts the bar');
+        assert.ok(closed.items.back.l > closed.items.toggle.r && closed.items.back.l < closed.items.toggle.r + 60, 'closed: Back follows the toggle');
+        assert.ok(closed.items.fwd.l >= closed.items.back.r - 0.5, 'closed: Forward follows Back');
+        // Files' pattern: the main menu belongs to the sidebar and is hidden with
+        // it — not moved to the other end of the bar.
+        assert.equal(closed.items.menu, null, 'closed: the main menu is hidden with the sidebar');
+
+        await setOpen(true);
+        const open = await measure();
+        const edge = open.sidebar;
+        assert.deepEqual(open.overlaps, [], 'open: header controls overlap');
+        assert.deepEqual(open.blocked, [], 'open: controls a pointer cannot reach');
+        assert.deepEqual(open.dragged, [], 'open: controls under a later window-drag region (a real press drags the window)');
+        // Every header icon button is GTK's 32px square, in both builds — Logseq
+        // 2.x's content-box ghost buttons once came out 52x42.
+        const offSize = Object.entries(open.items).filter(([, b]) => b && (Math.abs(b.r - b.l - 32) > 1.5 || Math.abs(b.b - b.t - 32) > 1.5)).map(([k, b]) => `${k} ${Math.round(b.r - b.l)}x${Math.round(b.b - b.t)}`);
+        assert.deepEqual(offSize, [], 'header icon buttons must be 32x32');
+        assert.equal(open.title, '"Logseq"', 'open: the sidebar header carries the app name');
+        assert.ok(open.items.menu.r <= edge && open.items.menu.r > edge - 12, `open: menu ends the sidebar header (r=${open.items.menu.r}, edge ${edge})`);
+        if (open.items.search) assert.ok(open.items.search.l < 12, 'open: search starts the sidebar header');
+        assert.ok(open.items.toggle.l >= edge && open.items.toggle.l < edge + 12, `open: the toggle sits just past the sidebar edge (l=${open.items.toggle.l})`);
+        assert.ok(open.items.back.l >= open.items.toggle.r && open.items.back.l < open.items.toggle.r + 12, 'open: Back follows the toggle');
+
+        // The menu must open anchored to its moved button: below it, overlapping
+        // it horizontally, inside the window. OG positions a .dropdown-wrapper
+        // inside the trigger; Logseq 2.x a Radix [role=menu] popup in a portal.
+        await realClick('.toolbar-dots-btn');
+        await waitFor(cdp, `[...document.querySelectorAll('.dropdown-wrapper, [role=menu]')].some((e) => e.getBoundingClientRect().width > 0)`, { label: 'the app menu to open', timeoutMs: 5000 });
+        const drop = await cdp.evaluateJson(`(() => { const e = [...document.querySelectorAll('.dropdown-wrapper, [role=menu]')].find((x) => x.getBoundingClientRect().width > 0); const b = e.getBoundingClientRect(); return JSON.stringify({ l: b.left, r: b.right, t: b.top }); })()`);
+        for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await new Promise((r) => setTimeout(r, 300));
+        const menu = open.items.menu;
+        assert.ok(drop.t >= menu.b - 1 && drop.t < menu.b + 24, `the menu opens right below its button (${JSON.stringify(drop)})`);
+        assert.ok(drop.l < menu.r && drop.r > menu.l, `the menu opens over its button, not elsewhere (${JSON.stringify(drop)})`);
+        assert.ok(drop.l >= 0 && drop.r <= open.width, 'the menu stays inside the window');
+
+        // With the right sidebar open the window controls sit over it, so the
+        // header's last control belongs near the main section's own edge.
+        await realClick('.toggle-right-sidebar');
+        await waitFor(cdp, `Boolean(document.querySelector('.ls-right-sidebar-open'))`, { label: 'the right sidebar to open', timeoutMs: 5000 });
+        await new Promise((r) => setTimeout(r, 600));
+        const right = await cdp.evaluateJson(`(() => { const main = document.querySelector('#head').getBoundingClientRect(); const last = document.querySelector('.toggle-right-sidebar').getBoundingClientRect(); return JSON.stringify({ gap: main.right - last.right }); })()`);
+        await realClick('.toggle-right-sidebar');
+        await waitFor(cdp, `!document.querySelector('.ls-right-sidebar-open')`, { label: 'the right sidebar to close', timeoutMs: 5000 });
+        assert.ok(right.gap <= 16, `right sidebar open: ${Math.round(right.gap)}px between the last header control and the main section's edge`);
+      } finally {
+        await setOpen(wasOpen).catch(() => {});
+      }
     },
   },
 ];

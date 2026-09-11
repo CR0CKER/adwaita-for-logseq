@@ -209,6 +209,123 @@ PY
 expect_red "inline code colour set only through a variable Logseq ignores" \
   tests/static/text.test.mjs "$t"
 
+# 15. Back/Forward left where Logseq puts them, near the end of the header.
+t="$(scratch_tree nav-order)"
+python3 - "$t" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] #head \.r > div:has\(\.navigation\) \{[^}]*\}\n", "", s)
+assert s2 != s, 'nav order rule not found — update this mutation'
+p.write_text(s2)
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "Back/Forward not leading the content header" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 16. The section divider drawn on the graph dropdown, right under the header.
+t="$(scratch_tree repos-divider)"
+printf '\nhtml[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger { background-image: linear-gradient(var(--adw-border), var(--adw-border)); }\n' >> "$t/src/css/30-structure.css"
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "a divider above the graph dropdown, directly under the header" \
+  tests/static/sidebar.test.mjs "$t"
+
+# 17. The docked placements unscoped: below 640px they land on the overlay sidebar.
+t="$(scratch_tree docked-scope)"
+python3 - "$t" <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+start = s.index('@media (min-width: 640px) {')
+end = s.index('\n}\n', start)
+inner = s[start + len('@media (min-width: 640px) {'):end]
+p.write_text(s[:start] + inner + s[end + 3:])
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "open-sidebar placements applied below Logseq's 640px docking breakpoint" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 18. The moved sidebar toggle under .r's layer: clickable by script, dead to the mouse.
+t="$(scratch_tree toggle-stacking)"
+python3 - "$t" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"\n    transform: none;\n", "\n", s, count=1)
+assert s2 != s, '.l transform override not found — update this mutation'
+p.write_text(s2)
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "sidebar toggle stacked under .r, so a real click cannot reach it" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 19. Room reserved for window controls that sit over the open right sidebar.
+t="$(scratch_tree wc-reservation)"
+printf '\nhtml[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header > .r { margin-right: var(--adw-wc-width); }\n' >> "$t/src/css/30-structure.css"
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "header reserves window-control room with the right sidebar open (the ~100px gap)" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 20. The main menu jumping to the far end of the bar when the sidebar closes.
+t="$(scratch_tree menu-jumps)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+start = s.find("html[data-theme] main:not(.ls-left-sidebar-open) #head")
+assert start != -1, 'menu hide rule not found — update this mutation'
+end = s.index("}\n", start) + 2
+s2 = s[:start] + s[end:]
+p.write_text(s2)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "main menu moves to the content header when the sidebar closes" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 21. Logseq 2.x: its one control group left packed — the right-sidebar toggle
+#     then rides at the start of the bar with Back/Forward.
+t="$(scratch_tree db-group)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] #head \.r > div:has\(> \.toggle-right-sidebar\) \{\n  display: contents;\n\}\n", "", s)
+assert s2 != s, '2.x group rule not found — update this mutation'
+p.write_text(s2)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "Logseq 2.x control group not unpacked" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 22. Logseq 2.x: content-box ghost buttons padded out to 52x42.
+t="$(scratch_tree db-button-size)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] \.cp__header \.ui__button\.as-ghost:has\(> \.ui__icon:only-child\) \{[^}]*\}\n", "", s)
+assert s2 != s, '2.x icon-button sizing rule not found — update this mutation'
+p.write_text(s2)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "Logseq 2.x header icon buttons 52x42, not 32x32" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 23. Room for the toggle made with padding: .r's window-drag region (later in
+#     the document) then lies under the toggle, and a real mouse press drags
+#     the window instead of toggling the sidebar.
+t="$(scratch_tree toggle-drag)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+assert '    margin-left: 44px;' in s, 'toggle margin not found — update this mutation'
+p.write_text(s.replace('    margin-left: 44px;', '    padding-left: 44px;', 1))
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "toggle under .r's window-drag region (a real click drags the window)" \
+  tests/static/headerbar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

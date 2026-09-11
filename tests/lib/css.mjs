@@ -1,10 +1,11 @@
 /**
  * A deliberately small CSS reader for the built stylesheet.
  *
- * Not a real parser and not trying to be: the built sheet is flat (no nesting,
- * no @media), so splitting on braces is sufficient and keeps the test suite
- * dependency-free. If the stylesheet ever grows nesting, this needs replacing
- * with a real parser rather than patching.
+ * Not a real parser and not trying to be: the built sheet has no CSS nesting,
+ * and at most one level of at-rule block (`@media`), which rules() reads by
+ * tracking brace depth. That keeps the suite dependency-free. If the sheet ever
+ * grows CSS nesting or nested at-rules, replace this with a real parser rather
+ * than patching it. tests/static/css-reader.test.mjs pins its behaviour.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -29,15 +30,39 @@ export function stripComments(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
-/** Every rule in source order: { selector, body }. */
+/**
+ * Every rule in source order: { selector, body, media }.
+ *
+ * Reads one level of at-rule block (`@media …{ … }`, `@supports …`): the rules
+ * inside are returned like any other, with `media` set to the at-rule's
+ * prelude; top-level rules have `media: null`. Tracks brace depth rather than
+ * splitting on `}`, which turned a nested block into garbage selectors.
+ */
 export function rules(css) {
+  const src = stripComments(css);
   const out = [];
-  for (const chunk of stripComments(css).split('}')) {
-    const i = chunk.indexOf('{');
-    if (i === -1) continue;
-    const selector = chunk.slice(0, i).trim();
-    const body = chunk.slice(i + 1).trim();
-    if (selector) out.push({ selector, body });
+  let i = 0;
+  let media = null; // prelude of the at-rule block we are inside, if any
+  while (i < src.length) {
+    const open = src.indexOf('{', i);
+    const close = src.indexOf('}', i);
+    if (close !== -1 && (open === -1 || close < open)) {
+      // End of the enclosing at-rule block.
+      media = null;
+      i = close + 1;
+      continue;
+    }
+    if (open === -1) break;
+    const prelude = src.slice(i, open).trim();
+    if (prelude.startsWith('@') && media === null) {
+      media = prelude;
+      i = open + 1;
+      continue;
+    }
+    const end = src.indexOf('}', open);
+    if (end === -1) break;
+    if (prelude) out.push({ selector: prelude, body: src.slice(open + 1, end).trim(), media });
+    i = end + 1;
   }
   return out;
 }

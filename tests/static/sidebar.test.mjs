@@ -45,6 +45,14 @@ test('there is no divider directly under the header', () => {
   const rule = rules(css).find(({ selector }) => /nav\.cp__menubar-repos\s*\{?$/.test(selector.trim()) || selector.includes('nav.cp__menubar-repos'));
   assert.ok(rule, 'the nav.cp__menubar-repos exception rule is missing');
   assert.match(rule.body, /background-image:\s*none/);
+
+  // The graph dropdown's trigger sits at the very top of the sidebar, under the
+  // header. It once carried the section divider itself — the line the user saw
+  // above the graph name. No rule may draw one on it.
+  const onTrigger = rules(css).filter(
+    ({ selector, body }) => selector.includes('.cp__menubar-repos > .ui__dropdown-trigger') && /background-image:\s*linear-gradient/.test(body)
+  );
+  assert.deepEqual(onTrigger.map((r) => r.selector), [], 'a divider is drawn on the graph dropdown, directly under the header');
 });
 
 test('the sidebar background variable is re-pinned where Logseq 2.x shadows it', () => {

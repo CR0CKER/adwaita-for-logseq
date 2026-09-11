@@ -63,6 +63,43 @@ name depends on how Logseq was installed.
 **3. Select one of the two Adwaita themes** in Settings → Themes for the mode you use.
 Logseq applies one theme per mode, so another theme selected there replaces this one.
 
+## Headerbar and sidebar, as in GNOME Files
+
+The layout is taken from Files' own UI definitions (`gresource extract /usr/bin/nautilus
+/org/gnome/nautilus/ui/nautilus-window.ui`, and `nautilus-toolbar.ui`), not from a
+screenshot. It is the same on Logseq OG and 2.x, whose header markup differs underneath:
+
+| | Start | Centre | End |
+|---|---|---|---|
+| **Sidebar header** | Search | **Logseq** | Main menu |
+| **Content header** | Sidebar toggle, then Back / Forward | | plugins, right sidebar, window controls |
+
+- **The main menu is a hamburger in the sidebar header.** Logseq's ⋮ menu holds Settings,
+  Plugins, Themes and Help — application-wide items, which the HIG puts in a *primary*
+  menu: "The button for primary menus should use the `open-menu-symbolic` icon." GNOME
+  keeps ⋮ for secondary menus about one view or item (Files' path-bar ⋮ is one).
+- **The sidebar toggle and Back/Forward open the content header**, exactly where Files puts
+  its `sidebar-show-symbolic` toggle and its history controls.
+- **Every one of these buttons uses Adwaita's own icon** for that job — `open-menu`,
+  `edit-find`, `sidebar-show`, `sidebar-show-right`, `go-previous`, `go-next` — vendored
+  unmodified in `src/icons/`.
+- **The main menu belongs to the sidebar**, as in Files: it is hidden with the sidebar
+  rather than jumping to the other end of the bar — open the sidebar to reach Settings,
+  Plugins and Themes. (GNOME apps whose sidebar the user can hide, such as Calendar, fix
+  the menu at the content header's end instead; this theme follows Files. Below 640px,
+  where Logseq overlays the sidebar, the menu sits at the header's end while it is open.)
+- **With the sidebar closed** — or below 640px, where Logseq turns the sidebar into an
+  overlay — the header collapses as Files does when narrow: toggle, search and
+  Back/Forward first.
+- **No divider directly under the header**; dividers separate groups, as in Files.
+  Sidebar row icons are drawn at Files' 70% opacity (`image.sidebarrow-icon { opacity:
+  0.7 }` in Nautilus's stylesheet), their labels at full strength.
+
+Limits of doing this in a stylesheet: the buttons are moved visually, not in the document,
+so keyboard focus still visits them in Logseq's order; tooltips keep Logseq's wording
+("More" rather than "Main Menu"); and Back/Forward cannot dim when there is no history to
+go to, because that state is not visible to CSS.
+
 ## Settings
 
 The plugin does two things: it registers the two themes (which on newer Logseq builds has
@@ -169,7 +206,7 @@ the same under both settings. Code blocks and highlights use the Adwaita scheme 
   | Build | Status |
   |---|---|
   | **Logseq OG** (Electron 43) | every live case passes, with the screen unlocked (see [Tests](#tests)) |
-  | **Logseq 2.x** (2.0.1, DB build) | all cases passed except the search dialog and divider cases, which skip because the harness cannot yet open a graph in a fresh 2.x profile. The task-marker and text-colour cases came later and have not run on 2.x; whether its code blocks use CodeMirror, as OG's do, is unverified |
+  | **Logseq 2.x** (2.0.1, DB build) | every live case passes except three that skip, each with its reason: the search-dialog and divider cases need an open graph, which the harness cannot yet open in a fresh 2.x profile ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)); and the task-marker case, because 2.x has no text markers (TODO/DOING) — DB tasks carry a status property, and how the theme colours those is unverified |
   | **Logseq 0.10.13** | stylesheet verified by CDP probe; not in the live suite, because its renderer aborts unprompted on the development machine |
 
   Logseq 2.x's `--ls-*` palette is a strict subset of OG's, so the theme's variable
@@ -195,6 +232,11 @@ npm test          # static regression suite (this is what CI runs)
 npm run test:live # drives real Logseq builds — local only, needs a binary
 ```
 
+**What we learned** — Logseq's cascade traps, how OG and 2.x differ, Electron's
+window-drag regions, where each GNOME design decision comes from, and what synthetic tests
+cannot see — is in [`docs/logseq-internals.md`](docs/logseq-internals.md). Working
+conventions for changing the repo are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 To try a change, turn on Logseq → Settings → Advanced → Developer mode and use **Load
 unpacked plugin** on the repo directory. The two themes appear in Settings → Themes like
 any installed theme.
@@ -214,7 +256,8 @@ in a `git worktree` rather than by switching branches in the directory Logseq lo
 | `20-mappings.css` | Logseq's `--ls-*`, the shui `--lx-gray-*` ramp and the shadcn HSL triplets, all pointed at those tokens — colour-scheme independent |
 | `25-accent.css` | accent derivation and the neutral-ramp restatement |
 | `27-text.css` | text colours inside notes: the Adwaita scheme's hues through the accent clamp, code blocks, highlights, and the prose roles the Text colours setting switches |
-| `30-structure.css` | headerbar, sidebar, window controls, widgets, content — geometry only, every colour a token |
+| `28-icons.css` | **generated** by `scripts/encode-icons.mjs` from `src/icons/`: the vendored Adwaita icons as mask tokens |
+| `30-structure.css` | headerbar (including the Files layout), sidebar, window controls, widgets, content — geometry only, every colour a token |
 
 The structure rules are scoped `html[data-theme]`, not `html[data-theme="dark"]`, so one
 sheet serves both schemes and the palette files are the only difference between them.
@@ -231,7 +274,10 @@ structure and text sheets stay scheme-agnostic and free of literal colours; ever
 in both schemes, as text and as task markers at the opacity they render with; every
 Adwaita-scheme text colour clears AA once clamped, inline code on its fill too, and so
 does highlight text on its highlight; every code token Logseq colours is re-pointed; the
-settings logic behaves; and `themes/adwaita.css` matches a fresh build.
+settings logic behaves; the vendored Adwaita icons are inlined byte-for-byte and each
+headerbar button uses the right one, with the docked-sidebar placements scoped to Logseq's
+640px breakpoint; the CSS reader itself handles `@media`; and `themes/adwaita.css`
+matches a fresh build.
 
 **Live (`npm run test:live`, local only).** Launches a scratch instance with an isolated
 `HOME`, loads this repo as an unpacked plugin, selects the theme and asserts computed
@@ -241,10 +287,20 @@ button hover colour, accent contrast, task markers (accent colour, full opacity,
 accent hover step on hover), and text colours (code-block surface and tokens, highlights,
 and headings / inline code / quote bars under the "Text Editor" setting the harness seeds),
 and that no visible text or icon in the headerbar or sidebar is anything but the full
-foreground, with sidebar row icons dimmed to Files' 0.7.
+foreground, with sidebar row icons dimmed to Files' 0.7; and the Files headerbar layout
+by geometry, with the sidebar open and closed — every control in its slot and 32px square,
+none overlapping, each reachable by a real pointer click, Adwaita icons drawn, and the main
+menu opening under its new position.
+
+**It runs both builds by default** — the theme has to work on OG and on 2.x, and their
+markup differs (2.x renders page titles as blocks, its header buttons as shui ghost buttons,
+Back/Forward/⋮ in one group). OG is looked for at `~/.local/opt/logseq-og/Logseq-OG`, 2.x at
+`~/.local/opt/logseq-db-2.0.1/logseq` (the release's `Logseq-linux-arm64-2.0.1.zip`,
+checked against its published SHA-256 before extracting); override either:
 
 ```
-npm run test:live -- --target=og      # one target
+npm run test:live                     # both builds
+npm run test:live -- --target=og      # one build
 LOGSEQ_OG_BIN=/path/to/Logseq-OG npm run test:live
 LOGSEQ_DB_BIN=/path/to/logseq npm run test:live -- --target=db
 ```
@@ -345,6 +401,14 @@ Three traps are worth knowing before editing:
   `<link>` whenever a theme is selected, after the settings `<style>`. The root-level
   overrides it shares with the theme are therefore `!important`, and a test requires it.
 
+## Third-party assets
+
+The window-close glyph and the six headerbar icons are GNOME's own symbolic icons from the
+[Adwaita icon theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme) (© the GNOME
+Project), licensed **LGPL-3.0-only OR CC-BY-SA-3.0** and redistributed unmodified —
+the headerbar icons as files in `src/icons/` (see its README), the close glyph inline in
+`src/css/30-structure.css`. That licence covers those assets only.
+
 ## Licence
 
-MIT.
+MIT, except the third-party assets above.

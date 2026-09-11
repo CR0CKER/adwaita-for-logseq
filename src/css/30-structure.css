@@ -60,14 +60,25 @@ html[data-theme] .cp__header > .r {
   padding-right: 8px;
 }
 
-/* header buttons: Adwaita flat icon buttons */
-html[data-theme] .cp__header .button {
+/* header buttons: Adwaita flat icon buttons. Logseq 2.x renders its header
+   buttons as shui ghost buttons (.ui__button.as-ghost, h-10: 40x44px), which
+   need the same size to line up with OG's. */
+html[data-theme] .cp__header .button,
+html[data-theme] .cp__header .ui__button.as-ghost {
   height: 32px;
   min-width: 32px;
   border-radius: var(--adw-radius-button);
   background: transparent;
   color: var(--adw-fg);
   opacity: .85;
+}
+
+/* 2.x's ghost buttons are content-box, and the general .ui__button padding
+   (5px 10px) would grow that 32px box to 52x42. Icon-only ones get GTK's
+   32px square; ones with a label keep their padding. */
+html[data-theme] .cp__header .ui__button.as-ghost:has(> .ui__icon:only-child) {
+  box-sizing: border-box;
+  padding: 0;
 }
 
 html[data-theme] .cp__header .button:hover {
@@ -90,6 +101,195 @@ html[data-theme] .cp__header > .r > div:not(.ui__dropdown-trigger) a {
 html[data-theme] .cp__header .button .ti,
 html[data-theme] .cp__header .button .tie {
   font-size: 17px;
+}
+
+/* --------------------------------------------------------------------------
+   3b. Headerbar layout, as in GNOME Files
+       nautilus-window.ui gives the sidebar its own header — Search at the
+       start, the app name, the Main Menu at the end — and nautilus-toolbar.ui
+       starts the content header with the sidebar toggle and Back/Forward.
+       CSS cannot move Logseq's buttons to another parent, so this is flex
+       `order` inside .r plus absolute placement in the sticky #head, measured
+       from --ls-left-sidebar-width so it follows the sidebar's width.
+   -------------------------------------------------------------------------- */
+
+/* .l spans the sidebar only while the sidebar is open. Closed, it shrinks to
+   its buttons so the toggle and Back/Forward start the bar — Files' collapsed
+   layout. Logseq's own `.cp__header > .l` keeps the full width either way. */
+html[data-theme] #head > .l {
+  position: relative;
+  min-width: 0;
+  column-gap: 6px;      /* the 6px GTK leaves between header bar buttons: */
+  padding-right: 6px;   /* toggle · search while closed, and before .r */
+}
+
+/* Back/Forward lead the content header; everything else goes to the end. The
+   buttons sit two levels down (.r > div.flex-row > div > button), so the flex
+   item is the .r child that contains them. */
+html[data-theme] #head .r > div:has(.navigation) {
+  order: -1;
+  margin-right: auto;
+}
+
+/* The main menu belongs to the sidebar, as in Files: it sits in the sidebar
+   header and is hidden with the sidebar, instead of jumping to the far end of
+   the bar when the sidebar closes. (GNOME apps whose sidebar can be hidden,
+   like Calendar, fix the menu at the content header's end instead; this theme
+   follows Files.) Logseq puts .ls-left-sidebar-open on <main> — OG's
+   main.theme-inner, 2.x's plain main — and wraps ⋮ in a trigger only in OG. */
+html[data-theme] main:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
+html[data-theme] main:not(.ls-left-sidebar-open) #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
+  display: none;
+}
+
+/* Logseq 2.x puts Back/Forward, ⋮ and the right-sidebar toggle in one flex
+   group at the start of .r. Unpacked, each becomes a flex item of .r and takes
+   its Files slot: Back/Forward first, the right-sidebar toggle last, ⋮ placed
+   by the rules above. (OG wraps its right-sidebar toggle alone, so unpacking
+   that wrapper changes nothing there.) */
+html[data-theme] #head .r > div:has(> .toggle-right-sidebar) {
+  display: contents;
+}
+
+html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > div:has(> .navigation) {
+  order: -1;
+  margin-right: auto;
+}
+
+html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sidebar {
+  order: 1;
+}
+
+/* Everything below applies while the sidebar is open *and docked*. Logseq
+   docks it only at min-width 640px (its own breakpoint); narrower, the
+   sidebar is a wider overlay and these placements would land on top of it,
+   so the header keeps the collapsed layout — as Files does when narrow. */
+@media (min-width: 640px) {
+  html[data-theme] .ls-left-sidebar-open #head > .l {
+    min-width: var(--ls-left-sidebar-width);
+    /* Logseq's identity transform makes .l a stacking context, which would
+       confine the moved toggle's z-index to .l — and .r paints over .l. */
+    transform: none;
+  }
+
+  /* Sidebar toggle: just past the sidebar's edge, first in the content header.
+     Search (in .l after it) becomes the sidebar header's first control.
+     That spot is over .r, which Logseq gives a transform — a stacking context
+     painted after .l — so without a z-index the pointer reaches .r (a window
+     drag region) and the toggle cannot be clicked. */
+  html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu),
+  html[data-theme] .ls-left-sidebar-open #head > .l > #left-menu {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: calc(var(--ls-left-sidebar-width) + 6px);
+    transform: translateY(-50%);
+  }
+
+  /* Room for the toggle: 6px + the 32px toggle + 6px. A margin, not padding:
+     Electron resolves -webkit-app-region in document order, so a later drag
+     region overrides an earlier no-drag one whatever is painted on top. With
+     padding, .r (drag, later) lay under the toggle (in .l, earlier) and a real
+     mouse press dragged the window. Now only #head, an ancestor, is under it. */
+  html[data-theme] .ls-left-sidebar-open #head > .r {
+    margin-left: 44px;
+    /* The menu is placed outside .r (below); Logseq 2.x's overflow-x-hidden
+       on .r would clip it away. */
+    overflow: visible;
+  }
+
+  /* The app menu is the primary menu (HIG: open-menu-symbolic), and Files puts
+     it at the end of the sidebar header. Logseq gives .r a transform, which makes
+     .r — not #head — its containing block; while the sidebar is open .r starts
+     44px past the sidebar's edge (after the toggle), so the button is placed by
+     its right edge, 50px before .r — 6px inside the sidebar, whatever the
+     sidebar's or the button's width. OG's dropdown sits inside the trigger and 2.x's Radix popup anchors
+     to it, so either opens under the new position. */
+  html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
+  html[data-theme] .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
+    position: absolute;
+    top: 50%;
+    left: auto;
+    right: calc(100% + 50px);
+    transform: translateY(-50%);
+  }
+
+  /* The app name, bold and centred, like Files' AdwWindowTitle. Decorative:
+     the window title already names the app for assistive technology. */
+  html[data-theme] .ls-left-sidebar-open #head > .l::after {
+    content: "Logseq";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Same size as the sidebar rows, bold — as "Files" sits over its rows.
+       Stated explicitly: the header's own font-size would otherwise inherit. */
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--adw-fg);
+    pointer-events: none;
+  }
+}
+
+/* Adwaita's own symbolic icons in place of Logseq's Tabler ones — the icons
+   Files uses for the same jobs (src/icons/README.md). Masks painted in
+   currentColor, as for the close button below. */
+html[data-theme] #head #left-menu .ui__icon svg,
+html[data-theme] #head .toggle-right-sidebar .ui__icon svg,
+html[data-theme] #head .toolbar-dots-btn .ui__icon svg,
+html[data-theme] #head .navigation.nav-left .ui__icon svg,
+html[data-theme] #head .navigation.nav-right .ui__icon svg,
+html[data-theme] #head #search-button .ui__icon svg {
+  display: none;
+}
+
+html[data-theme] #head #left-menu .ui__icon::before,
+html[data-theme] #head .toggle-right-sidebar .ui__icon::before,
+html[data-theme] #head .toolbar-dots-btn .ui__icon::before,
+html[data-theme] #head .navigation.nav-left .ui__icon::before,
+html[data-theme] #head .navigation.nav-right .ui__icon::before,
+html[data-theme] #head #search-button .ui__icon::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask-size: 16px 16px;
+  mask-size: 16px 16px;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+html[data-theme] #head #left-menu .ui__icon::before {
+  -webkit-mask-image: var(--adw-icon-sidebar-show-symbolic);
+  mask-image: var(--adw-icon-sidebar-show-symbolic);
+}
+
+html[data-theme] #head .toggle-right-sidebar .ui__icon::before {
+  -webkit-mask-image: var(--adw-icon-sidebar-show-right-symbolic);
+  mask-image: var(--adw-icon-sidebar-show-right-symbolic);
+}
+
+html[data-theme] #head .toolbar-dots-btn .ui__icon::before {
+  -webkit-mask-image: var(--adw-icon-open-menu-symbolic);
+  mask-image: var(--adw-icon-open-menu-symbolic);
+}
+
+html[data-theme] #head .navigation.nav-left .ui__icon::before {
+  -webkit-mask-image: var(--adw-icon-go-previous-symbolic);
+  mask-image: var(--adw-icon-go-previous-symbolic);
+}
+
+html[data-theme] #head .navigation.nav-right .ui__icon::before {
+  -webkit-mask-image: var(--adw-icon-go-next-symbolic);
+  mask-image: var(--adw-icon-go-next-symbolic);
+}
+
+html[data-theme] #head #search-button .ui__icon::before {
+  -webkit-mask-image: var(--adw-icon-edit-find-symbolic);
+  mask-image: var(--adw-icon-edit-find-symbolic);
 }
 
 /* --------------------------------------------------------------------------
@@ -174,10 +374,15 @@ html[data-theme] .window-controls .button.close::before {
 
 /* The stock rules reserve 144px for three 48px buttons. Adwaita's are 24px
    with 3px spacing, so the cluster is 3x24 + 2x3 + 13px of padding. The
-   close-only setting narrows this to 37px. */
-html[data-theme] .ls-window-controls:not(.ls-right-sidebar-open) .cp__header > .r,
-html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header > .r {
+   close-only setting narrows this to 37px. Only while the right sidebar is
+   closed, as in Logseq's own rule: open, the controls sit over the sidebar,
+   and reserving room in the header left a ~100px gap before its edge. */
+html[data-theme] .ls-window-controls:not(.ls-right-sidebar-open) .cp__header > .r {
   margin-right: var(--adw-wc-width);
+}
+
+html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header > .r {
+  margin-right: 0;
 }
 
 html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__right-sidebar-topbar,
@@ -242,8 +447,7 @@ html[data-theme] #left-sidebar .left-sidebar-inner {
    always spans the full box. `border-top: 0` clears the full-width line
    logseq-awesome-ui draws here from --ls-guideline-color, so the two do not
    stack. Without that plugin these rules are what puts dividers there at all. */
-html[data-theme] #left-sidebar .nav-content-item,
-html[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger {
+html[data-theme] #left-sidebar .nav-content-item {
   border-top: 0;
   margin-top: 6px;
   padding-top: 7px;   /* 6px of air + the 1px line itself */
@@ -254,17 +458,14 @@ html[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger {
     calc(100% - 2 * var(--adw-sidebar-divider-inset)) 1px;
 }
 
-/* The vault button at the sidebar's foot sits inside the nav's own padding, so
-   its box already starts 8px in. It needs the remaining 6px, not the full
-   inset, to line up with the dividers above it — measured, both land at 14px. */
-html[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger {
-  background-position: 6px 0;
-  background-size: calc(100% - 12px) 1px;
-}
-
-/* Files has no divider directly under the header — only between groups. The
-   first .nav-content-item keeps its divider: the nav block above it is a
-   different group, exactly as Trash and Downloads are in Files. */
+/* Files has no divider directly under the header — only between groups. With a
+   graph open, the graph dropdown (.cp__menubar-repos) is the sidebar's first
+   row, so neither it nor its trigger gets one; the trigger once carried the
+   section line, drawing it right under the header. The first
+   .nav-content-item keeps its divider: the nav block above it is a different
+   group, exactly as Trash and Downloads are in Files. `border-top: 0` also
+   clears the dotted line logseq-awesome-ui draws on both. */
+html[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger,
 html[data-theme] #left-sidebar nav.cp__menubar-repos {
   border-top: 0;
   background-image: none;

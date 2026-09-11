@@ -14,6 +14,10 @@ All notable changes to this project are documented here, in
   the sidebar's keyboard-shortcut tiles were grey (`--lx-gray-11` / `-10`), unlike
   GNOME Files. Logseq greys them at a specificity the theme's header-button
   rule lost to; they are now the full foreground.
+- With the right sidebar open, the header's buttons stopped ~100px short of the
+  main section's edge: the theme reserved room for the window controls there
+  too, though they sit over the sidebar then. The reservation now applies only
+  while the right sidebar is closed, as in Logseq's own rule.
 
 ### Changed
 
@@ -22,9 +26,39 @@ All notable changes to this project are documented here, in
   softer than their labels — the value GNOME Files uses
   (`image.sidebarrow-icon { opacity: 0.7; }` in Nautilus's own stylesheet).
   Emoji page icons stay at full strength.
+- The headerbar follows GNOME Files' layout (from `nautilus-window.ui` and
+  `nautilus-toolbar.ui`): the sidebar header holds Search, a **Logseq** title and
+  the main menu; the content header starts with the sidebar toggle and
+  Back/Forward. Logseq's ⋮ menu is now a hamburger — it holds app-wide items,
+  which the HIG puts in a primary menu with `open-menu-symbolic`. Like Files,
+  the menu belongs to the sidebar and is hidden with it. With the sidebar
+  closed, or below 640px, the header collapses as Files does when narrow.
+- Header buttons use Adwaita's own icons — `open-menu`, `edit-find`,
+  `sidebar-show`, `sidebar-show-right`, `go-previous`, `go-next` — instead of
+  Logseq's Tabler ones.
+- The layout, the icons, the 32px header buttons and the title colour work on
+  Logseq 2.x as well as OG. 2.x renders the header differently — shui ghost
+  buttons (content-box, which padded them out to 52x42), Back/Forward/⋮ in one
+  group, no wrapper around the sidebar toggle or ⋮, an `overflow-x: hidden`
+  bar — and page titles as blocks (`.ls-page-title .block-title-wrap`).
+
+### Removed
+
+- The divider at the very top of the left sidebar, above the graph dropdown.
+  Files has no divider under its header, only between groups.
 
 ### Added
 
+- `docs/logseq-internals.md`: the Logseq, Electron and GNOME facts the theme depends on,
+  each found by measurement, with the bug it cost; and `CONTRIBUTING.md`, the working
+  conventions for the repo.
+- The live suite runs Logseq OG **and** 2.x by default (2.x looked for at
+  `~/.local/opt/logseq-db-2.0.1/logseq`), so a change cannot pass on one build
+  only. The headerbar case clicks with real pointer events and checks hit-testing.
+- `src/icons/`: the Adwaita symbolic icons above, vendored unmodified
+  (LGPL-3.0-only OR CC-BY-SA-3.0), and `scripts/encode-icons.mjs`, which inlines
+  them as `src/css/28-icons.css`. README: a "Headerbar and sidebar, as in GNOME
+  Files" section and "Third-party assets".
 - Text colours from GNOME Text Editor's Adwaita style scheme (GtkSourceView's
   `Adwaita` / `Adwaita-dark`), each hue clamped to WCAG AA the way libadwaita
   clamps accent text:
