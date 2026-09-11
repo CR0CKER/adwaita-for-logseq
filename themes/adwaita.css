@@ -1025,9 +1025,11 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Same size as the sidebar rows, bold — as "Files" sits over its rows.
-       Stated explicitly: the header's own font-size would otherwise inherit. */
-    font-size: 14px;
+    /* libadwaita's `headerbar .title` is bold and sets no size, so it takes
+       the interface font, 'Adwaita Sans 11': the sidebar rows' 11pt, as
+       "Files" sits over its rows. Stated explicitly: the header's own
+       font-size would otherwise inherit. */
+    font-size: 11pt;
     font-weight: 700;
     line-height: 1;
     color: var(--adw-fg);

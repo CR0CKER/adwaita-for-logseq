@@ -98,8 +98,9 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
   2px apart, 9px corners, labels in the interface font size (GNOME's default
   `Adwaita Sans 11`, 14.67px) at regular weight. Every row icon is Nautilus's 16px with
   8px before the label, and page icons line up with the nav icons. Favorites and Recent
-  keep Logseq's smaller type. The 11pt assumes GNOME's default interface font size and
-  a text scaling factor of 1.
+  keep Logseq's smaller type. The "Logseq" title over them is a headerbar title,
+  libadwaita's bold at the same interface size. The 11pt assumes GNOME's default
+  interface font size and a text scaling factor of 1.
 
 Limits of doing this in a stylesheet: the buttons are moved visually, not in the document,
 so keyboard focus still visits them in Logseq's order; tooltips keep Logseq's wording

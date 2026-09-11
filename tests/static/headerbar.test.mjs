@@ -91,6 +91,18 @@ test('the sidebar header carries the app name, like Files\' AdwWindowTitle', () 
   assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .l::after', 'content'), '"Logseq"');
 });
 
+test('the app name is a GTK headerbar title: bold, in the interface font size', () => {
+  // libadwaita 1.8: `headerbar .title, windowtitle .title { font-weight: bold }`
+  // and no font-size, so the title inherits the interface font — 'Adwaita Sans
+  // 11', 11pt — the same size as the sidebar rows under it. It was 14px, set
+  // when the rows were still Logseq's 14px, and left behind when they moved.
+  const title = 'html[data-theme] .ls-left-sidebar-open #head > .l::after';
+  const row = 'html[data-theme] #left-sidebar .left-sidebar-inner .nav-header a.item';
+  assert.equal(valueOf(title, 'font-size'), '11pt', "GNOME's default interface font is Adwaita Sans 11");
+  assert.equal(valueOf(title, 'font-size'), valueOf(row, 'font-size'), 'title and sidebar rows share one size, as in Files');
+  assert.equal(valueOf(title, 'font-weight'), '700');
+});
+
 test('the open-sidebar placements apply only where Logseq docks the sidebar (min-width 640px)', () => {
   // Below 640px Logseq turns the left sidebar into a wider overlay; the
   // docked placements would then land on top of it. There the header keeps

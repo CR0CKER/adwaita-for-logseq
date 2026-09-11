@@ -125,6 +125,8 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
     selected row changes only its background, not its weight.
   - Labels use the interface font, `org.gnome.desktop.interface font-name`, by default
     `Adwaita Sans 11`. 11pt in CSS is the same 14.67px GTK renders.
+  - The title is bold at that same size: libadwaita's `headerbar .title, windowtitle
+    .title { font-weight: bold; }` sets no `font-size`, so it inherits the interface font.
 - **Where the main menu lives** depends on whether the sidebar can be hidden:
   - Files, Contacts and Settings (no hiding on wide windows) keep it in the sidebar header.
   - Calendar, whose sidebar the user can toggle, fixes it at the content header's end, and
