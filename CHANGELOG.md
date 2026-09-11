@@ -49,6 +49,9 @@ All notable changes to this project are documented here, in
 
 ### Added
 
+- `docs/logseq-internals.md`: the Logseq, Electron and GNOME facts the theme depends on,
+  each found by measurement, with the bug it cost; and `CONTRIBUTING.md`, the working
+  conventions for the repo.
 - The live suite runs Logseq OG **and** 2.x by default (2.x looked for at
   `~/.local/opt/logseq-db-2.0.1/logseq`), so a change cannot pass on one build
   only. The headerbar case clicks with real pointer events and checks hit-testing.

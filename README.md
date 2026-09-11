@@ -232,6 +232,11 @@ npm test          # static regression suite (this is what CI runs)
 npm run test:live # drives real Logseq builds — local only, needs a binary
 ```
 
+**What we learned** — Logseq's cascade traps, how OG and 2.x differ, Electron's
+window-drag regions, where each GNOME design decision comes from, and what synthetic tests
+cannot see — is in [`docs/logseq-internals.md`](docs/logseq-internals.md). Working
+conventions for changing the repo are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 To try a change, turn on Logseq → Settings → Advanced → Developer mode and use **Load
 unpacked plugin** on the repo directory. The two themes appear in Settings → Themes like
 any installed theme.
