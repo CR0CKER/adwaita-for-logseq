@@ -67,8 +67,8 @@ Logseq applies one theme per mode, so another theme selected there replaces this
 
 The plugin does two things: it registers the two themes (which on newer Logseq builds has
 to happen in code — see *Why the themes are registered in code*), and it holds the handful of
-choices that differ between machines. Settings → Plugins → `gnome-adwaita-theme` → the
-gear icon.
+choices that differ between machines. Settings → Plugins → **Gnome Adwaita Theme** → the
+gear icon. (Its plugin id, which stored settings are keyed on, stays `gnome-adwaita-theme`.)
 
 | Setting | Default | What it is for |
 |---|---|---|

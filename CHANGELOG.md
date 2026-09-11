@@ -5,6 +5,12 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Fixed
+
+- The plugin list and settings panel show **Gnome Adwaita Theme** again, not
+  the id `gnome-adwaita-theme`: the rename had set `logseq.title` to the id.
+  The id itself is unchanged, so stored settings carry over.
+
 ### Added
 
 - Text colours from GNOME Text Editor's Adwaita style scheme (GtkSourceView's
