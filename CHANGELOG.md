@@ -5,6 +5,8 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-11
+
 ### Fixed
 
 - The plugin list and settings panel show **Gnome Adwaita Theme** again, not
@@ -197,6 +199,7 @@ All notable changes to this project are documented here, in
   highlights when `logseq-awesome-ui` restyles the sidebar; on stock Logseq the
   rows sit at 22px, so the divider is 8px narrower than the highlight.
 
-[Unreleased]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/CR0CKER/adwaita-for-logseq/releases/tag/v0.1.0

@@ -1,6 +1,6 @@
 {
   "name": "gnome-adwaita-theme",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Makes Logseq look like a native app on the Linux GNOME desktop environment: Adwaita surfaces and metrics, one merged headerbar, round window controls. Light and dark.",
   "author": "CR0CKER",
   "license": "MIT",
