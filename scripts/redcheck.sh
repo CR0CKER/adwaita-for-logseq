@@ -209,6 +209,42 @@ PY
 expect_red "inline code colour set only through a variable Logseq ignores" \
   tests/static/text.test.mjs "$t"
 
+# 15. Back/Forward left where Logseq puts them, near the end of the header.
+t="$(scratch_tree nav-order)"
+python3 - "$t" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] #head \.r > div:has\(\.navigation\) \{[^}]*\}\n", "", s)
+assert s2 != s, 'nav order rule not found — update this mutation'
+p.write_text(s2)
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "Back/Forward not leading the content header" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 16. The section divider drawn on the graph dropdown, right under the header.
+t="$(scratch_tree repos-divider)"
+printf '\nhtml[data-theme] #left-sidebar .cp__menubar-repos > .ui__dropdown-trigger { background-image: linear-gradient(var(--adw-border), var(--adw-border)); }\n' >> "$t/src/css/30-structure.css"
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "a divider above the graph dropdown, directly under the header" \
+  tests/static/sidebar.test.mjs "$t"
+
+# 17. The docked placements unscoped: below 640px they land on the overlay sidebar.
+t="$(scratch_tree docked-scope)"
+python3 - "$t" <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+start = s.index('@media (min-width: 640px) {')
+end = s.index('\n}\n', start)
+inner = s[start + len('@media (min-width: 640px) {'):end]
+p.write_text(s[:start] + inner + s[end + 3:])
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "open-sidebar placements applied below Logseq's 640px docking breakpoint" \
+  tests/static/headerbar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"
