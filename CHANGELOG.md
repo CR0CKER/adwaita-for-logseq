@@ -5,11 +5,46 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Fixed
+
+- The plugin list and settings panel show **Gnome Adwaita Theme** again, not
+  the id `gnome-adwaita-theme`: the rename had set `logseq.title` to the id.
+  The id itself is unchanged, so stored settings carry over.
+- Headerbar plugin icons (PDF print, journals calendar, the plugins button) and
+  the sidebar's keyboard-shortcut tiles were grey (`--lx-gray-11` / `-10`), unlike
+  GNOME Files. Logseq greys them at a specificity the theme's header-button
+  rule lost to; they are now the full foreground.
+
+### Changed
+
+- Sidebar row icons (Journals, Flashcards, Graph view, All pages, the
+  Favorites/Recent headers and page icons) are drawn at 70% opacity, a step
+  softer than their labels — the value GNOME Files uses
+  (`image.sidebarrow-icon { opacity: 0.7; }` in Nautilus's own stylesheet).
+  Emoji page icons stay at full strength.
+
 ### Added
 
+- Text colours from GNOME Text Editor's Adwaita style scheme (GtkSourceView's
+  `Adwaita` / `Adwaita-dark`), each hue clamped to WCAG AA the way libadwaita
+  clamps accent text:
+  - code blocks use the scheme's token colours (keywords orange and bold,
+    strings and types teal, functions blue, numbers violet, comments grey) on an
+    Adwaita surface, replacing Logseq's solarized code theme — `#002b36` teal on
+    dark, `#fdf6e3` cream on light;
+  - `==highlights==` use the scheme's search-match yellow;
+  - page titles and journal dates use the scheme's body-text grey (`#c0bfbc` on
+    dark, `#3d3846` on light) instead of white, under either setting.
+- A **Text colours** setting. `GNOME apps (quiet)`, the default, keeps headings,
+  inline code and quote bars as they were. `Text Editor (Adwaita scheme)` colours
+  them teal, violet and grey, as Text Editor does.
 - README: the marketplace submission (logseq/marketplace#898), a Releasing
   section, and the live suite's known gap — `openGraph()` stays on the demo
   graph (#2).
+- README: a Troubleshooting section (re-selecting the theme after an update,
+  Awesome UI overriding the sidebar and buttons, a leftover graph `custom.css`,
+  what "Text Editor" colours do and do not change), and how to reload an
+  unpacked build during development.
 
 ## [0.1.1] - 2026-09-10
 

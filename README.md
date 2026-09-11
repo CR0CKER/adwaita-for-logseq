@@ -67,8 +67,8 @@ Logseq applies one theme per mode, so another theme selected there replaces this
 
 The plugin does two things: it registers the two themes (which on newer Logseq builds has
 to happen in code — see *Why the themes are registered in code*), and it holds the handful of
-choices that differ between machines. Settings → Plugins → `gnome-adwaita-theme` → the
-gear icon.
+choices that differ between machines. Settings → Plugins → **Gnome Adwaita Theme** → the
+gear icon. (Its plugin id, which stored settings are keyed on, stays `gnome-adwaita-theme`.)
 
 | Setting | Default | What it is for |
 |---|---|---|
@@ -76,6 +76,7 @@ gear icon.
 | Custom accent (hex) | `#3584e4` | Used when the accent above is `custom`. Give the *fill* colour; the text accent is derived. |
 | Accent lightness on dark (advanced) | `0.763` | The oklab lightness floor for accent text on dark. GNOME's own is 0.85; 0.763 is a notch darker and more saturated. |
 | Window controls | `all` | Set to `close only` if your GNOME titlebar layout is `appmenu:close`. |
+| Text colours | `GNOME apps (quiet)` | How colourful prose is. `Text Editor (Adwaita scheme)` colours headings teal, inline code violet and quote bars grey, as GNOME Text Editor does. Code blocks and highlights use the Adwaita scheme either way — see [Text colours](#text-colours). |
 | Hide the right sidebar's top bar | off | Leaves one continuous headerbar. |
 | Interface / monospace font | Adwaita Sans / Adwaita Mono | Adwaita Sans ships with GNOME 47+; Cantarell is the fallback. |
 
@@ -105,6 +106,60 @@ The surfaces never do. Logseq normally re-tints its whole neutral ramp along wit
 accent, which turns linked-reference and quote cards warm; the theme puts the greys back —
 verified `#2e2e32` under the default, purple and orange alike.
 
+### Text colours
+
+GNOME ships exactly one role-based palette for text: GtkSourceView's **Adwaita** style
+scheme (`Adwaita` / `Adwaita-dark` in `libgtksourceview-5`), the default in GNOME Text
+Editor and Builder. The [HIG palette](https://developer.gnome.org/hig/reference/palette.html)
+is, in its own words, "intended for use in app icons and illustrations", and libadwaita
+colours UI text only with the accent and the success/warning/error colours. The theme
+follows that split:
+
+| In your notes | Colour | From |
+|---|---|---|
+| Code blocks | keywords orange (bold), strings/types teal, functions blue, numbers violet, comments grey, on an Adwaita surface | the Adwaita scheme — replaces Logseq's solarized code theme |
+| `==highlights==` | yellow, dark text | the scheme's search-match colours |
+| Links, page refs, tags, block refs, task markers | the accent | libadwaita: navigation is accent-coloured |
+| Headings, inline code, quote bars | body text (default) — or teal, violet and grey with **Text colours: Text Editor** | the scheme's `def:heading`, `def:inline-code`, blockquote marker |
+| Page titles and journal dates | a soft grey under either setting: `#c0bfbc` on dark, `#3d3846` on light | the scheme's body-text colour (`text`, `light_5` on dark) |
+
+No scheme colour is copied verbatim. Text Editor dims its body text and has one surface;
+Logseq has several, and on them the scheme's own values fail WCAG AA (violet inline code
+3.77:1 on its fill, grey comments 2.79:1, light teal headings 3.43:1). Each hue therefore
+goes through the same lightness clamp libadwaita applies to accent text — lighter on dark,
+darker on light — which keeps the hue and clears 4.5:1 on every surface it can sit on; the
+static suite measures each one. Two deliberate departures from the scheme: the dark
+highlight uses the scheme's black (`dark_7`) instead of its `dark_5`, which reaches only
+3.54:1 on the translucent yellow, and light inline code is clamped one step darker than
+accent text (0.48, not 0.5) to clear AA on the fill inside the sidebar.
+
+Known gap: inline code *inside* a highlight (`` ==`code`== ``) keeps Logseq's own pale yellow
+and dark text — Logseq sets that pair with `!important`, and the theme does not fight
+`!important` in content.
+
+## Troubleshooting
+
+**A change or an update does not show.** Logseq reads the theme's stylesheet when the
+theme is selected and the plugin's `package.json` when the plugin loads — not on every
+change. Re-select *Adwaita Dark* / *Adwaita Light* in Settings → Themes; for a new plugin
+title or a new setting, turn the plugin off and on in Settings → Plugins, or restart
+Logseq.
+
+**The sidebar or buttons look different from the screenshots** — grey text, other
+spacing. Another styling plugin is overriding the theme: plugins that restyle Logseq's
+chrome load after it and win. **Awesome UI** (`logseq-awesome-ui`) is a confirmed case —
+it kept sidebar text and buttons grey over the theme's. Turn it off, or its conflicting
+options; the theme covers the GNOME look on its own.
+
+**One thing (say, the quote bar) ignores the theme.** Check the graph's
+`logseq/custom.css`: a hand-written theme left there from before — an older Adwaita
+`custom.css` did exactly this — overrides rules at equal specificity. Emptying it hands
+the look back to the plugin.
+
+**"Text colours: Text Editor" seems to change nothing.** It recolours only headings inside
+notes, inline code and quote bars, as Text Editor does; a page with none of those looks
+the same under both settings. Code blocks and highlights use the Adwaita scheme either way.
+
 ## Scope
 
 - **Linux/GNOME**, light and dark. It will apply anywhere, but the point of it is the
@@ -113,8 +168,8 @@ verified `#2e2e32` under the default, purple and orange alike.
 
   | Build | Status |
   |---|---|
-  | **Logseq OG** (Electron 43) | every live case passes; the light-mode case fails intermittently for a harness reason (see CHANGELOG) |
-  | **Logseq 2.x** (2.0.1, DB build) | all cases pass except the search dialog and divider cases, which skip because the harness cannot yet open a graph in a fresh 2.x profile |
+  | **Logseq OG** (Electron 43) | every live case passes, with the screen unlocked (see [Tests](#tests)) |
+  | **Logseq 2.x** (2.0.1, DB build) | all cases passed except the search dialog and divider cases, which skip because the harness cannot yet open a graph in a fresh 2.x profile. The task-marker and text-colour cases came later and have not run on 2.x; whether its code blocks use CodeMirror, as OG's do, is unverified |
   | **Logseq 0.10.13** | stylesheet verified by CDP probe; not in the live suite, because its renderer aborts unprompted on the development machine |
 
   Logseq 2.x's `--ls-*` palette is a strict subset of OG's, so the theme's variable
@@ -144,6 +199,12 @@ To try a change, turn on Logseq → Settings → Advanced → Developer mode and
 unpacked plugin** on the repo directory. The two themes appear in Settings → Themes like
 any installed theme.
 
+Logseq then runs whatever is checked out in that directory. After `npm run build`,
+re-select the theme (and toggle the plugin for `package.json` or settings changes). And
+since switching branches swaps the stylesheet under a running Logseq — while the ignored
+`dist/` build stays behind, so a setting can appear with no rules behind it — do side work
+in a `git worktree` rather than by switching branches in the directory Logseq loads.
+
 `src/css/` is split so a colour is written down in exactly one place:
 
 | File | |
@@ -152,6 +213,7 @@ any installed theme.
 | `15-tokens-light.css` | the light palette, from libadwaita |
 | `20-mappings.css` | Logseq's `--ls-*`, the shui `--lx-gray-*` ramp and the shadcn HSL triplets, all pointed at those tokens — colour-scheme independent |
 | `25-accent.css` | accent derivation and the neutral-ramp restatement |
+| `27-text.css` | text colours inside notes: the Adwaita scheme's hues through the accent clamp, code blocks, highlights, and the prose roles the Text colours setting switches |
 | `30-structure.css` | headerbar, sidebar, window controls, widgets, content — geometry only, every colour a token |
 
 The structure rules are scoped `html[data-theme]`, not `html[data-theme="dark"]`, so one
@@ -164,17 +226,22 @@ cascade rule *wins* — and most of the bugs this suite locks down were cascade 
 
 **Static (`npm test`, the CI gate).** Every `--ls-*` in Logseq's shipped solarized palette
 is overridden or allowlisted with a reason; no undefined `--adw-*` reference; the
-structure sheet stays scheme-agnostic and free of literal colours; every `[data-color]`
-specificity tie is present; all nine accents clear WCAG AA on both surfaces in both
-schemes, as text and as task markers at the opacity they render with; the settings logic
-behaves; and `themes/adwaita.css` matches a fresh build.
+structure and text sheets stay scheme-agnostic and free of literal colours; every
+`[data-color]` specificity tie is present; all nine accents clear WCAG AA on both surfaces
+in both schemes, as text and as task markers at the opacity they render with; every
+Adwaita-scheme text colour clears AA once clamped, inline code on its fill too, and so
+does highlight text on its highlight; every code token Logseq colours is re-pointed; the
+settings logic behaves; and `themes/adwaita.css` matches a fresh build.
 
 **Live (`npm run test:live`, local only).** Launches a scratch instance with an isolated
 `HOME`, loads this repo as an unpacked plugin, selects the theme and asserts computed
 styles: stored settings winning over the theme sheet, surfaces, light/dark inversion,
 accent precedence, the search dialog's edges, divider geometry, sidebar section headers,
-button hover colour, accent contrast, and task markers (accent colour, full opacity, the
-accent hover step on hover).
+button hover colour, accent contrast, task markers (accent colour, full opacity, the
+accent hover step on hover), and text colours (code-block surface and tokens, highlights,
+and headings / inline code / quote bars under the "Text Editor" setting the harness seeds),
+and that no visible text or icon in the headerbar or sidebar is anything but the full
+foreground, with sidebar row icons dimmed to Files' 0.7.
 
 ```
 npm run test:live -- --target=og      # one target

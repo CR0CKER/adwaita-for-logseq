@@ -1,0 +1,173 @@
+/* ==========================================================================
+   Adwaita for Logseq — text colours inside notes
+
+   GNOME has exactly one role-based text palette: GtkSourceView's Adwaita
+   style scheme, the default in Text Editor and Builder. The HIG palette is
+   for icons and illustrations, and libadwaita itself colours text only with
+   the accent and the semantic colours. So:
+
+     - code blocks take the scheme outright — code is where GNOME colours text;
+     - ==highlights== take the scheme's search-match colours;
+     - links, refs, tags and task markers stay on the accent (25-accent.css):
+       in rendered notes they are navigation, which GNOME paints with the accent;
+     - headings, inline code and quotes are body text by default, as in any
+       libadwaita app. The plugin's "Text colours" setting repoints the three
+       --adw-*-fg role tokens below at the scheme's teal / violet / grey.
+
+   No scheme hex reaches the page directly. Verbatim, several roles fail AA
+   here — Text Editor dims its body text to #c0bfbc and has one surface,
+   Logseq has several — so each hue goes through the same lightness clamp as
+   accent text (--adw-standalone-oklab), which keeps the hue and fixes the
+   contrast. tests/static/contrast.test.mjs measures every one.
+   ========================================================================== */
+
+html[data-theme],
+html[data-theme][data-color] {
+  --adw-text-teal:   oklab(from var(--adw-src-teal) var(--adw-standalone-oklab));
+  --adw-text-violet: oklab(from var(--adw-src-violet) var(--adw-code-oklab));   /* sits on --adw-fill too */
+  --adw-text-orange: oklab(from var(--adw-src-orange) var(--adw-standalone-oklab));
+  --adw-text-blue:   oklab(from var(--adw-src-blue) var(--adw-standalone-oklab));
+  --adw-text-grey:   oklab(from var(--adw-src-grey) var(--adw-standalone-oklab));
+
+  /* The prose roles. Quiet by default; the settings sheet overrides these
+     three for "Text Editor". Inline code's quiet colour is the grey Logseq
+     already paints it (its rule reads --lx-gray-11 first), so quiet changes
+     nothing a user sees today. */
+  --adw-heading-fg:   var(--adw-fg);
+  --adw-code-fg:      var(--adw-gray-11);
+  --adw-quote-border: var(--adw-border);
+
+  /* Page titles and journal dates: Text Editor's body-text grey (#c0bfbc on
+     dark), a step softer than the white prose below them. Not a setting. */
+  --adw-title-fg:     var(--adw-gray-11);
+
+  --ls-page-mark-bg-color: var(--adw-mark-bg);
+  --ls-page-mark-color:    var(--adw-mark-fg);
+}
+
+/* Page titles and journal dates — both h1.title (a journal's date is
+   `a.journal-title > h1.title`), plus the input shown while renaming a page.
+   Logseq's own rule reads --lx-gray-12 before --ls-title-text-color, so the
+   variable never applies; paint the element. (0,2,2) beats its (0,1,1). */
+html[data-theme] h1.title,
+html[data-theme] h1.title input {
+  color: var(--adw-title-fg);
+}
+
+/* Block headings — the markdown headings inside notes. */
+html[data-theme] .ls-block h1,
+html[data-theme] .ls-block h2,
+html[data-theme] .ls-block h3,
+html[data-theme] .ls-block h4,
+html[data-theme] .ls-block h5,
+html[data-theme] .ls-block h6 {
+  color: var(--adw-heading-fg);
+}
+
+/* Inline code. Logseq's `:not(pre) > code` reads
+   var(--lx-gray-11, var(--ls-page-inline-code-color, …)) — --lx-gray-11 is
+   always set, so --ls-page-inline-code-color never applies. Paint the element. */
+html[data-theme] :not(pre) > code {
+  color: var(--adw-code-fg);
+}
+
+/* Code blocks. Logseq renders them with CodeMirror's solarized theme in OG
+   (`cm-s-solarized cm-s-dark` — #002b36 teal on dark, #fdf6e3 cream on light)
+   and with its own radix-based `cm-s-lsradix` elsewhere. Both are anchored on
+   .CodeMirror here, so whichever theme Logseq picks, the block becomes an
+   Adwaita surface with the Adwaita scheme's token colours. Each token rule
+   notes the scheme style it follows. At (0,3,1) the token rules outrank both
+   themes' `.cm-s-<theme> .cm-*` (0,2,0). */
+
+/* The surface: the card grey Logseq's lsradix theme uses (--lx-gray-02, which
+   the theme maps to Adwaita), and Text Editor's own body-text grey. It sits
+   between the view and sidebar surfaces in both schemes, so contrast.test.mjs
+   bounds every token colour on it. */
+html[data-theme] .CodeMirror {
+  background-color: var(--adw-gray-02);
+  color: var(--adw-gray-11);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-gutters {   /* line-numbers: the text surface */
+  background-color: var(--adw-gray-02);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-linenumber {
+  color: var(--adw-text-grey);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-cursor {
+  border-left-color: var(--adw-gray-11);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-activeline-background {   /* current-line */
+  background: var(--adw-hover);
+}
+
+html[data-theme] .CodeMirror div.CodeMirror-selected,
+html[data-theme] .CodeMirror .CodeMirror-line::selection,
+html[data-theme] .CodeMirror .CodeMirror-line ::selection {
+  background: var(--adw-selection);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-matchingbracket {   /* bracket-match: bold only */
+  color: inherit;
+  font-weight: bold;
+}
+
+html[data-theme] .CodeMirror .CodeMirror-nonmatchingbracket {
+  color: var(--adw-error);
+}
+
+/* Token colours */
+html[data-theme] .CodeMirror .cm-keyword {   /* def:statement, bold */
+  color: var(--adw-text-orange);
+  font-weight: bold;
+}
+
+html[data-theme] .CodeMirror .cm-meta,       /* def:preprocessor */
+html[data-theme] .CodeMirror .cm-attribute { /* xml:attribute-name */
+  color: var(--adw-text-orange);
+}
+
+html[data-theme] .CodeMirror .cm-type,       /* def:type, bold */
+html[data-theme] .CodeMirror .cm-variable-3,
+html[data-theme] .CodeMirror .cm-header {    /* def:heading, bold */
+  color: var(--adw-text-teal);
+  font-weight: bold;
+}
+
+html[data-theme] .CodeMirror .cm-string,     /* def:string */
+html[data-theme] .CodeMirror .cm-string-2,
+html[data-theme] .CodeMirror .cm-tag,        /* xml:element-name */
+html[data-theme] .CodeMirror .cm-qualifier { /* css:id-selector */
+  color: var(--adw-text-teal);
+}
+
+html[data-theme] .CodeMirror .cm-def,        /* def:function */
+html[data-theme] .CodeMirror .cm-builtin,    /* python:builtin-function */
+html[data-theme] .CodeMirror .cm-link {      /* def:link-destination */
+  color: var(--adw-text-blue);
+}
+
+html[data-theme] .CodeMirror .cm-number,     /* def:number */
+html[data-theme] .CodeMirror .cm-atom {      /* def:constant */
+  color: var(--adw-text-violet);
+}
+
+html[data-theme] .CodeMirror .cm-comment,    /* def:comment — not italic */
+html[data-theme] .CodeMirror .cm-quote {
+  color: var(--adw-text-grey);
+  font-style: normal;
+}
+
+/* Roles the scheme leaves uncoloured take the code block's own text colour. */
+html[data-theme] .CodeMirror .cm-variable,
+html[data-theme] .CodeMirror .cm-variable-2,
+html[data-theme] .CodeMirror .cm-property,
+html[data-theme] .CodeMirror .cm-operator,
+html[data-theme] .CodeMirror .cm-bracket,
+html[data-theme] .CodeMirror .cm-special,
+html[data-theme] .CodeMirror .cm-em {
+  color: inherit;
+}

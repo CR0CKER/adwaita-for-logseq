@@ -62,6 +62,23 @@ html[data-theme="dark"][data-color] {
   --adw-warning:        #f9f06b;
   --adw-error:          #f66151;
 
+  /* GNOME Text Editor's "Adwaita Dark" style scheme (GtkSourceView,
+     /org/gnome/gtksourceview/styles/Adwaita-dark.xml) — the one role-based text
+     palette GNOME ships. Raw scheme hues: 27-text.css clamps each one to AA
+     before it reaches the page, as libadwaita does for accent text. */
+  --adw-src-teal:       #33b2a4;   /* teal_3, def:heading / def:string */
+  --adw-src-violet:     #7d8ac7;   /* violet_2, def:inline-code / def:number */
+  --adw-src-orange:     #ffa348;   /* orange_2, def:statement */
+  --adw-src-blue:       #62a0ea;   /* blue_2, def:function */
+  --adw-src-grey:       #777777;   /* dark_1, def:comment */
+  /* The violet is inline code's colour, so it also sits on --adw-fill. On dark
+     the accent-text clamp already clears that (4.59:1 over the sidebar). */
+  --adw-code-oklab:     max(l, var(--adw-accent-l)) a b;
+  /* The scheme's search match. Its dark_5 text reaches only 3.54:1 on this
+     translucent yellow; the scheme's dark_7 clears AA on every surface. */
+  --adw-mark-bg:        rgba(246, 211, 45, 0.5);   /* yellow_3 at 50% */
+  --adw-mark-fg:        #000000;                   /* dark_7 */
+
   /* shui / radix grey ramp. 01 = deepest surface, 12 = text. The first four
      steps are the Adwaita surfaces above, so shui components land on the same
      greys as the classic --ls-* ones. */
@@ -192,6 +209,21 @@ html[data-theme="light"][data-color] {
   --adw-warning:        #c64600;   /* orange_5 */
   --adw-error:          #c01c28;   /* red_4 */
 
+  /* GNOME Text Editor's "Adwaita" style scheme (GtkSourceView,
+     /org/gnome/gtksourceview/styles/Adwaita.xml). Raw scheme hues, clamped to
+     AA in 27-text.css. */
+  --adw-src-teal:       #218787;   /* teal_5, def:heading / def:string */
+  --adw-src-violet:     #4e57ba;   /* violet_4, def:inline-code / def:number */
+  --adw-src-orange:     #c64600;   /* orange_5, def:statement */
+  --adw-src-blue:       #1c71d8;   /* blue_4, def:function */
+  --adw-src-grey:       #77767b;   /* dark_1, def:comment */
+  /* Inline code's violet also sits on --adw-fill. Over the sidebar the
+     accent-text clamp (0.5) leaves it at 4.22:1; 0.48 clears AA (4.60:1) and
+     moves the colour by a shade (#4d56b9 → #4850b2). */
+  --adw-code-oklab:     min(l, 0.48) a b;
+  --adw-mark-bg:        #f8e45c;   /* yellow_2, the scheme's search match */
+  --adw-mark-fg:        #3d3846;   /* dark_4 */
+
   /* Grey ramp, light. 01 = the lightest surface, 12 = text — the same
      direction Logseq uses, so nothing downstream has to be inverted.
      Steps 07–12 are GNOME's own light_4/light_5/dark_1..4. */
@@ -320,7 +352,7 @@ html[data-theme][data-color] {
      no background at all. Point them at the same surface. */
   --ls-page-blockquote-bg-color:    var(--lx-gray-03);
   --ls-page-blockquote-color:       var(--adw-fg);
-  --ls-page-inline-code-color:      var(--adw-fg);
+  --ls-page-inline-code-color:      var(--adw-code-fg);   /* 27-text.css */
 
   /* Variables the solarized `logseq` palette also defines and that nothing
      else here reaches. Left alone they keep their teal defaults and leak into
@@ -573,6 +605,180 @@ html[data-theme="light"] .light-theme {
   --accent-foreground: 240 10% 8%;
 }
 
+/* ==========================================================================
+   Adwaita for Logseq — text colours inside notes
+
+   GNOME has exactly one role-based text palette: GtkSourceView's Adwaita
+   style scheme, the default in Text Editor and Builder. The HIG palette is
+   for icons and illustrations, and libadwaita itself colours text only with
+   the accent and the semantic colours. So:
+
+     - code blocks take the scheme outright — code is where GNOME colours text;
+     - ==highlights== take the scheme's search-match colours;
+     - links, refs, tags and task markers stay on the accent (25-accent.css):
+       in rendered notes they are navigation, which GNOME paints with the accent;
+     - headings, inline code and quotes are body text by default, as in any
+       libadwaita app. The plugin's "Text colours" setting repoints the three
+       --adw-*-fg role tokens below at the scheme's teal / violet / grey.
+
+   No scheme hex reaches the page directly. Verbatim, several roles fail AA
+   here — Text Editor dims its body text to #c0bfbc and has one surface,
+   Logseq has several — so each hue goes through the same lightness clamp as
+   accent text (--adw-standalone-oklab), which keeps the hue and fixes the
+   contrast. tests/static/contrast.test.mjs measures every one.
+   ========================================================================== */
+
+html[data-theme],
+html[data-theme][data-color] {
+  --adw-text-teal:   oklab(from var(--adw-src-teal) var(--adw-standalone-oklab));
+  --adw-text-violet: oklab(from var(--adw-src-violet) var(--adw-code-oklab));   /* sits on --adw-fill too */
+  --adw-text-orange: oklab(from var(--adw-src-orange) var(--adw-standalone-oklab));
+  --adw-text-blue:   oklab(from var(--adw-src-blue) var(--adw-standalone-oklab));
+  --adw-text-grey:   oklab(from var(--adw-src-grey) var(--adw-standalone-oklab));
+
+  /* The prose roles. Quiet by default; the settings sheet overrides these
+     three for "Text Editor". Inline code's quiet colour is the grey Logseq
+     already paints it (its rule reads --lx-gray-11 first), so quiet changes
+     nothing a user sees today. */
+  --adw-heading-fg:   var(--adw-fg);
+  --adw-code-fg:      var(--adw-gray-11);
+  --adw-quote-border: var(--adw-border);
+
+  /* Page titles and journal dates: Text Editor's body-text grey (#c0bfbc on
+     dark), a step softer than the white prose below them. Not a setting. */
+  --adw-title-fg:     var(--adw-gray-11);
+
+  --ls-page-mark-bg-color: var(--adw-mark-bg);
+  --ls-page-mark-color:    var(--adw-mark-fg);
+}
+
+/* Page titles and journal dates — both h1.title (a journal's date is
+   `a.journal-title > h1.title`), plus the input shown while renaming a page.
+   Logseq's own rule reads --lx-gray-12 before --ls-title-text-color, so the
+   variable never applies; paint the element. (0,2,2) beats its (0,1,1). */
+html[data-theme] h1.title,
+html[data-theme] h1.title input {
+  color: var(--adw-title-fg);
+}
+
+/* Block headings — the markdown headings inside notes. */
+html[data-theme] .ls-block h1,
+html[data-theme] .ls-block h2,
+html[data-theme] .ls-block h3,
+html[data-theme] .ls-block h4,
+html[data-theme] .ls-block h5,
+html[data-theme] .ls-block h6 {
+  color: var(--adw-heading-fg);
+}
+
+/* Inline code. Logseq's `:not(pre) > code` reads
+   var(--lx-gray-11, var(--ls-page-inline-code-color, …)) — --lx-gray-11 is
+   always set, so --ls-page-inline-code-color never applies. Paint the element. */
+html[data-theme] :not(pre) > code {
+  color: var(--adw-code-fg);
+}
+
+/* Code blocks. Logseq renders them with CodeMirror's solarized theme in OG
+   (`cm-s-solarized cm-s-dark` — #002b36 teal on dark, #fdf6e3 cream on light)
+   and with its own radix-based `cm-s-lsradix` elsewhere. Both are anchored on
+   .CodeMirror here, so whichever theme Logseq picks, the block becomes an
+   Adwaita surface with the Adwaita scheme's token colours. Each token rule
+   notes the scheme style it follows. At (0,3,1) the token rules outrank both
+   themes' `.cm-s-<theme> .cm-*` (0,2,0). */
+
+/* The surface: the card grey Logseq's lsradix theme uses (--lx-gray-02, which
+   the theme maps to Adwaita), and Text Editor's own body-text grey. It sits
+   between the view and sidebar surfaces in both schemes, so contrast.test.mjs
+   bounds every token colour on it. */
+html[data-theme] .CodeMirror {
+  background-color: var(--adw-gray-02);
+  color: var(--adw-gray-11);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-gutters {   /* line-numbers: the text surface */
+  background-color: var(--adw-gray-02);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-linenumber {
+  color: var(--adw-text-grey);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-cursor {
+  border-left-color: var(--adw-gray-11);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-activeline-background {   /* current-line */
+  background: var(--adw-hover);
+}
+
+html[data-theme] .CodeMirror div.CodeMirror-selected,
+html[data-theme] .CodeMirror .CodeMirror-line::selection,
+html[data-theme] .CodeMirror .CodeMirror-line ::selection {
+  background: var(--adw-selection);
+}
+
+html[data-theme] .CodeMirror .CodeMirror-matchingbracket {   /* bracket-match: bold only */
+  color: inherit;
+  font-weight: bold;
+}
+
+html[data-theme] .CodeMirror .CodeMirror-nonmatchingbracket {
+  color: var(--adw-error);
+}
+
+/* Token colours */
+html[data-theme] .CodeMirror .cm-keyword {   /* def:statement, bold */
+  color: var(--adw-text-orange);
+  font-weight: bold;
+}
+
+html[data-theme] .CodeMirror .cm-meta,       /* def:preprocessor */
+html[data-theme] .CodeMirror .cm-attribute { /* xml:attribute-name */
+  color: var(--adw-text-orange);
+}
+
+html[data-theme] .CodeMirror .cm-type,       /* def:type, bold */
+html[data-theme] .CodeMirror .cm-variable-3,
+html[data-theme] .CodeMirror .cm-header {    /* def:heading, bold */
+  color: var(--adw-text-teal);
+  font-weight: bold;
+}
+
+html[data-theme] .CodeMirror .cm-string,     /* def:string */
+html[data-theme] .CodeMirror .cm-string-2,
+html[data-theme] .CodeMirror .cm-tag,        /* xml:element-name */
+html[data-theme] .CodeMirror .cm-qualifier { /* css:id-selector */
+  color: var(--adw-text-teal);
+}
+
+html[data-theme] .CodeMirror .cm-def,        /* def:function */
+html[data-theme] .CodeMirror .cm-builtin,    /* python:builtin-function */
+html[data-theme] .CodeMirror .cm-link {      /* def:link-destination */
+  color: var(--adw-text-blue);
+}
+
+html[data-theme] .CodeMirror .cm-number,     /* def:number */
+html[data-theme] .CodeMirror .cm-atom {      /* def:constant */
+  color: var(--adw-text-violet);
+}
+
+html[data-theme] .CodeMirror .cm-comment,    /* def:comment — not italic */
+html[data-theme] .CodeMirror .cm-quote {
+  color: var(--adw-text-grey);
+  font-style: normal;
+}
+
+/* Roles the scheme leaves uncoloured take the code block's own text colour. */
+html[data-theme] .CodeMirror .cm-variable,
+html[data-theme] .CodeMirror .cm-variable-2,
+html[data-theme] .CodeMirror .cm-property,
+html[data-theme] .CodeMirror .cm-operator,
+html[data-theme] .CodeMirror .cm-bracket,
+html[data-theme] .CodeMirror .cm-special,
+html[data-theme] .CodeMirror .cm-em {
+  color: inherit;
+}
+
 /* --------------------------------------------------------------------------
    2. Typography
    -------------------------------------------------------------------------- */
@@ -652,6 +858,14 @@ html[data-theme] .cp__header .button:hover {
 
 html[data-theme] .cp__header .button:active {
   background-color: var(--adw-active);
+}
+
+/* Plugin toolbar icons (PDF print, journals calendar, the plugins puzzle).
+   Logseq greys every link in the header's right side with
+   `.cp__header > .r > div:not(.ui__dropdown-trigger) a` (0,3,2), which the
+   rule above (0,3,1) loses to. Same selector, theme-prefixed: (0,4,3). */
+html[data-theme] .cp__header > .r > div:not(.ui__dropdown-trigger) a {
+  color: var(--adw-fg);
 }
 
 html[data-theme] .cp__header .button .ti,
@@ -857,6 +1071,23 @@ html[data-theme] #left-sidebar .left-sidebar-inner a.item.active {
   font-weight: 500;
 }
 
+/* Row icons are a step softer than their labels, as in GNOME Files — its own
+   style.css: `image.sidebarrow-icon { opacity: 0.7; }`. Opacity, not a grey
+   colour, so the icon stays the foreground's hue in light and dark. Emoji page
+   icons are text, not .ui__icon, and stay at full strength. */
+html[data-theme] #left-sidebar .left-sidebar-inner a.item .ui__icon,
+html[data-theme] #left-sidebar .left-sidebar-inner .nav-content-item .header .ui__icon,
+html[data-theme] #left-sidebar .left-sidebar-inner .favorite-item .ui__icon,
+html[data-theme] #left-sidebar .left-sidebar-inner .recent-item .ui__icon {
+  opacity: 0.7;
+}
+
+/* The keyboard-shortcut tiles beside sidebar items ("g j"): Logseq's
+   `.text-gray-10` utility greys them. Files' sidebar has no grey text. */
+html[data-theme] #left-sidebar .keyboard-shortcut .ui__button {
+  color: var(--adw-fg);
+}
+
 html[data-theme] .cp__menubar-repos .ui__dropdown-trigger {
   background-color: transparent;
 }
@@ -1024,7 +1255,7 @@ html[data-theme] .cp__sidebar-main-content {
 html[data-theme] blockquote {
   background-color: var(--lx-gray-03);
   color: var(--adw-fg);
-  border-left-color: var(--adw-border);
+  border-left-color: var(--adw-quote-border);   /* 27-text.css */
   border-radius: 0.25rem;
 }
 

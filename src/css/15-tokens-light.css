@@ -60,6 +60,21 @@ html[data-theme="light"][data-color] {
   --adw-warning:        #c64600;   /* orange_5 */
   --adw-error:          #c01c28;   /* red_4 */
 
+  /* GNOME Text Editor's "Adwaita" style scheme (GtkSourceView,
+     /org/gnome/gtksourceview/styles/Adwaita.xml). Raw scheme hues, clamped to
+     AA in 27-text.css. */
+  --adw-src-teal:       #218787;   /* teal_5, def:heading / def:string */
+  --adw-src-violet:     #4e57ba;   /* violet_4, def:inline-code / def:number */
+  --adw-src-orange:     #c64600;   /* orange_5, def:statement */
+  --adw-src-blue:       #1c71d8;   /* blue_4, def:function */
+  --adw-src-grey:       #77767b;   /* dark_1, def:comment */
+  /* Inline code's violet also sits on --adw-fill. Over the sidebar the
+     accent-text clamp (0.5) leaves it at 4.22:1; 0.48 clears AA (4.60:1) and
+     moves the colour by a shade (#4d56b9 → #4850b2). */
+  --adw-code-oklab:     min(l, 0.48) a b;
+  --adw-mark-bg:        #f8e45c;   /* yellow_2, the scheme's search match */
+  --adw-mark-fg:        #3d3846;   /* dark_4 */
+
   /* Grey ramp, light. 01 = the lightest surface, 12 = text — the same
      direction Logseq uses, so nothing downstream has to be inverted.
      Steps 07–12 are GNOME's own light_4/light_5/dark_1..4. */

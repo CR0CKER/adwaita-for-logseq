@@ -22,11 +22,27 @@ export const GNOME_ACCENTS: Record<string, string> = {
   slate: '#6f8396',
 };
 
+/** The two text-colour choices. "Quiet" is libadwaita's own restraint — prose is
+ *  body text, colour is for the accent; "Text Editor" colours headings, inline
+ *  code and quotes the way GNOME Text Editor's Adwaita style scheme does. */
+export const TEXT_COLOURS = {
+  quiet: 'GNOME apps (quiet)',
+  textEditor: 'Text Editor (Adwaita scheme)',
+} as const;
+
+/** What "Text Editor" repoints, and at which scheme colour (27-text.css). */
+const TEXT_EDITOR_ROLES: Record<string, string> = {
+  '--adw-heading-fg': 'var(--adw-text-teal)',
+  '--adw-code-fg': 'var(--adw-text-violet)',
+  '--adw-quote-border': 'var(--adw-text-grey)',
+};
+
 export const DEFAULTS = {
   gnomeAccent: 'blue',
   customAccentHex: '#3584e4',
   accentLightnessDark: 0.763,
   windowControls: 'all',
+  textColours: TEXT_COLOURS.quiet,
   fontSans: '"Adwaita Sans", Cantarell, system-ui, sans-serif',
   fontMono: '"Adwaita Mono", ui-monospace, monospace',
 } as const;
@@ -37,6 +53,7 @@ export type Settings = {
   accentLightnessDark?: number;
   windowControls?: string;
   hideRightSidebarTopbar?: boolean;
+  textColours?: string;
   fontSans?: string;
   fontMono?: string;
 };
@@ -72,12 +89,18 @@ export function buildSettingsCss(s: Settings): string {
   const follows = accent === null;
   const lightness = Number(s.accentLightnessDark ?? DEFAULTS.accentLightnessDark);
   const closeOnly = String(s.windowControls ?? DEFAULTS.windowControls) === 'close only';
+  // Anything but an exact "Text Editor" is quiet, so a stale or mistyped value
+  // degrades to the default rather than to a half-coloured page.
+  const textEditor = String(s.textColours ?? DEFAULTS.textColours) === TEXT_COLOURS.textEditor;
+  const textRoles = textEditor
+    ? Object.entries(TEXT_EDITOR_ROLES).map(([role, value]) => `\n  ${role}: ${value} !important;`).join('')
+    : '';
 
   const rules: string[] = [
     `:root {
   --adw-gnome-accent: ${accent ?? GNOME_ACCENTS.blue} !important;
   --adw-font-sans: ${s.fontSans ?? DEFAULTS.fontSans} !important;
-  --adw-font-mono: ${s.fontMono ?? DEFAULTS.fontMono} !important;${closeOnly ? '\n  --adw-wc-width: 44px !important;' : ''}
+  --adw-font-mono: ${s.fontMono ?? DEFAULTS.fontMono} !important;${closeOnly ? '\n  --adw-wc-width: 44px !important;' : ''}${textRoles}
 }`,
     // Only the dark clamp is exposed: on light, libadwaita's min(l, 0.5) is
     // what keeps accent text readable on white, and lowering it further is a

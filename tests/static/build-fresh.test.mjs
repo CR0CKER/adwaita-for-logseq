@@ -31,6 +31,7 @@ test('the build includes every source part', () => {
     '15-tokens-light.css',
     '20-mappings.css',
     '25-accent.css',
+    '27-text.css',
     '30-structure.css',
   ], 'a part was added or renamed — check the cascade order still reads correctly');
 });

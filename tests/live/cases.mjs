@@ -12,6 +12,8 @@
 import assert from 'node:assert/strict';
 import { parseRgb, parseColor, contrastRatio } from '../lib/color.mjs';
 import { waitFor } from '../lib/cdp.mjs';
+import { STARTUP_SETTINGS } from '../lib/scratch.mjs';
+import { TEXT_COLOURS } from '../../src/settings-css.ts';
 
 const ADWAITA = {
   dark: { view: 'rgb(29, 29, 32)', sidebar: 'rgb(46, 46, 50)', gray03: '#2e2e32' },
@@ -29,6 +31,40 @@ const probe = (cdp, spec) =>
     }
     return JSON.stringify(out);
   })()`);
+
+/**
+ * Create `page` from `blocks` through the plugin API and leave it rendered.
+ *
+ * Returns false when the window is not painting frames (screen locked, window
+ * hidden): Logseq only re-renders on animation frames, so the page would never
+ * appear and there is nothing to measure.
+ *
+ * OG often leaves blocks appended in quick succession unrendered — an empty
+ * .ls-block with no content — until the page renders again; scrolling them into
+ * view does not help. Measured on the code-block case: missing in 9 of 10
+ * sessions without the round trip below, 0 of 3 with it; the task-marker case
+ * hit the same race. A precondition for having something to measure, not a
+ * retried assertion.
+ */
+async function renderPage(cdp, page, blocks) {
+  const painting = await cdp.evaluate(
+    `new Promise((r) => { requestAnimationFrame(() => r(true)); setTimeout(() => r(false), 2000); })`
+  );
+  if (!painting) return false;
+  await cdp.evaluate(`(async () => {
+    const api = window.logseq.api;
+    await api.create_page(${JSON.stringify(page)}, {}, { redirect: true, createFirstBlock: false });
+    for (const b of ${JSON.stringify(blocks)}) await api.append_block_in_page(${JSON.stringify(page)}, b);
+    return true;
+  })()`);
+  await new Promise((r) => setTimeout(r, 1500));
+  await cdp.evaluate(`location.hash = '#/all-pages'; true`);
+  await new Promise((r) => setTimeout(r, 1500));
+  await cdp.evaluate(`location.hash = ${JSON.stringify('#/page/' + encodeURIComponent(page))}; true`);
+  return true;
+}
+
+const NOT_PAINTING = { skipped: 'the window is not painting frames (screen locked or window hidden)' };
 
 export const cases = [
   {
@@ -362,19 +398,7 @@ export const cases = [
     async run({ cdp, target }) {
       const page = 'adwaita task markers';
       const markers = ['TODO', 'DOING', 'LATER', 'NOW', 'WAITING'];
-      // Logseq only re-renders on animation frames, and a window the
-      // compositor is not painting — screen locked, window hidden — gets none:
-      // the page would never appear. Nothing can be checked then.
-      const painting = await cdp.evaluate(
-        `new Promise((r) => { requestAnimationFrame(() => r(true)); setTimeout(() => r(false), 2000); })`
-      );
-      if (!painting) return { skipped: 'the window is not painting frames (screen locked or window hidden)' };
-      await cdp.evaluate(`(async () => {
-        const api = window.logseq.api;
-        await api.create_page(${JSON.stringify(page)}, {}, { redirect: true, createFirstBlock: false });
-        for (const m of ${JSON.stringify(markers)}) await api.append_block_in_page(${JSON.stringify(page)}, m + ' task');
-        return true;
-      })()`);
+      if (!(await renderPage(cdp, page, markers.map((m) => m + ' task')))) return NOT_PAINTING;
       try {
         await waitFor(cdp, `document.querySelectorAll('.block-content .block-marker').length >= ${markers.length}`, {
           label: 'the task blocks to render',
@@ -426,6 +450,118 @@ export const cases = [
         await cdp.call('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
       }
       assert.equal(hovered, got.tokens.hover, 'hovered marker colour');
+    },
+  },
+
+  {
+    // Creates a page and navigates, like the task-marker case above.
+    name: 'text colours: code blocks, highlights and prose follow the Adwaita scheme',
+    async run({ cdp, target }) {
+      const page = 'adwaita text colours';
+      const fence = '`'.repeat(3);
+      const blocks = [
+        '## A heading',
+        'inline `code` and ==marked== text',
+        '> a quote',
+        `${fence}js\nconst x = 42; // note\nfunction f() { return "s"; }\n${fence}`,
+      ];
+      if (!(await renderPage(cdp, page, blocks))) return NOT_PAINTING;
+      try {
+        await waitFor(cdp, `Boolean(document.querySelector('.CodeMirror .cm-keyword'))`, {
+          label: 'the code block to render',
+          timeoutMs: 15000,
+        });
+      } catch (err) {
+        if (target.id === 'og') throw err;
+        return { skipped: 'no CodeMirror code block rendered — this build marks code up differently' };
+      }
+
+      const got = await cdp.evaluateJson(`(() => {
+        const host = document.querySelector('.dark-theme, .light-theme') || document.body;
+        const probe = document.createElement('div');
+        host.appendChild(probe);
+        const fg = (v) => { probe.style.color = v; return getComputedStyle(probe).color; };
+        const bg = (v) => { probe.style.backgroundColor = v; return getComputedStyle(probe).backgroundColor; };
+        const tokens = {
+          teal: fg('var(--adw-text-teal)'), violet: fg('var(--adw-text-violet)'), orange: fg('var(--adw-text-orange)'),
+          blue: fg('var(--adw-text-blue)'), grey: fg('var(--adw-text-grey)'), gray11: fg('var(--adw-gray-11)'),
+          gray02: bg('var(--adw-gray-02)'), markFg: fg('var(--adw-mark-fg)'), markBg: bg('var(--adw-mark-bg)'),
+          fg: fg('var(--adw-fg)'),
+        };
+        probe.remove();
+        const el = (sel) => document.querySelector(sel);
+        const cs = (sel) => { const e = el(sel); return e ? getComputedStyle(e) : null; };
+        const cm = cs('.CodeMirror');
+        return JSON.stringify({
+          tokens,
+          surface: { bg: cm.backgroundColor, fg: cm.color },
+          code: Object.fromEntries(['keyword', 'def', 'number', 'comment', 'string', 'operator'].map((t) => {
+            const c = cs('.CodeMirror .cm-' + t);
+            return [t, c ? { color: c.color, weight: c.fontWeight } : null];
+          })),
+          mark: { fg: cs('.ls-block mark')?.color, bg: cs('.ls-block mark')?.backgroundColor },
+          heading: cs('.ls-block h2')?.color,
+          pageTitle: cs('.ls-page-title h1.title')?.color,
+          inlineCode: cs('.ls-block :not(pre) > code')?.color,
+          quoteBorder: cs('.ls-block blockquote')?.borderLeftColor,
+        });
+      })()`);
+      const t = got.tokens;
+
+      // The code block is an Adwaita surface, not solarized teal or cream.
+      assert.deepEqual(got.surface, { bg: t.gray02, fg: t.gray11 }, 'code block surface');
+      const want = { keyword: t.orange, def: t.blue, number: t.violet, comment: t.grey, string: t.teal, operator: t.gray11 };
+      for (const [token, colour] of Object.entries(want)) {
+        assert.ok(got.code[token], `no .cm-${token} rendered — the sample code changed?`);
+        assert.equal(got.code[token].color, colour, `.cm-${token} colour`);
+      }
+      assert.equal(got.code.keyword.weight, '700', 'keywords are bold, as def:statement is');
+
+      assert.deepEqual(got.mark, { fg: t.markFg, bg: t.markBg }, '==highlight== colours');
+      // Page titles (and journal dates, the same h1.title) take Text Editor's
+      // body-text grey under either setting.
+      assert.equal(got.pageTitle, t.gray11, 'page title');
+
+      // The harness seeds the non-default "Text Editor" choice, so the settings
+      // sheet has to beat the theme's quiet defaults for these to pass.
+      assert.equal(STARTUP_SETTINGS.textColours, TEXT_COLOURS.textEditor, 'this case assumes the harness seeds "Text Editor"');
+      assert.equal(got.heading, t.teal, 'block heading');
+      assert.equal(got.inlineCode, t.violet, 'inline code');
+      assert.equal(got.quoteBorder, t.grey, 'quote bar');
+    },
+  },
+
+  {
+    // GNOME Files has no grey text or icons in its headerbar or sidebar. Logseq
+    // greys some at specificities the theme's general rules lose to — plugin
+    // toolbar icons, the sidebar's keyboard-shortcut tiles — so check every
+    // visible one rather than a list of known offenders.
+    name: 'headerbar and sidebar text is the full foreground; sidebar row icons are dimmed like Files',
+    async run({ cdp }) {
+      const got = await cdp.evaluateJson(`(() => {
+        const probe = document.createElement('div');
+        document.body.appendChild(probe);
+        probe.style.color = 'var(--adw-fg)';
+        const fg = getComputedStyle(probe).color;
+        probe.remove();
+        const grey = [];
+        for (const e of document.querySelectorAll('#left-sidebar *, .cp__header *')) {
+          if (!e.offsetParent) continue;   // not rendered
+          const hasText = [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+          if (!hasText && !e.matches('.ti, svg')) continue;
+          const c = getComputedStyle(e).color;
+          if (c !== fg) grey.push(e.tagName.toLowerCase() + '.' + String(e.className?.baseVal ?? e.className).trim().split(/\\s+/).slice(0, 3).join('.') + ' ' + c);
+        }
+        // Row icons are dimmed with opacity, as GNOME Files does (0.7).
+        const icons = [...document.querySelectorAll('#left-sidebar .left-sidebar-inner :is(a.item, .nav-content-item .header, .favorite-item, .recent-item) .ui__icon')]
+          .filter((e) => e.offsetParent)
+          .map((e) => ({ icon: String(e.className).trim().split(/\\s+/).slice(1, 3).join('.'), opacity: getComputedStyle(e).opacity }));
+        return JSON.stringify({ fg, grey: [...new Set(grey)], icons });
+      })()`);
+      assert.deepEqual(got.grey, [], 'not the full foreground (' + got.fg + '):\n  ' + got.grey.join('\n  '));
+      assert.ok(got.icons.length > 0, 'no sidebar row icons rendered');
+      const undimmed = got.icons.filter((i) => i.opacity !== '0.7');
+      assert.deepEqual(undimmed, [], 'sidebar row icons must be at 0.7, as in Files');
     },
   },
 ];

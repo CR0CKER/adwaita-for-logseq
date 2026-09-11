@@ -39,8 +39,6 @@ const ALLOWLIST = {
   '--ls-error-background-color': 'generic Tailwind --color-red-900, not solarized-specific',
   '--ls-success-background-color': 'generic Tailwind --color-green-900, not solarized-specific',
   '--ls-warning-background-color': 'generic Tailwind --color-yellow-900, not solarized-specific',
-  '--ls-page-mark-bg-color': 'highlight-mark yellow, identical under every Logseq accent',
-  '--ls-page-mark-color': 'highlight-mark text, identical under every Logseq accent',
 };
 
 // One fixture per Logseq build under test, so a version that adds a variable
