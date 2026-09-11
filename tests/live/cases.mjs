@@ -32,6 +32,40 @@ const probe = (cdp, spec) =>
     return JSON.stringify(out);
   })()`);
 
+/**
+ * Create `page` from `blocks` through the plugin API and leave it rendered.
+ *
+ * Returns false when the window is not painting frames (screen locked, window
+ * hidden): Logseq only re-renders on animation frames, so the page would never
+ * appear and there is nothing to measure.
+ *
+ * OG often leaves blocks appended in quick succession unrendered — an empty
+ * .ls-block with no content — until the page renders again; scrolling them into
+ * view does not help. Measured on the code-block case: missing in 9 of 10
+ * sessions without the round trip below, 0 of 3 with it; the task-marker case
+ * hit the same race. A precondition for having something to measure, not a
+ * retried assertion.
+ */
+async function renderPage(cdp, page, blocks) {
+  const painting = await cdp.evaluate(
+    `new Promise((r) => { requestAnimationFrame(() => r(true)); setTimeout(() => r(false), 2000); })`
+  );
+  if (!painting) return false;
+  await cdp.evaluate(`(async () => {
+    const api = window.logseq.api;
+    await api.create_page(${JSON.stringify(page)}, {}, { redirect: true, createFirstBlock: false });
+    for (const b of ${JSON.stringify(blocks)}) await api.append_block_in_page(${JSON.stringify(page)}, b);
+    return true;
+  })()`);
+  await new Promise((r) => setTimeout(r, 1500));
+  await cdp.evaluate(`location.hash = '#/all-pages'; true`);
+  await new Promise((r) => setTimeout(r, 1500));
+  await cdp.evaluate(`location.hash = ${JSON.stringify('#/page/' + encodeURIComponent(page))}; true`);
+  return true;
+}
+
+const NOT_PAINTING = { skipped: 'the window is not painting frames (screen locked or window hidden)' };
+
 export const cases = [
   {
     // First on purpose: nothing may have touched a setting yet.
@@ -364,19 +398,7 @@ export const cases = [
     async run({ cdp, target }) {
       const page = 'adwaita task markers';
       const markers = ['TODO', 'DOING', 'LATER', 'NOW', 'WAITING'];
-      // Logseq only re-renders on animation frames, and a window the
-      // compositor is not painting — screen locked, window hidden — gets none:
-      // the page would never appear. Nothing can be checked then.
-      const painting = await cdp.evaluate(
-        `new Promise((r) => { requestAnimationFrame(() => r(true)); setTimeout(() => r(false), 2000); })`
-      );
-      if (!painting) return { skipped: 'the window is not painting frames (screen locked or window hidden)' };
-      await cdp.evaluate(`(async () => {
-        const api = window.logseq.api;
-        await api.create_page(${JSON.stringify(page)}, {}, { redirect: true, createFirstBlock: false });
-        for (const m of ${JSON.stringify(markers)}) await api.append_block_in_page(${JSON.stringify(page)}, m + ' task');
-        return true;
-      })()`);
+      if (!(await renderPage(cdp, page, markers.map((m) => m + ' task')))) return NOT_PAINTING;
       try {
         await waitFor(cdp, `document.querySelectorAll('.block-content .block-marker').length >= ${markers.length}`, {
           label: 'the task blocks to render',
@@ -443,25 +465,7 @@ export const cases = [
         '> a quote',
         `${fence}js\nconst x = 42; // note\nfunction f() { return "s"; }\n${fence}`,
       ];
-      const painting = await cdp.evaluate(
-        `new Promise((r) => { requestAnimationFrame(() => r(true)); setTimeout(() => r(false), 2000); })`
-      );
-      if (!painting) return { skipped: 'the window is not painting frames (screen locked or window hidden)' };
-      await cdp.evaluate(`(async () => {
-        const api = window.logseq.api;
-        await api.create_page(${JSON.stringify(page)}, {}, { redirect: true, createFirstBlock: false });
-        for (const b of ${JSON.stringify(blocks)}) await api.append_block_in_page(${JSON.stringify(page)}, b);
-        return true;
-      })()`);
-      // OG often leaves the last block appended this way unrendered — an empty
-      // .ls-block with no content — until the page renders again; scrolling it
-      // into view does not help. Measured: the code block failed to appear in 9
-      // of 10 sessions without this round trip, 0 of 3 with it. A precondition
-      // for having something to measure, not a retried assertion.
-      await new Promise((r) => setTimeout(r, 1500));
-      await cdp.evaluate(`location.hash = '#/all-pages'; true`);
-      await new Promise((r) => setTimeout(r, 1500));
-      await cdp.evaluate(`location.hash = ${JSON.stringify('#/page/' + encodeURIComponent(page))}; true`);
+      if (!(await renderPage(cdp, page, blocks))) return NOT_PAINTING;
       try {
         await waitFor(cdp, `Boolean(document.querySelector('.CodeMirror .cm-keyword'))`, {
           label: 'the code block to render',
@@ -532,7 +536,7 @@ export const cases = [
     // greys some at specificities the theme's general rules lose to — plugin
     // toolbar icons, the sidebar's keyboard-shortcut tiles — so check every
     // visible one rather than a list of known offenders.
-    name: 'headerbar and sidebar text and icons are the full foreground, never grey',
+    name: 'headerbar and sidebar text is the full foreground; sidebar row icons are dimmed like Files',
     async run({ cdp }) {
       const got = await cdp.evaluateJson(`(() => {
         const probe = document.createElement('div');
@@ -548,9 +552,16 @@ export const cases = [
           const c = getComputedStyle(e).color;
           if (c !== fg) grey.push(e.tagName.toLowerCase() + '.' + String(e.className?.baseVal ?? e.className).trim().split(/\\s+/).slice(0, 3).join('.') + ' ' + c);
         }
-        return JSON.stringify({ fg, grey: [...new Set(grey)] });
+        // Row icons are dimmed with opacity, as GNOME Files does (0.7).
+        const icons = [...document.querySelectorAll('#left-sidebar .left-sidebar-inner :is(a.item, .nav-content-item .header, .favorite-item, .recent-item) .ui__icon')]
+          .filter((e) => e.offsetParent)
+          .map((e) => ({ icon: String(e.className).trim().split(/\\s+/).slice(1, 3).join('.'), opacity: getComputedStyle(e).opacity }));
+        return JSON.stringify({ fg, grey: [...new Set(grey)], icons });
       })()`);
       assert.deepEqual(got.grey, [], 'not the full foreground (' + got.fg + '):\n  ' + got.grey.join('\n  '));
+      assert.ok(got.icons.length > 0, 'no sidebar row icons rendered');
+      const undimmed = got.icons.filter((i) => i.opacity !== '0.7');
+      assert.deepEqual(undimmed, [], 'sidebar row icons must be at 0.7, as in Files');
     },
   },
 ];

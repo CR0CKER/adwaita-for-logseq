@@ -35,6 +35,20 @@ test('plugin toolbar icons in the headerbar are the full foreground', () => {
   assert.equal(colourOf('html[data-theme] .cp__header > .r > div:not(.ui__dropdown-trigger) a'), 'var(--adw-fg)');
 });
 
+test('sidebar row icons are dimmed like GNOME Files, the labels are not', () => {
+  // Nautilus's own style.css: `image.sidebarrow-icon { opacity: 0.7; }` — the
+  // icon is a softer grey, the label beside it stays the full foreground.
+  // Dimmed with opacity (not a grey colour), exactly as Files does it.
+  const rule = rules(css).find(
+    ({ selector, body }) => selector.includes('#left-sidebar') && selector.includes('.ui__icon') && /opacity\s*:/.test(body)
+  );
+  assert.ok(rule, 'no rule dims the sidebar row icons');
+  assert.match(rule.body, /(?:^|;)\s*opacity\s*:\s*0?\.7\s*(;|$)/, 'Files dims them to 0.7');
+  for (const row of ['a.item', '.nav-content-item .header', '.favorite-item', '.recent-item']) {
+    assert.ok(rule.selector.includes(row), `${row} icons are dimmed too`);
+  }
+});
+
 test('keyboard-shortcut tiles in the sidebar are the full foreground', () => {
   assert.equal(colourOf('html[data-theme] #left-sidebar .keyboard-shortcut .ui__button'), 'var(--adw-fg)');
 });

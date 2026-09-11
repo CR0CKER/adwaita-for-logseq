@@ -15,6 +15,14 @@ All notable changes to this project are documented here, in
   GNOME Files. Logseq greys them at a specificity the theme's header-button
   rule lost to; they are now the full foreground.
 
+### Changed
+
+- Sidebar row icons (Journals, Flashcards, Graph view, All pages, the
+  Favorites/Recent headers and page icons) are drawn at 70% opacity, a step
+  softer than their labels — the value GNOME Files uses
+  (`image.sidebarrow-icon { opacity: 0.7; }` in Nautilus's own stylesheet).
+  Emoji page icons stay at full strength.
+
 ### Added
 
 - Text colours from GNOME Text Editor's Adwaita style scheme (GtkSourceView's

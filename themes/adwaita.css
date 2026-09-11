@@ -1071,6 +1071,17 @@ html[data-theme] #left-sidebar .left-sidebar-inner a.item.active {
   font-weight: 500;
 }
 
+/* Row icons are a step softer than their labels, as in GNOME Files — its own
+   style.css: `image.sidebarrow-icon { opacity: 0.7; }`. Opacity, not a grey
+   colour, so the icon stays the foreground's hue in light and dark. Emoji page
+   icons are text, not .ui__icon, and stay at full strength. */
+html[data-theme] #left-sidebar .left-sidebar-inner a.item .ui__icon,
+html[data-theme] #left-sidebar .left-sidebar-inner .nav-content-item .header .ui__icon,
+html[data-theme] #left-sidebar .left-sidebar-inner .favorite-item .ui__icon,
+html[data-theme] #left-sidebar .left-sidebar-inner .recent-item .ui__icon {
+  opacity: 0.7;
+}
+
 /* The keyboard-shortcut tiles beside sidebar items ("g j"): Logseq's
    `.text-gray-10` utility greys them. Files' sidebar has no grey text. */
 html[data-theme] #left-sidebar .keyboard-shortcut .ui__button {
