@@ -14,6 +14,14 @@ All notable changes to this project are documented here, in
   rendered face over CDP, and a leftover `DevToolsActivePort`.
 - README: a Troubleshooting entry for text that looks the wrong size next to other GNOME
   apps.
+- README and `docs/logseq-internals.md`: how to check the screen is unlocked before a live
+  run, and what a run that locks partway looks like. A testing note on walking
+  `document.styleSheets` past `@font-face` rules.
+
+### Changed
+
+- README's scope table no longer claims every OG live case passes. The graph-picker
+  case reports itself skipped on OG ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)).
 
 ### Fixed
 
