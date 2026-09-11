@@ -589,11 +589,23 @@ export const cases = [
             title: getComputedStyle(document.querySelector('#head > .l'), '::after').content,
             items, overlaps,
             masks: Object.fromEntries(['#left-menu', '.toggle-right-sidebar', '.toolbar-dots-btn', '.navigation.nav-left', '.navigation.nav-right'].map((s) => [s, mask(s)])),
+            // Which element a pointer at each control's centre actually reaches.
+            blocked: Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
+              .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
+              .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); return !e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)); })
+              .map(([k]) => k),
           });
         })()`);
+      // A real pointer click at the button's centre (CDP Input), not
+      // element.click(): the latter bypasses hit-testing, and the toggle once
+      // sat under .r's layer — clickable by script, dead to the mouse.
+      const realClick = async (sel) => {
+        const [x, y] = await cdp.evaluateJson(`(() => { const b = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return JSON.stringify([b.left + b.width / 2, b.top + b.height / 2]); })()`);
+        for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+      };
       const setOpen = async (want) => {
         const open = await cdp.evaluate(`Boolean(document.querySelector('.ls-left-sidebar-open'))`);
-        if (open !== want) await cdp.evaluate(`document.querySelector('#left-menu').click(); true`);
+        if (open !== want) await realClick('#left-menu');
         await waitFor(cdp, `Boolean(document.querySelector('.ls-left-sidebar-open')) === ${want}`, { label: `sidebar ${want ? 'open' : 'closed'}`, timeoutMs: 5000 });
         await new Promise((r) => setTimeout(r, 600)); // the header's own padding transition
       };
@@ -604,6 +616,7 @@ export const cases = [
         if (closed.width < 640) return { skipped: `window is ${closed.width}px; the docked layout starts at 640px` };
         for (const [sel, m] of Object.entries(closed.masks)) assert.match(m ?? '', /data:image\/svg\+xml/, `${sel} draws an Adwaita icon`);
         assert.deepEqual(closed.overlaps, [], 'closed: header controls overlap');
+        assert.deepEqual(closed.blocked, [], 'closed: controls a pointer cannot reach');
         assert.equal(closed.title, 'none', 'closed: no sidebar title');
         assert.ok(closed.items.toggle.l < 12, 'closed: the toggle starts the bar');
         assert.ok(closed.items.back.l > closed.items.toggle.r && closed.items.back.l < closed.items.toggle.r + 60, 'closed: Back follows the toggle');
@@ -614,6 +627,7 @@ export const cases = [
         const open = await measure();
         const edge = open.sidebar;
         assert.deepEqual(open.overlaps, [], 'open: header controls overlap');
+        assert.deepEqual(open.blocked, [], 'open: controls a pointer cannot reach');
         assert.equal(open.title, '"Logseq"', 'open: the sidebar header carries the app name');
         assert.ok(open.items.menu.r <= edge && open.items.menu.r > edge - 12, `open: menu ends the sidebar header (r=${open.items.menu.r}, edge ${edge})`);
         if (open.items.search) assert.ok(open.items.search.l < 12, 'open: search starts the sidebar header');
@@ -622,11 +636,21 @@ export const cases = [
 
         // The menu's dropdown is positioned inside its trigger: it must open
         // under the moved button, inside the window.
-        await cdp.evaluate(`document.querySelector('.toolbar-dots-btn').click(); true`);
+        await realClick('.toolbar-dots-btn');
         await waitFor(cdp, `Boolean(document.querySelector('.dropdown-wrapper'))`, { label: 'the app menu to open', timeoutMs: 5000 });
         const drop = await cdp.evaluateJson(`(() => { const b = document.querySelector('.dropdown-wrapper').getBoundingClientRect(); return JSON.stringify({ l: b.left, r: b.right, t: b.top }); })()`);
         await cdp.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.body.click(); true`);
         assert.ok(drop.l >= 0 && drop.r <= edge + 1 && drop.t >= open.items.menu.b - 1, `the menu opens under its button, inside the sidebar (${JSON.stringify(drop)})`);
+
+        // With the right sidebar open the window controls sit over it, so the
+        // header's last control belongs near the main section's own edge.
+        await realClick('.toggle-right-sidebar');
+        await waitFor(cdp, `Boolean(document.querySelector('.ls-right-sidebar-open'))`, { label: 'the right sidebar to open', timeoutMs: 5000 });
+        await new Promise((r) => setTimeout(r, 600));
+        const right = await cdp.evaluateJson(`(() => { const main = document.querySelector('#head').getBoundingClientRect(); const last = document.querySelector('.toggle-right-sidebar').getBoundingClientRect(); return JSON.stringify({ gap: main.right - last.right }); })()`);
+        await realClick('.toggle-right-sidebar');
+        await waitFor(cdp, `!document.querySelector('.ls-right-sidebar-open')`, { label: 'the right sidebar to close', timeoutMs: 5000 });
+        assert.ok(right.gap <= 16, `right sidebar open: ${Math.round(right.gap)}px between the last header control and the main section's edge`);
       } finally {
         await setOpen(wasOpen).catch(() => {});
       }

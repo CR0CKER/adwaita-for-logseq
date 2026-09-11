@@ -245,6 +245,27 @@ PY
 expect_red "open-sidebar placements applied below Logseq's 640px docking breakpoint" \
   tests/static/headerbar.test.mjs "$t"
 
+# 18. The moved sidebar toggle under .r's layer: clickable by script, dead to the mouse.
+t="$(scratch_tree toggle-stacking)"
+python3 - "$t" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"\n    transform: none;\n", "\n", s, count=1)
+assert s2 != s, '.l transform override not found — update this mutation'
+p.write_text(s2)
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "sidebar toggle stacked under .r, so a real click cannot reach it" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 19. Room reserved for window controls that sit over the open right sidebar.
+t="$(scratch_tree wc-reservation)"
+printf '\nhtml[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header > .r { margin-right: var(--adw-wc-width); }\n' >> "$t/src/css/30-structure.css"
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "header reserves window-control room with the right sidebar open (the ~100px gap)" \
+  tests/static/headerbar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"
