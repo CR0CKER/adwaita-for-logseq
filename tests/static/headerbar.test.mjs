@@ -83,7 +83,7 @@ test('with the sidebar open, the toggle sits just past its edge and the menu at 
   // (32px in OG, 44px for Logseq 2.x's ghost buttons before the theme sizes them)
   // cannot push it over the edge.
   const menu = 'html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)';
-  assert.equal(valueOf(menu, 'right'), 'calc(100% + 6px)', 'menu: its right edge 6px before .r, i.e. inside the sidebar');
+  assert.equal(valueOf(menu, 'right'), 'calc(100% + 50px)', 'menu: its right edge 6px inside the sidebar — .r now starts 44px past it');
   assert.equal(valueOf(menu, 'left'), 'auto');
 });
 
@@ -160,6 +160,17 @@ test('Logseq 2.x header buttons get the same 32px Adwaita flat-button size as OG
   const iconOnly = 'html[data-theme] .cp__header .ui__button.as-ghost:has(> .ui__icon:only-child)';
   assert.equal(valueOf(iconOnly, 'box-sizing'), 'border-box');
   assert.equal(valueOf(iconOnly, 'padding'), '0');
+});
+
+test('the moved toggle is outside .r\'s box, so .r\'s window-drag region cannot swallow it', () => {
+  // Electron resolves -webkit-app-region in document order — a later drag
+  // region overrides an earlier no-drag one, whatever is painted on top. The
+  // toggle lives in .l (earlier) but sat over .r's left padding (later, drag),
+  // so a real mouse press dragged the window. Make room with a margin: .r's box
+  // then starts past the toggle and only #head (an ancestor, earlier) is under it.
+  const r = 'html[data-theme] .ls-left-sidebar-open #head > .r';
+  assert.equal(valueOf(r, 'margin-left'), '44px');
+  assert.equal(valueOf(r, 'padding-left'), undefined, 'padding would put .r under the toggle again');
 });
 
 test('the menu placed outside .r is not clipped by it (Logseq 2.x: overflow-x-hidden)', () => {

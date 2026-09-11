@@ -186,8 +186,13 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
     transform: translateY(-50%);
   }
 
+  /* Room for the toggle: 6px + the 32px toggle + 6px. A margin, not padding:
+     Electron resolves -webkit-app-region in document order, so a later drag
+     region overrides an earlier no-drag one whatever is painted on top. With
+     padding, .r (drag, later) lay under the toggle (in .l, earlier) and a real
+     mouse press dragged the window. Now only #head, an ancestor, is under it. */
   html[data-theme] .ls-left-sidebar-open #head > .r {
-    padding-left: 44px;   /* 6px + the 32px toggle + 6px */
+    margin-left: 44px;
     /* The menu is placed outside .r (below); Logseq 2.x's overflow-x-hidden
        on .r would clip it away. */
     overflow: visible;
@@ -196,16 +201,16 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
   /* The app menu is the primary menu (HIG: open-menu-symbolic), and Files puts
      it at the end of the sidebar header. Logseq gives .r a transform, which makes
      .r — not #head — its containing block; while the sidebar is open .r starts
-     exactly at the sidebar's edge, so the button is placed by its right edge,
-     6px before .r — inside the sidebar, whatever the sidebar's or the button's
-     width. OG's dropdown sits inside the trigger and 2.x's Radix popup anchors
+     44px past the sidebar's edge (after the toggle), so the button is placed by
+     its right edge, 50px before .r — 6px inside the sidebar, whatever the
+     sidebar's or the button's width. OG's dropdown sits inside the trigger and 2.x's Radix popup anchors
      to it, so either opens under the new position. */
   html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
   html[data-theme] .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
     position: absolute;
     top: 50%;
     left: auto;
-    right: calc(100% + 6px);
+    right: calc(100% + 50px);
     transform: translateY(-50%);
   }
 

@@ -590,6 +590,19 @@ export const cases = [
             title: getComputedStyle(document.querySelector('#head > .l'), '::after').content,
             items, overlaps,
             masks: Object.fromEntries(['#left-menu', '.toggle-right-sidebar', '.toolbar-dots-btn', '.navigation.nav-left', '.navigation.nav-right'].map((s) => [s, mask(s)])),
+            // Electron resolves -webkit-app-region in document order: a *later*
+            // drag region covering a control turns a real mouse press there into
+            // a window drag — invisible to elementFromPoint and to CDP input,
+            // which both skip that step. Simulate it: controls under a later
+            // drag region.
+            dragged: (() => {
+              const drag = [...document.querySelectorAll('*')].filter((d) => getComputedStyle(d).webkitAppRegion === 'drag');
+              return Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
+                .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
+                .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); const x = b.left + b.width / 2, y = b.top + b.height / 2;
+                  return drag.some((d) => (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !d.contains(e) && !e.contains(d) && (() => { const r = d.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; })()); })
+                .map(([k]) => k);
+            })(),
             // Which element a pointer at each control's centre actually reaches.
             blocked: Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
               .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
@@ -618,6 +631,7 @@ export const cases = [
         for (const [sel, m] of Object.entries(closed.masks)) assert.match(m ?? '', /data:image\/svg\+xml/, `${sel} draws an Adwaita icon`);
         assert.deepEqual(closed.overlaps, [], 'closed: header controls overlap');
         assert.deepEqual(closed.blocked, [], 'closed: controls a pointer cannot reach');
+        assert.deepEqual(closed.dragged, [], 'closed: controls under a later window-drag region (a real press drags the window)');
         assert.equal(closed.title, 'none', 'closed: no sidebar title');
         assert.ok(closed.items.toggle.l < 12, 'closed: the toggle starts the bar');
         assert.ok(closed.items.back.l > closed.items.toggle.r && closed.items.back.l < closed.items.toggle.r + 60, 'closed: Back follows the toggle');
@@ -631,6 +645,7 @@ export const cases = [
         const edge = open.sidebar;
         assert.deepEqual(open.overlaps, [], 'open: header controls overlap');
         assert.deepEqual(open.blocked, [], 'open: controls a pointer cannot reach');
+        assert.deepEqual(open.dragged, [], 'open: controls under a later window-drag region (a real press drags the window)');
         // Every header icon button is GTK's 32px square, in both builds — Logseq
         // 2.x's content-box ghost buttons once came out 52x42.
         const offSize = Object.entries(open.items).filter(([, b]) => b && (Math.abs(b.r - b.l - 32) > 1.5 || Math.abs(b.b - b.t - 32) > 1.5)).map(([k, b]) => `${k} ${Math.round(b.r - b.l)}x${Math.round(b.b - b.t)}`);
