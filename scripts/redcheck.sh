@@ -311,6 +311,21 @@ PY2
 expect_red "Logseq 2.x header icon buttons 52x42, not 32x32" \
   tests/static/headerbar.test.mjs "$t"
 
+# 23. Room for the toggle made with padding: .r's window-drag region (later in
+#     the document) then lies under the toggle, and a real mouse press drags
+#     the window instead of toggling the sidebar.
+t="$(scratch_tree toggle-drag)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+assert '    margin-left: 44px;' in s, 'toggle margin not found — update this mutation'
+p.write_text(s.replace('    margin-left: 44px;', '    padding-left: 44px;', 1))
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "toggle under .r's window-drag region (a real click drags the window)" \
+  tests/static/headerbar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"
