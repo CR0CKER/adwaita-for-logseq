@@ -83,9 +83,14 @@ screenshot:
 - **Every one of these buttons uses Adwaita's own icon** for that job — `open-menu`,
   `edit-find`, `sidebar-show`, `sidebar-show-right`, `go-previous`, `go-next` — vendored
   unmodified in `src/icons/`.
+- **The main menu belongs to the sidebar**, as in Files: it is hidden with the sidebar
+  rather than jumping to the other end of the bar — open the sidebar to reach Settings,
+  Plugins and Themes. (GNOME apps whose sidebar the user can hide, such as Calendar, fix
+  the menu at the content header's end instead; this theme follows Files. Below 640px,
+  where Logseq overlays the sidebar, the menu sits at the header's end while it is open.)
 - **With the sidebar closed** — or below 640px, where Logseq turns the sidebar into an
   overlay — the header collapses as Files does when narrow: toggle, search and
-  Back/Forward first, the menu with the other controls at the end.
+  Back/Forward first.
 - **No divider directly under the header**; dividers separate groups, as in Files.
   Sidebar row icons are drawn at Files' 70% opacity (`image.sidebarrow-icon { opacity:
   0.7 }` in Nautilus's stylesheet), their labels at full strength.
