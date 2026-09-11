@@ -55,6 +55,56 @@ test('there is no divider directly under the header', () => {
   assert.deepEqual(onTrigger.map((r) => r.selector), [], 'a divider is drawn on the graph dropdown, directly under the header');
 });
 
+// Files' sidebar rows, from libadwaita 1.8's own stylesheet and Nautilus 49:
+//   .navigation-sidebar > row { border-radius: 9px; min-height: 36px;
+//                               padding: 0 8px; margin: 0 6px 2px; }
+//   .sidebarrow-icon:dir(ltr) { padding-right: 8px; }   (a 16px GtkImage)
+// and the label in the system font, 'Adwaita Sans 11' = 11pt, regular weight.
+// Logseq has three kinds of row:
+//   a.item                       nav rows, both builds (and the graph picker)
+//   .nav-content-item .bd ul a   OG Favorites / Recent
+//   a.link-item                  2.x Favorites / Recent
+// The nav rows are Files' rows. Favorites and Recent keep Logseq's own, smaller
+// type (the user's call, 2026-09-11) and share only the icon metrics.
+const rowRule = () =>
+  rules(css).find(
+    ({ selector, body }) =>
+      selector.includes('.nav-header a.item') && selector.includes('.sidebar-content-group a.item') && /min-height/.test(body)
+  );
+
+test('nav rows have Files’ row metrics', () => {
+  const rule = rowRule();
+  assert.ok(rule, 'no rule sizes the nav rows on both builds (.nav-header / .sidebar-content-group a.item)');
+  assert.match(rule.body, /min-height:\s*36px/);
+  assert.match(rule.body, /margin:\s*0 6px 2px/);
+  assert.match(rule.body, /padding:\s*0 8px/);
+  assert.match(rule.body, /border-radius:\s*var\(--adw-radius-button\)/);
+});
+
+test('nav row labels are the GNOME interface font size, regular, undimmed', () => {
+  const { body } = rowRule();
+  assert.match(body, /font-size:\s*11pt/, "GNOME's default interface font is Adwaita Sans 11");
+  assert.match(body, /font-weight:\s*400/, 'Files does not embolden its rows');
+  assert.match(body, /opacity:\s*1/, 'Logseq dims rows to .8; Files rows are full strength');
+  const active = rules(css).find(({ selector }) => /a\.item\.active\s*$/.test(selector.trim()));
+  assert.ok(!active || !/font-weight/.test(active.body), 'the selected row keeps the regular weight, as in Files');
+  // Favorites / Recent keep Logseq's type: nothing here may resize their text.
+  const sectionFont = rules(css).filter(
+    ({ selector, body }) => /(\.bd ul a|a\.link-item)\s*$/m.test(selector) && /font-(size|weight)/.test(body)
+  );
+  assert.deepEqual(sectionFont.map((r) => r.selector), [], 'Favorites / Recent text is left at Logseq’s size');
+});
+
+test('sidebar row icons are 16px with 8px before the label, on every row kind', () => {
+  const icons = rules(css).filter(({ selector, body }) => /width:\s*16px/.test(body) && /height:\s*16px/.test(body));
+  for (const [what, part] of [['nav icons', 'a.item > .ui__icon'], ['OG page icons', '.bd ul a .page-icon'], ['2.x page icons', 'a.link-item .page-icon']]) {
+    const rule = icons.find(({ selector }) => selector.includes(part));
+    assert.ok(rule, `${what} (${part}) are not sized 16x16`);
+    // The left margin lines page icons up with the nav icons (checked live).
+    assert.match(rule.body, /margin:\s*0 8px 0 \S+;/, `${what}: 8px before the label`);
+  }
+});
+
 test('the sidebar background variable is re-pinned where Logseq 2.x shadows it', () => {
   // 2.x redeclares --left-sidebar-bg-color on `main.theme-container-inner`, an
   // element between <html> and the sidebar, as var(--lx-gray-02) — the darker

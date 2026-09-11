@@ -715,6 +715,48 @@ export const cases = [
   },
 
   {
+    // libadwaita 1.8's `.navigation-sidebar > row` and Nautilus 49's 16px row
+    // icon with 8px before the label; the label in GNOME's 'Adwaita Sans 11'.
+    // Favorites / Recent keep Logseq's type, but their icons join the column.
+    name: 'sidebar nav rows are Files’ rows; every row icon is 16px, in one column',
+    async run({ cdp }) {
+      // 2.x lists Recent only after a page has been visited.
+      await cdp.evaluate(`window.logseq.api.push_state('all-pages'); true`);
+      await new Promise((r) => setTimeout(r, 1500));
+      const got = await cdp.evaluateJson(`(() => {
+        const box = (e) => { const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height }; };
+        const rows = [...document.querySelectorAll('#left-sidebar .nav-header a.item, #left-sidebar .sidebar-content-group a.item')];
+        const icon = (a, sel) => { const i = a.querySelector(sel); if (!i) return null; const s = i.querySelector('svg') || i; const label = a.querySelector('.flex-1, .page-title'); return { icon: box(i), svg: box(s), label: label ? box(label) : null }; };
+        return JSON.stringify({
+          nav: rows.map((a) => { const c = getComputedStyle(a); return { row: box(a), font: parseFloat(c.fontSize), weight: c.fontWeight, opacity: c.opacity, radius: c.borderTopLeftRadius, ...icon(a, ':scope > .ui__icon') }; }),
+          pages: [...document.querySelectorAll('#left-sidebar .nav-content-item .bd ul a, #left-sidebar a.link-item')].map((a) => icon(a, '.page-icon')).filter(Boolean),
+        });
+      })()`);
+      assert.ok(got.nav.length >= 3, `found ${got.nav.length} nav rows`);
+      const bad = [];
+      got.nav.forEach((n, i) => {
+        if (Math.abs(n.row.h - 36) > 0.5) bad.push(`row ${i} is ${n.row.h}px tall, not 36`);
+        if (i && Math.abs(n.row.t - got.nav[i - 1].row.b - 2) > 0.5) bad.push(`row ${i} starts ${(n.row.t - got.nav[i - 1].row.b).toFixed(1)}px after the last, not 2`);
+        if (Math.abs(n.font - 14.667) > 0.05) bad.push(`row ${i} label ${n.font}px, not 11pt`);
+        if (n.weight !== '400') bad.push(`row ${i} weight ${n.weight}`);
+        if (n.opacity !== '1') bad.push(`row ${i} dimmed to ${n.opacity}`);
+        if (n.radius !== '9px') bad.push(`row ${i} radius ${n.radius}`);
+        if (!n.icon) return bad.push(`row ${i} has no icon`);
+        if (Math.abs(n.svg.w - 16) > 0.5 || Math.abs(n.svg.h - 16) > 0.5) bad.push(`row ${i} icon ${n.svg.w}x${n.svg.h}`);
+        if (n.label && Math.abs(n.label.l - n.icon.r - 8) > 1) bad.push(`row ${i}: ${(n.label.l - n.icon.r).toFixed(1)}px icon→label, not 8`);
+      });
+      const column = got.nav[0].icon.l;
+      got.pages.forEach((p, i) => {
+        if (Math.abs(p.svg.w - 16) > 0.5) bad.push(`page row ${i} icon ${p.svg.w}px wide`);
+        if (Math.abs(p.icon.l - column) > 1) bad.push(`page row ${i} icon at ${p.icon.l.toFixed(1)}, nav icons at ${column.toFixed(1)}`);
+        if (p.label && Math.abs(p.label.l - p.icon.r - 8) > 1) bad.push(`page row ${i}: ${(p.label.l - p.icon.r).toFixed(1)}px icon→label, not 8`);
+      });
+      assert.deepEqual(bad, [], `${got.nav.length} nav rows, ${got.pages.length} page rows`);
+      await cdp.evaluate(`location.hash = '#/'; true`);
+    },
+  },
+
+  {
     // Both builds render Home only away from the home route, in different
     // markup: OG `.button[title=Home]` in a tooltip wrapper, 2.x an untitled
     // shui ghost button. Awesome UI's `[title=Home]` rule misses 2.x.

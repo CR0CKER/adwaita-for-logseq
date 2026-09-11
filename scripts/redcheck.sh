@@ -354,6 +354,22 @@ PY2
 expect_red "graph picker moved on OG only (2.x's stays on top)" \
   tests/static/settings.test.mjs "$t"
 
+# 26. Sidebar rows left at Logseq's 14px medium, and 2.x's page icons unsized.
+t="$(scratch_tree row-metrics)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+for old, new in [('  font-size: 11pt;\n  font-weight: 400;\n', '  font-size: 14px;\n  font-weight: 500;\n'),
+                 (',\nhtml[data-theme] #left-sidebar .left-sidebar-inner a.link-item .page-icon {', ' {')]:
+    assert old in s, 'row rule not found — update this mutation'
+    s = s.replace(old, new, 1)
+p.write_text(s)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "sidebar rows in Logseq's 14px medium, 2.x page icons unsized" \
+  tests/static/sidebar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

@@ -94,6 +94,12 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
 - **No divider directly under the header**; dividers separate groups, as in Files.
   Sidebar row icons are drawn at Files' 70% opacity (`image.sidebarrow-icon { opacity:
   0.7 }` in Nautilus's stylesheet), their labels at full strength.
+- **Nav rows are Files' rows**, per libadwaita's `.navigation-sidebar > row`: 36px tall,
+  2px apart, 9px corners, labels in the interface font size (GNOME's default
+  `Adwaita Sans 11`, 14.67px) at regular weight. Every row icon is Nautilus's 16px with
+  8px before the label, and page icons line up with the nav icons. Favorites and Recent
+  keep Logseq's smaller type. The 11pt assumes GNOME's default interface font size and
+  a text scaling factor of 1.
 
 Limits of doing this in a stylesheet: the buttons are moved visually, not in the document,
 so keyboard focus still visits them in Logseq's order; tooltips keep Logseq's wording
@@ -289,7 +295,9 @@ button hover colour, accent contrast, task markers (accent colour, full opacity,
 accent hover step on hover), and text colours (code-block surface and tokens, highlights,
 and headings / inline code / quote bars under the "Text Editor" setting the harness seeds),
 and that no visible text or icon in the headerbar or sidebar is anything but the full
-foreground, with sidebar row icons dimmed to Files' 0.7; and the Files headerbar layout
+foreground, with sidebar row icons dimmed to Files' 0.7; sidebar rows by geometry (36px
+nav rows on a 38px pitch, 11pt regular undimmed labels, 16px icons 8px from their labels,
+page icons in the nav icons' column); and the Files headerbar layout
 by geometry, with the sidebar open and closed — every control in its slot and 32px square,
 none overlapping, each reachable by a real pointer click, Adwaita icons drawn, and the main
 menu opening under its new position. Two cases flip a setting through the host's own
