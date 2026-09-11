@@ -370,6 +370,20 @@ PY2
 expect_red "sidebar rows in Logseq's 14px medium, 2.x page icons unsized" \
   tests/static/sidebar.test.mjs "$t"
 
+# 27. The headerbar title left at 14px when the rows under it moved to 11pt.
+t="$(scratch_tree title-size)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+old = '    font-size: 11pt;\n    font-weight: 700;\n'
+assert old in s, 'title rule not found — update this mutation'
+p.write_text(s.replace(old, '    font-size: 14px;\n    font-weight: 700;\n', 1))
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "headerbar title at 14px, smaller than GTK's 11pt title and the rows" \
+  tests/static/headerbar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

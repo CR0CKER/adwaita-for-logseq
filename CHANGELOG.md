@@ -5,6 +5,12 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Fixed
+
+- The "Logseq" title over the open sidebar was 14px, a touch smaller than
+  GNOME's headerbar titles and the sidebar rows under it. It is now libadwaita's
+  headerbar title: bold, in the interface font size (11pt, 14.67px).
+
 ## [0.2.0] - 2026-09-11
 
 ### Fixed

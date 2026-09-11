@@ -621,6 +621,7 @@ export const cases = [
             width: innerWidth,
             sidebar: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ls-left-sidebar-width')),
             title: getComputedStyle(document.querySelector('#head > .l'), '::after').content,
+            titleFont: (() => { const c = getComputedStyle(document.querySelector('#head > .l'), '::after'); return { size: parseFloat(c.fontSize), weight: c.fontWeight }; })(),
             items, overlaps,
             masks: Object.fromEntries(['#left-menu', '.toggle-right-sidebar', '.toolbar-dots-btn', '.navigation.nav-left', '.navigation.nav-right'].map((s) => [s, mask(s)])),
             // Electron resolves -webkit-app-region in document order: a *later*
@@ -681,6 +682,10 @@ export const cases = [
         const offSize = Object.entries(open.items).filter(([, b]) => b && (Math.abs(b.r - b.l - 32) > 1.5 || Math.abs(b.b - b.t - 32) > 1.5)).map(([k, b]) => `${k} ${Math.round(b.r - b.l)}x${Math.round(b.b - b.t)}`);
         assert.deepEqual(offSize, [], 'header icon buttons must be 32x32');
         assert.equal(open.title, '"Logseq"', 'open: the sidebar header carries the app name');
+        // libadwaita's headerbar title is bold at the interface size, 'Adwaita
+        // Sans 11' = 14.67px: the size of the sidebar rows under it.
+        assert.ok(Math.abs(open.titleFont.size - 14.667) < 0.05, `open: the title is ${open.titleFont.size}px, not 11pt`);
+        assert.equal(open.titleFont.weight, '700', 'open: the title is bold');
         assert.ok(open.items.menu.r <= edge && open.items.menu.r > edge - 12, `open: menu ends the sidebar header (r=${open.items.menu.r}, edge ${edge})`);
         if (open.items.search) assert.ok(open.items.search.l < 12, 'open: search starts the sidebar header');
         assert.ok(open.items.toggle.l >= edge && open.items.toggle.l < edge + 12, `open: the toggle sits just past the sidebar edge (l=${open.items.toggle.l})`);
