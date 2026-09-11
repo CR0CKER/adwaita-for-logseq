@@ -1,6 +1,6 @@
 import '@logseq/libs';
 import type { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
-import { buildSettingsCss, FOLLOW_LOGSEQ, GNOME_ACCENTS, type Settings } from './settings-css';
+import { buildSettingsCss, FOLLOW_LOGSEQ, GNOME_ACCENTS, TEXT_COLOURS, type Settings } from './settings-css';
 
 /**
  * Two jobs:
@@ -17,8 +17,9 @@ import { buildSettingsCss, FOLLOW_LOGSEQ, GNOME_ACCENTS, type Settings } from '.
  * 2. Hold the machine-specific choices — which accent GNOME is set to,
  *    whether the titlebar shows one button or three — as settings rather than
  *    edits to the stylesheet. Everything it emits is a handful of custom
- *    properties on :root, injected with provideStyle() so it lands after the
- *    theme sheet and wins without !important.
+ *    properties on :root, injected with provideStyle(). The theme's <link> can
+ *    still land after it, so those overrides carry !important — see
+ *    buildSettingsCss() in settings-css.ts.
  */
 
 const settings: SettingSchemaDesc[] = [
@@ -58,6 +59,17 @@ const settings: SettingSchemaDesc[] = [
     title: 'Window controls',
     description:
       'Set this to match your GNOME titlebar layout (org.gnome.desktop.wm.preferences button-layout). “Close only” hides minimise and maximise, for an appmenu:close desktop. Only applies with a frameless window — Settings → General → Native title bar off.',
+  },
+  {
+    key: 'textColours',
+    type: 'enum',
+    enumChoices: [TEXT_COLOURS.quiet, TEXT_COLOURS.textEditor],
+    enumPicker: 'radio',
+    default: TEXT_COLOURS.quiet,
+    title: 'Text colours',
+    description:
+      'Code blocks and ==highlights== always use GNOME Text Editor’s Adwaita scheme. “GNOME apps (quiet)” keeps headings, inline code and quotes in the body text colour, as libadwaita apps do; ' +
+      '“Text Editor” colours them the way Text Editor does — teal headings, violet inline code, grey quote bars. Links, tags and task markers follow the accent either way.',
   },
   {
     key: 'hideRightSidebarTopbar',

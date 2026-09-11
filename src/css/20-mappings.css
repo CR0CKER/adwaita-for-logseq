@@ -58,7 +58,7 @@ html[data-theme][data-color] {
      no background at all. Point them at the same surface. */
   --ls-page-blockquote-bg-color:    var(--lx-gray-03);
   --ls-page-blockquote-color:       var(--adw-fg);
-  --ls-page-inline-code-color:      var(--adw-fg);
+  --ls-page-inline-code-color:      var(--adw-code-fg);   /* 27-text.css */
 
   /* Variables the solarized `logseq` palette also defines and that nothing
      else here reaches. Left alone they keep their teal defaults and leak into

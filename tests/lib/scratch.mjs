@@ -26,6 +26,7 @@ export const STARTUP_SETTINGS = {
   gnomeAccent: 'yellow',
   windowControls: 'close only',
   hideRightSidebarTopbar: true,
+  textColours: 'Text Editor (Adwaita scheme)',
   disabled: false,
 };
 

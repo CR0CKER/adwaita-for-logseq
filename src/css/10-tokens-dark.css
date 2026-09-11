@@ -61,6 +61,23 @@ html[data-theme="dark"][data-color] {
   --adw-warning:        #f9f06b;
   --adw-error:          #f66151;
 
+  /* GNOME Text Editor's "Adwaita Dark" style scheme (GtkSourceView,
+     /org/gnome/gtksourceview/styles/Adwaita-dark.xml) — the one role-based text
+     palette GNOME ships. Raw scheme hues: 27-text.css clamps each one to AA
+     before it reaches the page, as libadwaita does for accent text. */
+  --adw-src-teal:       #33b2a4;   /* teal_3, def:heading / def:string */
+  --adw-src-violet:     #7d8ac7;   /* violet_2, def:inline-code / def:number */
+  --adw-src-orange:     #ffa348;   /* orange_2, def:statement */
+  --adw-src-blue:       #62a0ea;   /* blue_2, def:function */
+  --adw-src-grey:       #777777;   /* dark_1, def:comment */
+  /* The violet is inline code's colour, so it also sits on --adw-fill. On dark
+     the accent-text clamp already clears that (4.59:1 over the sidebar). */
+  --adw-code-oklab:     max(l, var(--adw-accent-l)) a b;
+  /* The scheme's search match. Its dark_5 text reaches only 3.54:1 on this
+     translucent yellow; the scheme's dark_7 clears AA on every surface. */
+  --adw-mark-bg:        rgba(246, 211, 45, 0.5);   /* yellow_3 at 50% */
+  --adw-mark-fg:        #000000;                   /* dark_7 */
+
   /* shui / radix grey ramp. 01 = deepest surface, 12 = text. The first four
      steps are the Adwaita surfaces above, so shui components land on the same
      greys as the classic --ls-* ones. */

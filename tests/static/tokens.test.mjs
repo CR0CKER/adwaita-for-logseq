@@ -36,17 +36,19 @@ test('structure rules are not scoped to a single colour scheme', () => {
   assert.deepEqual([...new Set(scoped)], [], 'structure sheet must stay scheme-agnostic');
 });
 
-test('structure rules carry no literal colours', () => {
-  // Colour belongs in the palettes; a literal here cannot follow the scheme.
-  // Data URIs are excised first — the close button masks in an Adwaita SVG
-  // whose encoded markup is not a colour decision (it paints currentColor).
-  const structure = stripComments(src('30-structure.css')).replace(/url\(\s*["']?data:[^)]*\)/gi, 'url(DATA_URI)');
-  const literals = [
-    ...structure.matchAll(/#[0-9a-f]{3,8}\b/gi),
-    ...structure.matchAll(/\brgba?\([^)]*\)/gi),
-  ].map((m) => m[0]);
-  assert.deepEqual([...new Set(literals)], [], 'move these into 10-tokens-dark / 15-tokens-light');
-});
+for (const file of ['27-text.css', '30-structure.css']) {
+  test(`${file} carries no literal colours`, () => {
+    // Colour belongs in the palettes; a literal here cannot follow the scheme.
+    // Data URIs are excised first — the close button masks in an Adwaita SVG
+    // whose encoded markup is not a colour decision (it paints currentColor).
+    const sheet = stripComments(src(file)).replace(/url\(\s*["']?data:[^)]*\)/gi, 'url(DATA_URI)');
+    const literals = [
+      ...sheet.matchAll(/#[0-9a-f]{3,8}\b/gi),
+      ...sheet.matchAll(/\brgba?\([^)]*\)/gi),
+    ].map((m) => m[0]);
+    assert.deepEqual([...new Set(literals)], [], 'move these into 10-tokens-dark / 15-tokens-light');
+  });
+}
 
 test('token blocks tie the [data-color] specificity', () => {
   // Logseq's `html[data-theme=dark][data-color=logseq]` palette is (0,2,1).
@@ -57,6 +59,7 @@ test('token blocks tie the [data-color] specificity', () => {
     ['light palette', '15-tokens-light.css', 'html[data-theme="light"][data-color]'],
     ['mappings', '20-mappings.css', 'html[data-theme][data-color]'],
     ['accent', '25-accent.css', 'html[data-theme][data-color]'],
+    ['text colours', '27-text.css', 'html[data-theme][data-color]'],
   ];
   for (const [label, file, selector] of cases) {
     assert.ok(

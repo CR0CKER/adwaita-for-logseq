@@ -7,6 +7,18 @@ All notable changes to this project are documented here, in
 
 ### Added
 
+- Text colours from GNOME Text Editor's Adwaita style scheme (GtkSourceView's
+  `Adwaita` / `Adwaita-dark`), each hue clamped to WCAG AA the way libadwaita
+  clamps accent text:
+  - code blocks use the scheme's token colours (keywords orange and bold,
+    strings and types teal, functions blue, numbers violet, comments grey) on an
+    Adwaita surface, replacing Logseq's solarized code theme — `#002b36` teal on
+    dark, `#fdf6e3` cream on light;
+  - `==highlights==` use the scheme's search-match yellow.
+- A **Text colours** setting. `GNOME apps (quiet)`, the default, keeps headings,
+  inline code and quote bars as they were. `Text Editor (Adwaita scheme)` colours
+  them teal, violet and grey, as Text Editor does.
+
 - README: the marketplace submission (logseq/marketplace#898), a Releasing
   section, and the live suite's known gap — `openGraph()` stays on the demo
   graph (#2).

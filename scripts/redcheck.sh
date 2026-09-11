@@ -172,6 +172,43 @@ sed -i 's/^  color: var(--adw-accent);$/  color: var(--adw-fg);/' "$t/src/css/30
 expect_red "task markers not painted in the accent" \
   tests/static/contrast.test.mjs "$t"
 
+# 12. Light inline code clamped like accent text (0.5): fine on the view, 4.22:1
+#     on the fill over the sidebar.
+t="$(scratch_tree code-clamp)"
+sed -i 's/^  --adw-code-oklab:     min(l, 0.48) a b;$/  --adw-code-oklab:     min(l, 0.5) a b;/' "$t/src/css/15-tokens-light.css"
+grep -q 'min(l, 0.5) a b;' "$t/src/css/15-tokens-light.css" || { echo "mutation 12 did not apply"; exit 1; }
+expect_red "light inline-code violet at the accent clamp, below AA on the sidebar's fill" \
+  tests/static/contrast.test.mjs "$t"
+
+# 13. A code token left to Logseq's solarized theme.
+t="$(scratch_tree code-token)"
+python3 - "$t" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/27-text.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] \.CodeMirror \.cm-keyword \{[^}]*\}\n", "", s)
+assert s2 != s, 'keyword rule not found — update this mutation'
+p.write_text(s2)
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "code keywords left solarized orange-red" \
+  tests/static/text.test.mjs "$t"
+
+# 14. Inline code driven only through --ls-page-inline-code-color, which
+#     Logseq's rule never reads (it takes --lx-gray-11 first).
+t="$(scratch_tree inline-code)"
+python3 - "$t" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/27-text.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] :not\(pre\) > code \{[^}]*\}\n", "", s)
+assert s2 != s, 'inline code rule not found — update this mutation'
+p.write_text(s2)
+PY
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "inline code colour set only through a variable Logseq ignores" \
+  tests/static/text.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

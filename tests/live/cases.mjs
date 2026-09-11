@@ -12,6 +12,8 @@
 import assert from 'node:assert/strict';
 import { parseRgb, parseColor, contrastRatio } from '../lib/color.mjs';
 import { waitFor } from '../lib/cdp.mjs';
+import { STARTUP_SETTINGS } from '../lib/scratch.mjs';
+import { TEXT_COLOURS } from '../../src/settings-css.ts';
 
 const ADWAITA = {
   dark: { view: 'rgb(29, 29, 32)', sidebar: 'rgb(46, 46, 50)', gray03: '#2e2e32' },
@@ -426,6 +428,98 @@ export const cases = [
         await cdp.call('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
       }
       assert.equal(hovered, got.tokens.hover, 'hovered marker colour');
+    },
+  },
+
+  {
+    // Creates a page and navigates, like the task-marker case above.
+    name: 'text colours: code blocks, highlights and prose follow the Adwaita scheme',
+    async run({ cdp, target }) {
+      const page = 'adwaita text colours';
+      const fence = '`'.repeat(3);
+      const blocks = [
+        '## A heading',
+        'inline `code` and ==marked== text',
+        '> a quote',
+        `${fence}js\nconst x = 42; // note\nfunction f() { return "s"; }\n${fence}`,
+      ];
+      const painting = await cdp.evaluate(
+        `new Promise((r) => { requestAnimationFrame(() => r(true)); setTimeout(() => r(false), 2000); })`
+      );
+      if (!painting) return { skipped: 'the window is not painting frames (screen locked or window hidden)' };
+      await cdp.evaluate(`(async () => {
+        const api = window.logseq.api;
+        await api.create_page(${JSON.stringify(page)}, {}, { redirect: true, createFirstBlock: false });
+        for (const b of ${JSON.stringify(blocks)}) await api.append_block_in_page(${JSON.stringify(page)}, b);
+        return true;
+      })()`);
+      // OG often leaves the last block appended this way unrendered — an empty
+      // .ls-block with no content — until the page renders again; scrolling it
+      // into view does not help. Measured: the code block failed to appear in 9
+      // of 10 sessions without this round trip, 0 of 3 with it. A precondition
+      // for having something to measure, not a retried assertion.
+      await new Promise((r) => setTimeout(r, 1500));
+      await cdp.evaluate(`location.hash = '#/all-pages'; true`);
+      await new Promise((r) => setTimeout(r, 1500));
+      await cdp.evaluate(`location.hash = ${JSON.stringify('#/page/' + encodeURIComponent(page))}; true`);
+      try {
+        await waitFor(cdp, `Boolean(document.querySelector('.CodeMirror .cm-keyword'))`, {
+          label: 'the code block to render',
+          timeoutMs: 15000,
+        });
+      } catch (err) {
+        if (target.id === 'og') throw err;
+        return { skipped: 'no CodeMirror code block rendered — this build marks code up differently' };
+      }
+
+      const got = await cdp.evaluateJson(`(() => {
+        const host = document.querySelector('.dark-theme, .light-theme') || document.body;
+        const probe = document.createElement('div');
+        host.appendChild(probe);
+        const fg = (v) => { probe.style.color = v; return getComputedStyle(probe).color; };
+        const bg = (v) => { probe.style.backgroundColor = v; return getComputedStyle(probe).backgroundColor; };
+        const tokens = {
+          teal: fg('var(--adw-text-teal)'), violet: fg('var(--adw-text-violet)'), orange: fg('var(--adw-text-orange)'),
+          blue: fg('var(--adw-text-blue)'), grey: fg('var(--adw-text-grey)'), gray11: fg('var(--adw-gray-11)'),
+          gray02: bg('var(--adw-gray-02)'), markFg: fg('var(--adw-mark-fg)'), markBg: bg('var(--adw-mark-bg)'),
+          fg: fg('var(--adw-fg)'),
+        };
+        probe.remove();
+        const el = (sel) => document.querySelector(sel);
+        const cs = (sel) => { const e = el(sel); return e ? getComputedStyle(e) : null; };
+        const cm = cs('.CodeMirror');
+        return JSON.stringify({
+          tokens,
+          surface: { bg: cm.backgroundColor, fg: cm.color },
+          code: Object.fromEntries(['keyword', 'def', 'number', 'comment', 'string', 'operator'].map((t) => {
+            const c = cs('.CodeMirror .cm-' + t);
+            return [t, c ? { color: c.color, weight: c.fontWeight } : null];
+          })),
+          mark: { fg: cs('.ls-block mark')?.color, bg: cs('.ls-block mark')?.backgroundColor },
+          heading: cs('.ls-block h2')?.color,
+          inlineCode: cs('.ls-block :not(pre) > code')?.color,
+          quoteBorder: cs('.ls-block blockquote')?.borderLeftColor,
+        });
+      })()`);
+      const t = got.tokens;
+
+      // The code block is an Adwaita surface, not solarized teal or cream.
+      assert.deepEqual(got.surface, { bg: t.gray02, fg: t.gray11 }, 'code block surface');
+      const want = { keyword: t.orange, def: t.blue, number: t.violet, comment: t.grey, string: t.teal, operator: t.gray11 };
+      for (const [token, colour] of Object.entries(want)) {
+        assert.ok(got.code[token], `no .cm-${token} rendered — the sample code changed?`);
+        assert.equal(got.code[token].color, colour, `.cm-${token} colour`);
+      }
+      assert.equal(got.code.keyword.weight, '700', 'keywords are bold, as def:statement is');
+
+      assert.deepEqual(got.mark, { fg: t.markFg, bg: t.markBg }, '==highlight== colours');
+
+      // The harness seeds the non-default "Text Editor" choice, so the settings
+      // sheet has to beat the theme's quiet defaults for these to pass.
+      assert.equal(STARTUP_SETTINGS.textColours, TEXT_COLOURS.textEditor, 'this case assumes the harness seeds "Text Editor"');
+      assert.equal(got.heading, t.teal, 'block heading');
+      assert.equal(got.inlineCode, t.violet, 'inline code');
+      assert.equal(got.quoteBorder, t.grey, 'quote bar');
     },
   },
 ];

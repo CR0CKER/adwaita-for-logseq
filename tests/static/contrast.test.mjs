@@ -34,6 +34,17 @@ function scheme(file, selectorRe) {
     sidebar: get('--adw-sidebar-bg'),
     fg: get('--adw-fg'),
     fgDim: get('--adw-fg-dim'),
+    fill: get('--adw-fill'),
+    codeClamp: get('--adw-code-oklab'),
+    gray11: get('--adw-gray-11'),
+    // GNOME Text Editor's Adwaita scheme hues, before the clamp
+    srcTeal: get('--adw-src-teal'),
+    srcViolet: get('--adw-src-violet'),
+    srcOrange: get('--adw-src-orange'),
+    srcBlue: get('--adw-src-blue'),
+    srcGrey: get('--adw-src-grey'),
+    markBg: get('--adw-mark-bg'),
+    markFg: get('--adw-mark-fg'),
   };
 }
 
@@ -92,6 +103,51 @@ for (const [mode, s] of Object.entries(SCHEMES)) {
       }
     }
     assert.deepEqual(failures, [], `task marker below ${AA_NORMAL}:1:\n  ` + failures.join('\n  '));
+  });
+
+  test(`${mode}: every Text Editor scheme colour clears AA once clamped`, () => {
+    // Verbatim, the scheme fails here (violet code 3.77:1 on its fill, grey
+    // comments 2.79:1, light teal headings 3.43:1) — Text Editor dims its body
+    // text and has one surface; Logseq has several. The clamp is what fixes it,
+    // so measure the clamped colour, on every surface it can sit on. Code
+    // blocks sit on --adw-gray-02, which lies between view and sidebar in both
+    // schemes, so those two bound it.
+    const view = parseColor(s.view).rgb;
+    const sidebar = parseColor(s.sidebar).rgb;
+    const fill = parseColor(s.fill);
+    const surfaces = { view, sidebar };
+    // Inline code — the violet — also sits on its own translucent fill.
+    const codeSurfaces = { ...surfaces, 'fill over view': over(fill, view), 'fill over sidebar': over(fill, sidebar) };
+    const failures = [];
+    for (const [name, src] of Object.entries({ teal: s.srcTeal, violet: s.srcViolet, orange: s.srcOrange, blue: s.srcBlue, grey: s.srcGrey })) {
+      const clamp = name === 'violet' ? s.codeClamp : s.standalone;
+      const text = applyOklabClamp(src, clamp, { '--adw-accent-l': s.accentL });
+      for (const [surfaceName, surface] of Object.entries(name === 'violet' ? codeSurfaces : surfaces)) {
+        const ratio = contrastRatio(text, surface);
+        if (ratio < AA_NORMAL) failures.push(`${name} ${src} → ${toHex(text)} on ${surfaceName}: ${ratio.toFixed(2)}:1`);
+      }
+    }
+    // The grey that quiet inline code and code-block text use.
+    for (const [surfaceName, surface] of Object.entries(codeSurfaces)) {
+      const ratio = contrastRatio(parseColor(s.gray11).rgb, surface);
+      if (ratio < AA_NORMAL) failures.push(`gray-11 ${s.gray11} on ${surfaceName}: ${ratio.toFixed(2)}:1`);
+    }
+    assert.deepEqual(failures, [], `scheme colour below ${AA_NORMAL}:1:\n  ` + failures.join('\n  '));
+  });
+
+  test(`${mode}: ==highlight== text clears AA on its highlight`, () => {
+    // The dark highlight is translucent (Text Editor's search match is yellow
+    // at 50%), so the text is measured against the yellow composited over each
+    // surface. Text Editor's own dark_5 text reaches only 3.54:1 there.
+    const bg = parseColor(s.markBg);
+    const fg = parseColor(s.markFg).rgb;
+    const failures = [];
+    for (const surfaceName of ['view', 'sidebar']) {
+      const composited = over(bg, parseColor(s[surfaceName]).rgb);
+      const ratio = contrastRatio(fg, composited);
+      if (ratio < AA_NORMAL) failures.push(`${s.markFg} on ${s.markBg} over ${surfaceName}: ${ratio.toFixed(2)}:1`);
+    }
+    assert.deepEqual(failures, [], failures.join('\n  '));
   });
 
   test(`${mode}: body and dimmed text clear AA on both surfaces`, () => {

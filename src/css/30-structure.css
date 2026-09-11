@@ -449,7 +449,7 @@ html[data-theme] .cp__sidebar-main-content {
 html[data-theme] blockquote {
   background-color: var(--lx-gray-03);
   color: var(--adw-fg);
-  border-left-color: var(--adw-border);
+  border-left-color: var(--adw-quote-border);   /* 27-text.css */
   border-radius: 0.25rem;
 }
 

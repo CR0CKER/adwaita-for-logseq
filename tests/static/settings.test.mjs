@@ -13,7 +13,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSettingsCss, resolveAccent, GNOME_ACCENTS, DEFAULTS, FOLLOW_LOGSEQ } from '../../src/settings-css.ts';
+import { buildSettingsCss, resolveAccent, GNOME_ACCENTS, DEFAULTS, FOLLOW_LOGSEQ, TEXT_COLOURS } from '../../src/settings-css.ts';
 
 const OVERRIDE = '--ls-link-text-color: var(--adw-accent-default)';
 
@@ -89,6 +89,37 @@ test('fonts fall back to the documented stacks', () => {
   assert.ok(css.includes(DEFAULTS.fontSans), 'sans stack');
   assert.ok(css.includes(DEFAULTS.fontMono), 'mono stack');
   assert.match(buildSettingsCss({ fontSans: 'Cantarell' }), /--adw-font-sans:\s*Cantarell/);
+});
+
+// The prose roles the "Text Editor" choice recolours, and the scheme colour each
+// takes — GNOME Text Editor's Adwaita style scheme: teal headings, violet code.
+const TEXT_EDITOR_ROLES = {
+  '--adw-heading-fg': 'var(--adw-text-teal)',
+  '--adw-code-fg': 'var(--adw-text-violet)',
+  '--adw-quote-border': 'var(--adw-text-grey)',
+};
+
+test('quiet text colours are the default and emit no role override', () => {
+  assert.equal(DEFAULTS.textColours, TEXT_COLOURS.quiet);
+  for (const css of [buildSettingsCss({}), buildSettingsCss({ textColours: TEXT_COLOURS.quiet })]) {
+    for (const role of Object.keys(TEXT_EDITOR_ROLES)) {
+      assert.ok(!css.includes(role), `quiet leaves ${role} to the theme's default`);
+    }
+  }
+});
+
+test('"Text Editor" text colours point every prose role at its scheme colour, !important', () => {
+  // !important for the same reason as every other root override here: the
+  // theme <link> can land after this sheet (override-order.test.mjs).
+  const css = buildSettingsCss({ textColours: TEXT_COLOURS.textEditor });
+  for (const [role, value] of Object.entries(TEXT_EDITOR_ROLES)) {
+    assert.ok(css.includes(`${role}: ${value} !important;`), `${role} should be ${value}`);
+  }
+});
+
+test('an unknown text-colour choice falls back to quiet', () => {
+  const css = buildSettingsCss({ textColours: 'Solarized' });
+  for (const role of Object.keys(TEXT_EDITOR_ROLES)) assert.ok(!css.includes(role));
 });
 
 test('the accent lightness knob reaches the dark clamp only', () => {
