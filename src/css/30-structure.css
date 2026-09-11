@@ -127,12 +127,19 @@ html[data-theme] #head .r > div:has(.navigation) {
 @media (min-width: 640px) {
   html[data-theme] .ls-left-sidebar-open #head > .l {
     min-width: var(--ls-left-sidebar-width);
+    /* Logseq's identity transform makes .l a stacking context, which would
+       confine the moved toggle's z-index to .l — and .r paints over .l. */
+    transform: none;
   }
 
   /* Sidebar toggle: just past the sidebar's edge, first in the content header.
-     Search (in .l after it) becomes the sidebar header's first control. */
+     Search (in .l after it) becomes the sidebar header's first control.
+     That spot is over .r, which Logseq gives a transform — a stacking context
+     painted after .l — so without a z-index the pointer reaches .r (a window
+     drag region) and the toggle cannot be clicked. */
   html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu) {
     position: absolute;
+    z-index: 1;
     top: 50%;
     left: calc(var(--ls-left-sidebar-width) + 6px);
     transform: translateY(-50%);
@@ -315,10 +322,15 @@ html[data-theme] .window-controls .button.close::before {
 
 /* The stock rules reserve 144px for three 48px buttons. Adwaita's are 24px
    with 3px spacing, so the cluster is 3x24 + 2x3 + 13px of padding. The
-   close-only setting narrows this to 37px. */
-html[data-theme] .ls-window-controls:not(.ls-right-sidebar-open) .cp__header > .r,
-html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header > .r {
+   close-only setting narrows this to 37px. Only while the right sidebar is
+   closed, as in Logseq's own rule: open, the controls sit over the sidebar,
+   and reserving room in the header left a ~100px gap before its edge. */
+html[data-theme] .ls-window-controls:not(.ls-right-sidebar-open) .cp__header > .r {
   margin-right: var(--adw-wc-width);
+}
+
+html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header > .r {
+  margin-right: 0;
 }
 
 html[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__right-sidebar-topbar,

@@ -14,6 +14,10 @@ All notable changes to this project are documented here, in
   the sidebar's keyboard-shortcut tiles were grey (`--lx-gray-11` / `-10`), unlike
   GNOME Files. Logseq greys them at a specificity the theme's header-button
   rule lost to; they are now the full foreground.
+- With the right sidebar open, the header's buttons stopped ~100px short of the
+  main section's edge: the theme reserved room for the window controls there
+  too, though they sit over the sidebar then. The reservation now applies only
+  while the right sidebar is closed, as in Logseq's own rule.
 
 ### Changed
 

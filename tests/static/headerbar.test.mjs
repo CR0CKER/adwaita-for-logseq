@@ -107,6 +107,27 @@ test('the open-sidebar placements apply only where Logseq docks the sidebar (min
   assert.deepEqual(wrong, [], wrong.join('\n  '));
 });
 
+test('the moved sidebar toggle can be clicked: it stacks above .r', () => {
+  // Logseq gives both .l and .r an identity transform, so each is its own
+  // stacking context and .r (later in the document) paints over .l. The toggle
+  // sits over .r's area, so a z-index on it alone is confined inside .l — a
+  // real click reached .r, a window-drag region. .l's no-op transform must go
+  // while the toggle is out there, so its z-index ranks it against .r.
+  assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .l', 'transform'), 'none');
+  assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu)', 'z-index'), '1');
+});
+
+test('the header reserves room for the window controls only while they sit over it', () => {
+  // With the right sidebar open the window controls sit over the sidebar, not
+  // the header — Logseq's own reservation is `:not(.ls-right-sidebar-open)`.
+  // Reserving there too left a ~100px gap before the main section's edge.
+  const wrong = rules(css).filter(({ selector, body }) =>
+    selector.split(',').some((s) => /\.ls-right-sidebar-open .*\.cp__header > \.r/.test(s) && !/:not\(\.ls-right-sidebar-open\)/.test(s)) &&
+    /margin-right:\s*var\(--adw-wc-width\)/.test(body)
+  );
+  assert.deepEqual(wrong.map((r) => r.selector), []);
+});
+
 test('with the sidebar closed, the left part collapses so the toggle and arrows start the bar', () => {
   assert.equal(valueOf('html[data-theme] #head > .l', 'min-width'), '0');
 });
