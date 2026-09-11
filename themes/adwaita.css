@@ -811,7 +811,13 @@ html[data-theme] .cp__right-sidebar,
 html[data-theme] textarea,
 html[data-theme] input,
 html[data-theme] button,
-html[data-theme] select {
+html[data-theme] select,
+/* Logseq 2.x names Inter on these, and ships it as a web font; a font set on
+   the element beats the one inherited from the containers above. Shortcut keys
+   stay in the interface font, as GTK's shortcut labels do, not monospace. */
+html[data-theme] .shui-shortcut-compact,
+html[data-theme] .shui-shortcut-key,
+html[data-theme] .cp__query-builder .clause-bracket {
   font-family: var(--adw-font-sans);
 }
 

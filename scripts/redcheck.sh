@@ -384,6 +384,34 @@ PY2
 expect_red "headerbar title at 14px, smaller than GTK's 11pt title and the rows" \
   tests/static/headerbar.test.mjs "$t"
 
+# 28. Logseq 2.x's shortcut keys and query brackets left in its bundled Inter.
+t="$(scratch_tree inter-keys)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+new, n = re.subn(r"html\[data-theme\] select,\n/\*.*?\*/\n.*?\.clause-bracket \{", "html[data-theme] select {", s, count=1, flags=re.S)
+assert n == 1, 'font rule not found — update this mutation'
+p.write_text(new)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "2.x shortcut keys and query brackets left in Inter" \
+  tests/static/fonts.test.mjs "$t"
+
+# 29. The tempting wrong fix: shortcut keys moved into the monospace rule.
+t="$(scratch_tree mono-keys)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+old = 'html[data-theme] .cm-editor {\n  font-family: var(--adw-font-mono);'
+assert old in s, 'mono rule not found — update this mutation'
+p.write_text(s.replace(old, 'html[data-theme] .cm-editor,\nhtml[data-theme] kbd {\n  font-family: var(--adw-font-mono);', 1))
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "shortcut keys set in the monospace font" \
+  tests/static/fonts.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

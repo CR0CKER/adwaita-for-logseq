@@ -292,8 +292,9 @@ Adwaita-scheme text colour clears AA once clamped, inline code on its fill too, 
 does highlight text on its highlight; every code token Logseq colours is re-pointed; the
 settings logic behaves; the vendored Adwaita icons are inlined byte-for-byte and each
 headerbar button uses the right one, with the docked-sidebar placements scoped to Logseq's
-640px breakpoint; the CSS reader itself handles `@media`; and `themes/adwaita.css`
-matches a fresh build.
+640px breakpoint; text Logseq 2.x sets in its bundled Inter is named back to Adwaita Sans,
+at a specificity that wins, and shortcut keys stay out of the monospace rule; the CSS
+reader itself handles `@media`; and `themes/adwaita.css` matches a fresh build.
 
 **Live (`npm run test:live`, local only).** Launches a scratch instance with an isolated
 `HOME`, loads this repo as an unpacked plugin, selects the theme and asserts computed
@@ -303,7 +304,9 @@ button hover colour, accent contrast, task markers (accent colour, full opacity,
 accent hover step on hover), and text colours (code-block surface and tokens, highlights,
 and headings / inline code / quote bars under the "Text Editor" setting the harness seeds),
 and that no visible text or icon in the headerbar or sidebar is anything but the full
-foreground, with sidebar row icons dimmed to Files' 0.7; sidebar rows by geometry (36px
+foreground, with sidebar row icons dimmed to Files' 0.7; that every visible text in the
+headerbar, sidebar and content is drawn in Adwaita Sans (code in Adwaita Mono), by the face
+Chromium actually used, not the declared list; sidebar rows by geometry (36px
 nav rows on a 38px pitch, 11pt regular undimmed labels, 16px icons 8px from their labels,
 page icons in the nav icons' column); and the Files headerbar layout
 by geometry, with the sidebar open and closed — every control in its slot and 32px square,

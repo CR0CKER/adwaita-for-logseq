@@ -600,6 +600,59 @@ export const cases = [
   },
 
   {
+    // A computed font-family is only the declared list; CSS.getPlatformFontsForNode
+    // reports the face Chromium actually drew. Logseq 2.x names Inter on its
+    // shortcut keys (the sidebar's "G J"), which beats the font the theme sets
+    // on their containers, and ships Inter as a web font, so it renders.
+    // Checked on every visible text owner rather than a list of known offenders.
+    name: 'interface text renders in Adwaita Sans, code in Adwaita Mono',
+    async run({ cdp }) {
+      const owners = await cdp.evaluateJson(`(() => {
+        const out = [];
+        let i = 0;
+        for (const e of document.querySelectorAll('#head *, #left-sidebar *, #main-content-container *')) {
+          if (!e.offsetParent) continue;
+          const text = [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
+          if (!text) continue;
+          const family = getComputedStyle(e).fontFamily;
+          if (/tabler|icon/i.test(family)) continue;   // icon fonts draw icons, not text
+          e.setAttribute('data-adw-font-probe', String(i++));
+          out.push({
+            id: e.tagName.toLowerCase() + '.' + String(e.className?.baseVal ?? e.className).trim().split(/\\s+/).slice(0, 3).join('.'),
+            text: text.slice(0, 16),
+            mono: Boolean(e.closest('code, pre, .font-mono, .CodeMirror, .cm-editor')),
+            first: family.split(',')[0].trim().replace(/^["']|["']$/g, ''),
+            letters: /[A-Za-z0-9]/.test(text),
+          });
+        }
+        return JSON.stringify(out);
+      })()`);
+      assert.ok(owners.length > 10, `only ${owners.length} visible text owners found`);
+      await cdp.call('DOM.enable');
+      await cdp.call('CSS.enable');
+      const { root } = await cdp.call('DOM.getDocument', { depth: 0 });
+      const { nodeIds } = await cdp.call('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-adw-font-probe]' });
+      const wrong = [];
+      try {
+        for (const nodeId of nodeIds) {
+          const attrs = (await cdp.call('DOM.getAttributes', { nodeId })).attributes;
+          const o = owners[Number(attrs[attrs.indexOf('data-adw-font-probe') + 1])];
+          const want = o.mono ? 'Adwaita Mono' : 'Adwaita Sans';
+          const { fonts } = await cdp.call('CSS.getPlatformFontsForNode', { nodeId });
+          const faces = fonts.map((f) => f.familyName);
+          // Symbols Adwaita lacks (⌘, arrows, emoji) may fall back; letters may not.
+          if (o.first !== want || (o.letters && fonts.length && !faces.includes(want))) {
+            wrong.push(`${o.id} "${o.text}": declared ${o.first}, rendered ${faces.join(' + ') || '(none)'}`);
+          }
+        }
+      } finally {
+        await cdp.evaluate(`document.querySelectorAll('[data-adw-font-probe]').forEach((e) => e.removeAttribute('data-adw-font-probe')); true`);
+      }
+      assert.deepEqual([...new Set(wrong)], [], `${owners.length} text owners; not in the Adwaita font:\n  ` + [...new Set(wrong)].join('\n  '));
+    },
+  },
+
+  {
     // nautilus-window.ui / nautilus-toolbar.ui: the sidebar header holds Search,
     // the app name and the Main Menu; the content header starts with the
     // sidebar toggle and Back/Forward. Checked by geometry in both sidebar states.

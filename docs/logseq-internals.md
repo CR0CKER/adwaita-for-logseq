@@ -76,6 +76,7 @@ The theme must work on both. Their markup differs in ways that break OG-only sel
 | Nav rows | `.nav-header a.item` (2px flex gap), 36px, 14px medium, 18px Tabler icons in a 20px box | `.sidebar-navigations a.item` (2px gap), 32px, 14px medium, **opacity .8**, 16px icons |
 | Favorites / Recent rows | `.nav-content-item .bd ul a` (not `.item`): 28px, `padding: 4px 24px`, opacity .8, `span.page-icon.ml-3` (20px box, 12px lead) | `a.link-item`, 32px, opacity .8, `.page-icon` 20px box with a 4px-padded `.icon-cp-container` |
 | "Create" (new page) | `footer.create` (`#create-button`), last in `.wrap` | none in the sidebar |
+| Keyboard-shortcut keys | tiles that inherit the font | `kbd.shui-shortcut-key`, which names Inter itself |
 
 - **The Home button renders only away from the home route**, and not at all with a custom
   `:default-home` page; the same condition in both builds. Its `.ls-icon-home` is the one
@@ -110,15 +111,24 @@ click reaches the page, so `elementFromPoint` still reports the button as reacha
 
 ## Electron on GNOME: fonts and scale
 
-Measured 2026-09-11 on Fedora 43 / GNOME 49 at 5/3 fractional scaling, by reading the face
-Chromium actually rendered (see [Testing](#testing-what-synthetic-tests-cannot-see)).
+Measured 2026-09-11 on Fedora 43 / GNOME 49 at 5/3 fractional scaling, on both builds, by
+reading the face Chromium actually rendered (see [Testing](#testing-what-synthetic-tests-cannot-see)).
 
 - **Name the font; don't count on a generic to reach it.** fontconfig maps the generic
   `sans-serif` and `system-ui` to **Noto Sans** here, not to GNOME's interface font
   (`fc-match sans-serif`, `fc-match system-ui`). The stack starts with `"Adwaita Sans"`,
-  which is installed system-wide (`/usr/share/fonts/adwaita-sans-fonts/`), so every
-  visible text in the headerbar, sidebar and content renders as `AdwaitaSans`. Cantarell,
-  `system-ui` and `sans-serif` only matter on a system without Adwaita Sans.
+  which is installed system-wide (`/usr/share/fonts/adwaita-sans-fonts/`), so text that
+  inherits it renders as `AdwaitaSans`. Cantarell, `system-ui` and `sans-serif` only matter
+  on a system without Adwaita Sans.
+- **Logseq 2.x names Inter on some elements itself, and ships it as a web font**, so it
+  renders even though Inter isn't installed. A font set on the element beats the one it
+  would inherit, whatever the container rule's specificity. 2.0.1's rules:
+  `.shui-shortcut-compact, .shui-shortcut-key, kbd.shui-shortcut-key` (shortcut keys: the
+  sidebar's "G J", the search dialog, menus, the keymap page) and
+  `.cp__query-builder .clause-bracket`. The theme names them. Its `html { "Inter var" }`
+  is harmless: 2.x's own `html:not(.is-native-android)` puts `var(--ls-font-family)` first
+  with `!important`, and the theme sets that variable. OG names no interface font of its
+  own. Listed by walking `document.styleSheets` for every `font-family`.
 - **One CSS px is one GTK px, if Electron runs native Wayland.** With
   `--ozone-platform=wayland`, `devicePixelRatio` is GNOME's scale (1.667 at 5/3) and
   `screen` is GNOME's logical size (1536×960), so `11pt` (14.67px) renders exactly as GTK's

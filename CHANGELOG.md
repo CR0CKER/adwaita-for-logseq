@@ -17,6 +17,10 @@ All notable changes to this project are documented here, in
 
 ### Fixed
 
+- Logseq 2.x drew its keyboard-shortcut keys (the sidebar's "G J", the search dialog,
+  menus) and the query builder's brackets in Inter, its bundled web font: it names Inter
+  on those elements, which beats the font the theme sets on their containers. They're
+  Adwaita Sans now, like the rest of the interface. OG was unaffected.
 - The "Logseq" title over the open sidebar was 14px, a touch smaller than
   GNOME's headerbar titles and the sidebar rows under it. It is now libadwaita's
   headerbar title: bold, in the interface font size (11pt, 14.67px).
