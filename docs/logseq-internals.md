@@ -72,6 +72,8 @@ The theme must work on both. Their markup differs in ways that break OG-only sel
 | Sidebar-open class | `main.theme-inner` | `main` |
 | Home button | `button.button.icon[title=Home]` inside a tooltip `div` with inline `display: inline`, first in `.r` | untitled `.ui__button.as-ghost` in `.r`'s control group |
 | Graph picker | `nav.cp__menubar-repos > .ui__dropdown-trigger`, first row of `.wrap`; rendered only with a current graph | `.sidebar-header-container > .sidebar-graphs` (`.cp__graphs-selector`), first row of `.wrap` |
+| Nav rows | `.nav-header a.item` (2px flex gap), 36px, 14px medium, 18px Tabler icons in a 20px box | `.sidebar-navigations a.item` (2px gap), 32px, 14px medium, **opacity .8**, 16px icons |
+| Favorites / Recent rows | `.nav-content-item .bd ul a` (not `.item`): 28px, `padding: 4px 24px`, opacity .8, `span.page-icon.ml-3` (20px box, 12px lead) | `a.link-item`, 32px, opacity .8, `.page-icon` 20px box with a 4px-padded `.icon-cp-container` |
 | "Create" (new page) | `footer.create` (`#create-button`), last in `.wrap` | none in the sidebar |
 
 - **The Home button renders only away from the home route**, and not at all with a custom
@@ -113,7 +115,16 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   - `AdwOverlaySplitView`, `max-sidebar-width` 240.
   - Sidebar header: `edit-find-symbolic` search · `AdwWindowTitle` "Files" · `open-menu-symbolic` main menu.
   - Content header: `sidebar-show-symbolic` toggle (shown only when collapsed), then `go-previous/next-symbolic`.
-  - Nautilus's `style.css` has `image.sidebarrow-icon { opacity: 0.7; }`.
+  - Nautilus's `style.css` has `image.sidebarrow-icon { opacity: 0.7; }` and
+    `.sidebarrow-icon:dir(ltr) { padding-right: 8px; }`; `nautilus-sidebar-row.ui` is a
+    `GtkListBoxRow` holding a 16px `GtkImage` and a `GtkLabel` (Nautilus 49).
+  - Rows come from libadwaita (`gresource extract libadwaita-1.so.0
+    /org/gnome/Adwaita/styles/default.css`, 1.8): `.navigation-sidebar > row
+    { border-radius: 9px; min-height: 36px; padding: 0 8px; margin: 0 6px 2px; }`,
+    `.navigation-sidebar { padding: 6px 0; }`, `> separator { margin: 6px; }`. A
+    selected row changes only its background, not its weight.
+  - Labels use the interface font, `org.gnome.desktop.interface font-name`, by default
+    `Adwaita Sans 11`. 11pt in CSS is the same 14.67px GTK renders.
 - **Where the main menu lives** depends on whether the sidebar can be hidden:
   - Files, Contacts and Settings (no hiding on wide windows) keep it in the sidebar header.
   - Calendar, whose sidebar the user can toggle, fixes it at the content header's end, and

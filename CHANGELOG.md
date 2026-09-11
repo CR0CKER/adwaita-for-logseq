@@ -21,6 +21,13 @@ All notable changes to this project are documented here, in
 
 ### Changed
 
+- Sidebar nav rows (Journals, Pages, …) have GNOME Files' metrics, from
+  libadwaita's own `.navigation-sidebar > row` and Nautilus's row icon: 36px
+  tall on a 38px pitch, labels in the interface font size (11pt, 14.67px) at
+  regular weight, selected or not, and never dimmed (2.x drew them at 0.8
+  opacity and 32px). Every row icon, Favorites and Recent included, is 16px
+  with 8px before the label, in one column. Favorites and Recent keep Logseq's
+  smaller type.
 - Sidebar row icons (Journals, Flashcards, Graph view, All pages, the
   Favorites/Recent headers and page icons) are drawn at 70% opacity, a step
   softer than their labels — the value GNOME Files uses

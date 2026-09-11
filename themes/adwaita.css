@@ -1290,7 +1290,68 @@ html[data-theme] #left-sidebar .left-sidebar-inner a.item:hover {
 html[data-theme] #left-sidebar .left-sidebar-inner a.item.active {
   background-color: var(--adw-active);
   color: var(--adw-fg);
-  font-weight: 500;
+}
+
+/* The nav rows (Journals, Pages, …) are Files' rows. libadwaita 1.8:
+   `.navigation-sidebar > row { border-radius: 9px; min-height: 36px;
+   padding: 0 8px; margin: 0 6px 2px; }`, the label in the interface font —
+   GNOME's default is 'Adwaita Sans 11', and 11pt is the same 14.67px in CSS —
+   at regular weight, selected or not. Logseq draws them 14px medium, and 2.x
+   dims the whole row to .8 and makes it 32px. Both space them with a 2px flex
+   gap (OG .nav-header, 2.x .sidebar-navigations); the gap goes and the
+   margin does it, so the pitch is Files' 38px. Favorites and
+   Recent keep Logseq's smaller type (the user's call); only their icons match. */
+html[data-theme] #left-sidebar .left-sidebar-inner .nav-header,
+html[data-theme] #left-sidebar .left-sidebar-inner .sidebar-navigations {
+  gap: 0;
+}
+
+html[data-theme] #left-sidebar .left-sidebar-inner .nav-header a.item,
+html[data-theme] #left-sidebar .left-sidebar-inner .sidebar-content-group a.item {
+  box-sizing: border-box;
+  min-height: 36px;
+  margin: 0 6px 2px;
+  padding: 0 8px;
+  border-radius: var(--adw-radius-button);
+  font-size: 11pt;
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* Row icons: Nautilus draws a 16px GtkImage with `padding-right: 8px`
+   (.sidebarrow-icon). Logseq's nav icons are 18px in a 20px box; its page
+   icons sit in a 20px box, OG's with 12px before it. The page icons take a 6px
+   lead instead, which puts them in the nav icons' column, as in Files. */
+html[data-theme] #left-sidebar .left-sidebar-inner .nav-header a.item > .ui__icon,
+html[data-theme] #left-sidebar .left-sidebar-inner .sidebar-content-group a.item > .ui__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0 8px 0 0;
+  font-size: 16px;
+}
+
+html[data-theme] #left-sidebar .left-sidebar-inner .nav-content-item .bd ul a .page-icon,
+html[data-theme] #left-sidebar .left-sidebar-inner a.link-item .page-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0 8px 0 6px;
+}
+
+html[data-theme] #left-sidebar .left-sidebar-inner a.item > .ui__icon svg,
+html[data-theme] #left-sidebar .left-sidebar-inner .page-icon .ui__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 2.x pads its page icon's container 4px on the right; the margin above is
+   the whole gap to the label. */
+html[data-theme] #left-sidebar .left-sidebar-inner a.link-item .page-icon .icon-cp-container {
+  padding: 0;
 }
 
 /* Row icons are a step softer than their labels, as in GNOME Files — its own
