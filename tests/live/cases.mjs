@@ -564,4 +564,72 @@ export const cases = [
       assert.deepEqual(undimmed, [], 'sidebar row icons must be at 0.7, as in Files');
     },
   },
+
+  {
+    // nautilus-window.ui / nautilus-toolbar.ui: the sidebar header holds Search,
+    // the app name and the Main Menu; the content header starts with the
+    // sidebar toggle and Back/Forward. Checked by geometry in both sidebar states.
+    name: 'headerbar is laid out like GNOME Files, sidebar open and closed',
+    async run({ cdp }) {
+      const measure = () =>
+        cdp.evaluateJson(`(() => {
+          const r = (sel) => { const e = document.querySelector(sel); if (!e || !e.offsetParent) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+          const items = { toggle: r('#left-menu'), search: r('#search-button'), back: r('.navigation.nav-left'), fwd: r('.navigation.nav-right'), menu: r('.toolbar-dots-btn'), rside: r('.toggle-right-sidebar') };
+          const present = Object.entries(items).filter(([, v]) => v);
+          const overlaps = [];
+          for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++) {
+            const [a, A] = present[i], [b, B] = present[j];
+            if (A.l < B.r - 0.5 && B.l < A.r - 0.5 && A.t < B.b && B.t < A.b) overlaps.push(a + '/' + b);
+          }
+          const mask = (sel) => { const e = document.querySelector(sel + ' .ui__icon'); if (!e) return null; const c = getComputedStyle(e, '::before'); return c.maskImage || c.webkitMaskImage; };
+          return JSON.stringify({
+            open: Boolean(document.querySelector('.ls-left-sidebar-open')),
+            width: innerWidth,
+            sidebar: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ls-left-sidebar-width')),
+            title: getComputedStyle(document.querySelector('#head > .l'), '::after').content,
+            items, overlaps,
+            masks: Object.fromEntries(['#left-menu', '.toggle-right-sidebar', '.toolbar-dots-btn', '.navigation.nav-left', '.navigation.nav-right'].map((s) => [s, mask(s)])),
+          });
+        })()`);
+      const setOpen = async (want) => {
+        const open = await cdp.evaluate(`Boolean(document.querySelector('.ls-left-sidebar-open'))`);
+        if (open !== want) await cdp.evaluate(`document.querySelector('#left-menu').click(); true`);
+        await waitFor(cdp, `Boolean(document.querySelector('.ls-left-sidebar-open')) === ${want}`, { label: `sidebar ${want ? 'open' : 'closed'}`, timeoutMs: 5000 });
+        await new Promise((r) => setTimeout(r, 600)); // the header's own padding transition
+      };
+      const wasOpen = await cdp.evaluate(`Boolean(document.querySelector('.ls-left-sidebar-open'))`);
+      try {
+        await setOpen(false);
+        const closed = await measure();
+        if (closed.width < 640) return { skipped: `window is ${closed.width}px; the docked layout starts at 640px` };
+        for (const [sel, m] of Object.entries(closed.masks)) assert.match(m ?? '', /data:image\/svg\+xml/, `${sel} draws an Adwaita icon`);
+        assert.deepEqual(closed.overlaps, [], 'closed: header controls overlap');
+        assert.equal(closed.title, 'none', 'closed: no sidebar title');
+        assert.ok(closed.items.toggle.l < 12, 'closed: the toggle starts the bar');
+        assert.ok(closed.items.back.l > closed.items.toggle.r && closed.items.back.l < closed.items.toggle.r + 60, 'closed: Back follows the toggle');
+        assert.ok(closed.items.fwd.l >= closed.items.back.r - 0.5, 'closed: Forward follows Back');
+        assert.ok(closed.items.menu.l > closed.items.fwd.r, 'closed: the menu falls back to the end group');
+
+        await setOpen(true);
+        const open = await measure();
+        const edge = open.sidebar;
+        assert.deepEqual(open.overlaps, [], 'open: header controls overlap');
+        assert.equal(open.title, '"Logseq"', 'open: the sidebar header carries the app name');
+        assert.ok(open.items.menu.r <= edge && open.items.menu.r > edge - 12, `open: menu ends the sidebar header (r=${open.items.menu.r}, edge ${edge})`);
+        if (open.items.search) assert.ok(open.items.search.l < 12, 'open: search starts the sidebar header');
+        assert.ok(open.items.toggle.l >= edge && open.items.toggle.l < edge + 12, `open: the toggle sits just past the sidebar edge (l=${open.items.toggle.l})`);
+        assert.ok(open.items.back.l >= open.items.toggle.r && open.items.back.l < open.items.toggle.r + 12, 'open: Back follows the toggle');
+
+        // The menu's dropdown is positioned inside its trigger: it must open
+        // under the moved button, inside the window.
+        await cdp.evaluate(`document.querySelector('.toolbar-dots-btn').click(); true`);
+        await waitFor(cdp, `Boolean(document.querySelector('.dropdown-wrapper'))`, { label: 'the app menu to open', timeoutMs: 5000 });
+        const drop = await cdp.evaluateJson(`(() => { const b = document.querySelector('.dropdown-wrapper').getBoundingClientRect(); return JSON.stringify({ l: b.left, r: b.right, t: b.top }); })()`);
+        await cdp.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.body.click(); true`);
+        assert.ok(drop.l >= 0 && drop.r <= edge + 1 && drop.t >= open.items.menu.b - 1, `the menu opens under its button, inside the sidebar (${JSON.stringify(drop)})`);
+      } finally {
+        await setOpen(wasOpen).catch(() => {});
+      }
+    },
+  },
 ];
