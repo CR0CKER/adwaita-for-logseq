@@ -202,6 +202,13 @@ options; the theme covers the GNOME look on its own.
 `custom.css` did exactly this — overrides rules at equal specificity. Emptying it hands
 the look back to the plugin.
 
+**Text looks larger or smaller than in other GNOME apps.** The theme matches GNOME's
+defaults: sidebar rows and the sidebar title at the interface size (`Adwaita Sans 11`,
+14.67px), note text at the document size (`Adwaita Sans 12`, 16px). It doesn't follow a
+changed font size or text-scaling factor in GNOME Settings. First reset Logseq's own zoom
+with Ctrl+0. Then check that Logseq runs as a native Wayland app
+(`--ozone-platform=wayland` in `ps` output), the setup the sizes were measured on.
+
 **"Text colours: Text Editor" seems to change nothing.** It recolours only headings inside
 notes, inline code and quote bars, as Text Editor does; a page with none of those looks
 the same under both settings. Code blocks and highlights use the Adwaita scheme either way.
@@ -300,6 +307,7 @@ foreground, with sidebar row icons dimmed to Files' 0.7; sidebar rows by geometr
 nav rows on a 38px pitch, 11pt regular undimmed labels, 16px icons 8px from their labels,
 page icons in the nav icons' column); and the Files headerbar layout
 by geometry, with the sidebar open and closed — every control in its slot and 32px square,
+the sidebar title bold at the rows' 11pt,
 none overlapping, each reachable by a real pointer click, Adwaita icons drawn, and the main
 menu opening under its new position. Two cases flip a setting through the host's own
 settings object and back: *Hide the Home button* (off the home page, where Logseq draws

@@ -5,6 +5,16 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Added
+
+- `docs/logseq-internals.md`: an "Electron on GNOME: fonts and scale" section, from a
+  measured audit. It covers which face renders (Adwaita Sans, everywhere), why the stack
+  names it rather than relying on `system-ui` (fontconfig maps that to Noto Sans), and
+  which sizes match GNOME's interface and document fonts. Two testing notes: reading the
+  rendered face over CDP, and a leftover `DevToolsActivePort`.
+- README: a Troubleshooting entry for text that looks the wrong size next to other GNOME
+  apps.
+
 ### Fixed
 
 - The "Logseq" title over the open sidebar was 14px, a touch smaller than
