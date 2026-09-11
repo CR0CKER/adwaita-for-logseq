@@ -13,6 +13,7 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
 - [Logseq: the headerbar](#logseq-the-headerbar)
 - [Logseq OG vs 2.x](#logseq-og-vs-2x)
 - [Electron: window-drag regions](#electron-window-drag-regions)
+- [Electron on GNOME: fonts and scale](#electron-on-gnome-fonts-and-scale)
 - [GNOME: where the design comes from](#gnome-where-the-design-comes-from)
 - [Testing: what synthetic tests cannot see](#testing-what-synthetic-tests-cannot-see)
 
@@ -107,6 +108,34 @@ click reaches the page, so `elementFromPoint` still reports the button as reacha
 - **The rule for any moved control:** no `drag` element that comes *after* it in the
   document may cover it. The live suite now checks exactly that.
 
+## Electron on GNOME: fonts and scale
+
+Measured 2026-09-11 on Fedora 43 / GNOME 49 at 5/3 fractional scaling, by reading the face
+Chromium actually rendered (see [Testing](#testing-what-synthetic-tests-cannot-see)).
+
+- **Name the font; don't count on a generic to reach it.** fontconfig maps the generic
+  `sans-serif` and `system-ui` to **Noto Sans** here, not to GNOME's interface font
+  (`fc-match sans-serif`, `fc-match system-ui`). The stack starts with `"Adwaita Sans"`,
+  which is installed system-wide (`/usr/share/fonts/adwaita-sans-fonts/`), so every
+  visible text in the headerbar, sidebar and content renders as `AdwaitaSans`. Cantarell,
+  `system-ui` and `sans-serif` only matter on a system without Adwaita Sans.
+- **One CSS px is one GTK px, if Electron runs native Wayland.** With
+  `--ozone-platform=wayland`, `devicePixelRatio` is GNOME's scale (1.667 at 5/3) and
+  `screen` is GNOME's logical size (1536×960), so `11pt` (14.67px) renders exactly as GTK's
+  `Adwaita Sans 11`. XWayland wasn't measured.
+- **Sizes that already match GNOME without the theme touching them:** Logseq's body is
+  16px and its block text is `--ls-page-text-size: 1em` of it, which is 16px, GNOME's
+  document font (`document-font-name`, `Adwaita Sans 12`).
+- **Sizes the theme sets to the interface font (11pt):** the sidebar nav rows, and the
+  sidebar header's "Logseq" title (bold, as libadwaita's `headerbar .title`). The title was
+  14px until 2026-09-11. It was set when the rows were still Logseq's 14px, and the rows
+  then moved to 11pt without it. The static and live tests now assert the two are equal.
+- **Sizes that stay Logseq's, deliberately:** Favorites / Recent labels (11px, semibold),
+  keyboard-shortcut tiles (12px) and headings in notes.
+- **Not followed:** GNOME's font-size and text-scaling settings. The theme's 11pt and
+  Logseq's 16px assume the defaults (`Adwaita Sans 11` / `12`, `text-scaling-factor` 1.0).
+  Logseq's own zoom (Ctrl+= / Ctrl+0) scales everything on top.
+
 ## GNOME: where the design comes from
 
 Read from the installed apps' own UI definitions (`gresource extract <binary> <path>`):
@@ -172,5 +201,14 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   - reproduce on a *copy* of their profile;
   - or inspect their running app read-only with `--remote-debugging-port`;
   - measure first, and don't revert blindly.
+- **A computed `font-family` is only the declared list.** It says nothing about which face
+  rendered. CDP's `CSS.getPlatformFontsForNode` returns the face actually used
+  (`familyName`, `postScriptName`, glyph count). It reports a node's *own* text only, so
+  walk down to a text-bearing descendant. A pseudo-element like the sidebar title isn't a
+  node: read `getComputedStyle(el, '::after')`.
+- **A `DevToolsActivePort` file in a profile doesn't mean the port is open.** Chromium leaves
+  it behind from an earlier `--remote-debugging-port` session. Check with
+  `curl -fsS http://127.0.0.1:<port>/json/version` before assuming the running app can be
+  inspected.
 - **A passing test proves nothing until it has been seen failing.** Every case here was run
   against the pre-fix code first, and `scripts/redcheck.sh` keeps the static half honest.
