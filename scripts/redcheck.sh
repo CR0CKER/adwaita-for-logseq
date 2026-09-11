@@ -266,6 +266,20 @@ printf '\nhtml[data-theme] .ls-window-controls.ls-right-sidebar-open .cp__header
 expect_red "header reserves window-control room with the right sidebar open (the ~100px gap)" \
   tests/static/headerbar.test.mjs "$t"
 
+# 20. The main menu jumping to the far end of the bar when the sidebar closes.
+t="$(scratch_tree menu-jumps)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] main\.theme-inner:not\(\.ls-left-sidebar-open\) #head \.r > \.ui__dropdown-trigger:has\(\.toolbar-dots-btn\) \{[^}]*\}\n", "", s)
+assert s2 != s, 'menu hide rule not found — update this mutation'
+p.write_text(s2)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "main menu moves to the content header when the sidebar closes" \
+  tests/static/headerbar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

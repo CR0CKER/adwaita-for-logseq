@@ -921,6 +921,15 @@ html[data-theme] #head .r > div:has(.navigation) {
   margin-right: auto;
 }
 
+/* The main menu belongs to the sidebar, as in Files: it sits in the sidebar
+   header and is hidden with the sidebar, instead of jumping to the far end of
+   the bar when the sidebar closes. (GNOME apps whose sidebar can be hidden,
+   like Calendar, fix the menu at the content header's end instead; this theme
+   follows Files.) Logseq puts .ls-left-sidebar-open on main.theme-inner. */
+html[data-theme] main.theme-inner:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn) {
+  display: none;
+}
+
 /* Everything below applies while the sidebar is open *and docked*. Logseq
    docks it only at min-width 640px (its own breakpoint); narrower, the
    sidebar is a wider overlay and these placements would land on top of it,

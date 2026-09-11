@@ -30,8 +30,9 @@ All notable changes to this project are documented here, in
   `nautilus-toolbar.ui`): the sidebar header holds Search, a **Logseq** title and
   the main menu; the content header starts with the sidebar toggle and
   Back/Forward. Logseq's ⋮ menu is now a hamburger — it holds app-wide items,
-  which the HIG puts in a primary menu with `open-menu-symbolic`. With the
-  sidebar closed, or below 640px, the header collapses as Files does when narrow.
+  which the HIG puts in a primary menu with `open-menu-symbolic`. Like Files,
+  the menu belongs to the sidebar and is hidden with it. With the sidebar
+  closed, or below 640px, the header collapses as Files does when narrow.
 - Header buttons use Adwaita's own icons — `open-menu`, `edit-find`,
   `sidebar-show`, `sidebar-show-right`, `go-previous`, `go-next` — instead of
   Logseq's Tabler ones.
@@ -47,7 +48,6 @@ All notable changes to this project are documented here, in
   (LGPL-3.0-only OR CC-BY-SA-3.0), and `scripts/encode-icons.mjs`, which inlines
   them as `src/css/28-icons.css`. README: a "Headerbar and sidebar, as in GNOME
   Files" section and "Third-party assets".
-
 - Text colours from GNOME Text Editor's Adwaita style scheme (GtkSourceView's
   `Adwaita` / `Adwaita-dark`), each hue clamped to WCAG AA the way libadwaita
   clamps accent text:

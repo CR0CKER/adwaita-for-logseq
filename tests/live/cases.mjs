@@ -621,7 +621,9 @@ export const cases = [
         assert.ok(closed.items.toggle.l < 12, 'closed: the toggle starts the bar');
         assert.ok(closed.items.back.l > closed.items.toggle.r && closed.items.back.l < closed.items.toggle.r + 60, 'closed: Back follows the toggle');
         assert.ok(closed.items.fwd.l >= closed.items.back.r - 0.5, 'closed: Forward follows Back');
-        assert.ok(closed.items.menu.l > closed.items.fwd.r, 'closed: the menu falls back to the end group');
+        // Files' pattern: the main menu belongs to the sidebar and is hidden with
+        // it — not moved to the other end of the bar.
+        assert.equal(closed.items.menu, null, 'closed: the main menu is hidden with the sidebar');
 
         await setOpen(true);
         const open = await measure();

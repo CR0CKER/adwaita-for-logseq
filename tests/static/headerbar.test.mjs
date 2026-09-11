@@ -117,6 +117,16 @@ test('the moved sidebar toggle can be clicked: it stacks above .r', () => {
   assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu)', 'z-index'), '1');
 });
 
+test('the main menu belongs to the sidebar: hidden with it, never moved into the content header', () => {
+  // Files' pattern (the user's choice over Calendar's fixed content-header
+  // menu): the menu lives in the sidebar header and goes away with the sidebar,
+  // rather than jumping to the other end of the bar when the sidebar closes.
+  assert.equal(
+    valueOf('html[data-theme] main.theme-inner:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)', 'display'),
+    'none'
+  );
+});
+
 test('the header reserves room for the window controls only while they sit over it', () => {
   // With the right sidebar open the window controls sit over the sidebar, not
   // the header — Logseq's own reservation is `:not(.ls-right-sidebar-open)`.
