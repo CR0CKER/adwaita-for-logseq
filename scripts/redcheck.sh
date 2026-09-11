@@ -272,12 +272,43 @@ python3 - "$t" <<'PY2'
 import sys, pathlib, re
 p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
 s = p.read_text()
-s2 = re.sub(r"html\[data-theme\] main\.theme-inner:not\(\.ls-left-sidebar-open\) #head \.r > \.ui__dropdown-trigger:has\(\.toolbar-dots-btn\) \{[^}]*\}\n", "", s)
-assert s2 != s, 'menu hide rule not found — update this mutation'
+start = s.find("html[data-theme] main:not(.ls-left-sidebar-open) #head")
+assert start != -1, 'menu hide rule not found — update this mutation'
+end = s.index("}\n", start) + 2
+s2 = s[:start] + s[end:]
 p.write_text(s2)
 PY2
 (cd "$t" && node build.mjs >/dev/null 2>&1)
 expect_red "main menu moves to the content header when the sidebar closes" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 21. Logseq 2.x: its one control group left packed — the right-sidebar toggle
+#     then rides at the start of the bar with Back/Forward.
+t="$(scratch_tree db-group)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] #head \.r > div:has\(> \.toggle-right-sidebar\) \{\n  display: contents;\n\}\n", "", s)
+assert s2 != s, '2.x group rule not found — update this mutation'
+p.write_text(s2)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "Logseq 2.x control group not unpacked" \
+  tests/static/headerbar.test.mjs "$t"
+
+# 22. Logseq 2.x: content-box ghost buttons padded out to 52x42.
+t="$(scratch_tree db-button-size)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+s2 = re.sub(r"html\[data-theme\] \.cp__header \.ui__button\.as-ghost:has\(> \.ui__icon:only-child\) \{[^}]*\}\n", "", s)
+assert s2 != s, '2.x icon-button sizing rule not found — update this mutation'
+p.write_text(s2)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "Logseq 2.x header icon buttons 52x42, not 32x32" \
   tests/static/headerbar.test.mjs "$t"
 
 echo

@@ -501,7 +501,8 @@ export const cases = [
           })),
           mark: { fg: cs('.ls-block mark')?.color, bg: cs('.ls-block mark')?.backgroundColor },
           heading: cs('.ls-block h2')?.color,
-          pageTitle: cs('.ls-page-title h1.title')?.color,
+          // OG: h1.title; Logseq 2.x renders the title as a block.
+          pageTitle: cs('#main-content-container h1.title, #main-content-container .ls-page-title .block-title-wrap')?.color,
           inlineCode: cs('.ls-block :not(pre) > code')?.color,
           quoteBorder: cs('.ls-block blockquote')?.borderLeftColor,
         });
@@ -630,19 +631,28 @@ export const cases = [
         const edge = open.sidebar;
         assert.deepEqual(open.overlaps, [], 'open: header controls overlap');
         assert.deepEqual(open.blocked, [], 'open: controls a pointer cannot reach');
+        // Every header icon button is GTK's 32px square, in both builds — Logseq
+        // 2.x's content-box ghost buttons once came out 52x42.
+        const offSize = Object.entries(open.items).filter(([, b]) => b && (Math.abs(b.r - b.l - 32) > 1.5 || Math.abs(b.b - b.t - 32) > 1.5)).map(([k, b]) => `${k} ${Math.round(b.r - b.l)}x${Math.round(b.b - b.t)}`);
+        assert.deepEqual(offSize, [], 'header icon buttons must be 32x32');
         assert.equal(open.title, '"Logseq"', 'open: the sidebar header carries the app name');
         assert.ok(open.items.menu.r <= edge && open.items.menu.r > edge - 12, `open: menu ends the sidebar header (r=${open.items.menu.r}, edge ${edge})`);
         if (open.items.search) assert.ok(open.items.search.l < 12, 'open: search starts the sidebar header');
         assert.ok(open.items.toggle.l >= edge && open.items.toggle.l < edge + 12, `open: the toggle sits just past the sidebar edge (l=${open.items.toggle.l})`);
         assert.ok(open.items.back.l >= open.items.toggle.r && open.items.back.l < open.items.toggle.r + 12, 'open: Back follows the toggle');
 
-        // The menu's dropdown is positioned inside its trigger: it must open
-        // under the moved button, inside the window.
+        // The menu must open anchored to its moved button: below it, overlapping
+        // it horizontally, inside the window. OG positions a .dropdown-wrapper
+        // inside the trigger; Logseq 2.x a Radix [role=menu] popup in a portal.
         await realClick('.toolbar-dots-btn');
-        await waitFor(cdp, `Boolean(document.querySelector('.dropdown-wrapper'))`, { label: 'the app menu to open', timeoutMs: 5000 });
-        const drop = await cdp.evaluateJson(`(() => { const b = document.querySelector('.dropdown-wrapper').getBoundingClientRect(); return JSON.stringify({ l: b.left, r: b.right, t: b.top }); })()`);
-        await cdp.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.body.click(); true`);
-        assert.ok(drop.l >= 0 && drop.r <= edge + 1 && drop.t >= open.items.menu.b - 1, `the menu opens under its button, inside the sidebar (${JSON.stringify(drop)})`);
+        await waitFor(cdp, `[...document.querySelectorAll('.dropdown-wrapper, [role=menu]')].some((e) => e.getBoundingClientRect().width > 0)`, { label: 'the app menu to open', timeoutMs: 5000 });
+        const drop = await cdp.evaluateJson(`(() => { const e = [...document.querySelectorAll('.dropdown-wrapper, [role=menu]')].find((x) => x.getBoundingClientRect().width > 0); const b = e.getBoundingClientRect(); return JSON.stringify({ l: b.left, r: b.right, t: b.top }); })()`);
+        for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await new Promise((r) => setTimeout(r, 300));
+        const menu = open.items.menu;
+        assert.ok(drop.t >= menu.b - 1 && drop.t < menu.b + 24, `the menu opens right below its button (${JSON.stringify(drop)})`);
+        assert.ok(drop.l < menu.r && drop.r > menu.l, `the menu opens over its button, not elsewhere (${JSON.stringify(drop)})`);
+        assert.ok(drop.l >= 0 && drop.r <= open.width, 'the menu stays inside the window');
 
         // With the right sidebar open the window controls sit over it, so the
         // header's last control belongs near the main section's own edge.

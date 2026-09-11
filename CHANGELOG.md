@@ -36,6 +36,11 @@ All notable changes to this project are documented here, in
 - Header buttons use Adwaita's own icons — `open-menu`, `edit-find`,
   `sidebar-show`, `sidebar-show-right`, `go-previous`, `go-next` — instead of
   Logseq's Tabler ones.
+- The layout, the icons, the 32px header buttons and the title colour work on
+  Logseq 2.x as well as OG. 2.x renders the header differently — shui ghost
+  buttons (content-box, which padded them out to 52x42), Back/Forward/⋮ in one
+  group, no wrapper around the sidebar toggle or ⋮, an `overflow-x: hidden`
+  bar — and page titles as blocks (`.ls-page-title .block-title-wrap`).
 
 ### Removed
 
@@ -44,6 +49,9 @@ All notable changes to this project are documented here, in
 
 ### Added
 
+- The live suite runs Logseq OG **and** 2.x by default (2.x looked for at
+  `~/.local/opt/logseq-db-2.0.1/logseq`), so a change cannot pass on one build
+  only. The headerbar case clicks with real pointer events and checks hit-testing.
 - `src/icons/`: the Adwaita symbolic icons above, vendored unmodified
   (LGPL-3.0-only OR CC-BY-SA-3.0), and `scripts/encode-icons.mjs`, which inlines
   them as `src/css/28-icons.css`. README: a "Headerbar and sidebar, as in GNOME

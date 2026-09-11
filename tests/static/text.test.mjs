@@ -115,6 +115,8 @@ test('page titles and journal dates are Text Editor’s body-text grey, under ei
   // painted — and the input shown while renaming a page with it.
   assert.equal(colourOf('html[data-theme] h1.title'), 'var(--adw-title-fg)');
   assert.equal(colourOf('html[data-theme] h1.title input'), 'var(--adw-title-fg)');
+  // Logseq 2.x renders both as a block: .ls-page-title .block-title-wrap.
+  assert.equal(colourOf('html[data-theme] .ls-page-title .block-title-wrap'), 'var(--adw-title-fg)', 'Logseq 2.x titles');
   // --adw-gray-11: #c0bfbc on dark (Text Editor's body text), #3d3846 on light.
   assert.equal(declaredValue(css, /html\[data-theme\]/, '--adw-title-fg'), 'var(--adw-gray-11)');
 });

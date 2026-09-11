@@ -67,7 +67,7 @@ Logseq applies one theme per mode, so another theme selected there replaces this
 
 The layout is taken from Files' own UI definitions (`gresource extract /usr/bin/nautilus
 /org/gnome/nautilus/ui/nautilus-window.ui`, and `nautilus-toolbar.ui`), not from a
-screenshot:
+screenshot. It is the same on Logseq OG and 2.x, whose header markup differs underneath:
 
 | | Start | Centre | End |
 |---|---|---|---|
@@ -206,7 +206,7 @@ the same under both settings. Code blocks and highlights use the Adwaita scheme 
   | Build | Status |
   |---|---|
   | **Logseq OG** (Electron 43) | every live case passes, with the screen unlocked (see [Tests](#tests)) |
-  | **Logseq 2.x** (2.0.1, DB build) | all cases passed except the search dialog and divider cases, which skip because the harness cannot yet open a graph in a fresh 2.x profile. The task-marker and text-colour cases came later and have not run on 2.x; whether its code blocks use CodeMirror, as OG's do, is unverified |
+  | **Logseq 2.x** (2.0.1, DB build) | every live case passes except three that skip, each with its reason: the search-dialog and divider cases need an open graph, which the harness cannot yet open in a fresh 2.x profile ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)); and the task-marker case, because 2.x has no text markers (TODO/DOING) — DB tasks carry a status property, and how the theme colours those is unverified |
   | **Logseq 0.10.13** | stylesheet verified by CDP probe; not in the live suite, because its renderer aborts unprompted on the development machine |
 
   Logseq 2.x's `--ls-*` palette is a strict subset of OG's, so the theme's variable
@@ -283,11 +283,19 @@ accent hover step on hover), and text colours (code-block surface and tokens, hi
 and headings / inline code / quote bars under the "Text Editor" setting the harness seeds),
 and that no visible text or icon in the headerbar or sidebar is anything but the full
 foreground, with sidebar row icons dimmed to Files' 0.7; and the Files headerbar layout
-by geometry, with the sidebar open and closed — every control in its slot, none
-overlapping, Adwaita icons drawn, and the main menu opening under its new position.
+by geometry, with the sidebar open and closed — every control in its slot and 32px square,
+none overlapping, each reachable by a real pointer click, Adwaita icons drawn, and the main
+menu opening under its new position.
+
+**It runs both builds by default** — the theme has to work on OG and on 2.x, and their
+markup differs (2.x renders page titles as blocks, its header buttons as shui ghost buttons,
+Back/Forward/⋮ in one group). OG is looked for at `~/.local/opt/logseq-og/Logseq-OG`, 2.x at
+`~/.local/opt/logseq-db-2.0.1/logseq` (the release's `Logseq-linux-arm64-2.0.1.zip`,
+checked against its published SHA-256 before extracting); override either:
 
 ```
-npm run test:live -- --target=og      # one target
+npm run test:live                     # both builds
+npm run test:live -- --target=og      # one build
 LOGSEQ_OG_BIN=/path/to/Logseq-OG npm run test:live
 LOGSEQ_DB_BIN=/path/to/logseq npm run test:live -- --target=db
 ```
