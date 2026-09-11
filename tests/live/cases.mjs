@@ -497,6 +497,7 @@ export const cases = [
           })),
           mark: { fg: cs('.ls-block mark')?.color, bg: cs('.ls-block mark')?.backgroundColor },
           heading: cs('.ls-block h2')?.color,
+          pageTitle: cs('.ls-page-title h1.title')?.color,
           inlineCode: cs('.ls-block :not(pre) > code')?.color,
           quoteBorder: cs('.ls-block blockquote')?.borderLeftColor,
         });
@@ -513,6 +514,9 @@ export const cases = [
       assert.equal(got.code.keyword.weight, '700', 'keywords are bold, as def:statement is');
 
       assert.deepEqual(got.mark, { fg: t.markFg, bg: t.markBg }, '==highlight== colours');
+      // Page titles (and journal dates, the same h1.title) take Text Editor's
+      // body-text grey under either setting.
+      assert.equal(got.pageTitle, t.gray11, 'page title');
 
       // The harness seeds the non-default "Text Editor" choice, so the settings
       // sheet has to beat the theme's quiet defaults for these to pass.

@@ -117,6 +117,12 @@ test('"Text Editor" text colours point every prose role at its scheme colour, !i
   }
 });
 
+test('the title colour is not a setting: neither choice touches it', () => {
+  for (const choice of Object.values(TEXT_COLOURS)) {
+    assert.ok(!buildSettingsCss({ textColours: choice }).includes('--adw-title-fg'), choice);
+  }
+});
+
 test('an unknown text-colour choice falls back to quiet', () => {
   const css = buildSettingsCss({ textColours: 'Solarized' });
   for (const role of Object.keys(TEXT_EDITOR_ROLES)) assert.ok(!css.includes(role));

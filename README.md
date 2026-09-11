@@ -121,6 +121,7 @@ follows that split:
 | `==highlights==` | yellow, dark text | the scheme's search-match colours |
 | Links, page refs, tags, block refs, task markers | the accent | libadwaita: navigation is accent-coloured |
 | Headings, inline code, quote bars | body text (default) — or teal, violet and grey with **Text colours: Text Editor** | the scheme's `def:heading`, `def:inline-code`, blockquote marker |
+| Page titles and journal dates | a soft grey under either setting: `#c0bfbc` on dark, `#3d3846` on light | the scheme's body-text colour (`text`, `light_5` on dark) |
 
 No scheme colour is copied verbatim. Text Editor dims its body text and has one surface;
 Logseq has several, and on them the scheme's own values fail WCAG AA (violet inline code

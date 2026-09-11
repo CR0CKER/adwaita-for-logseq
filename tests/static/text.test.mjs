@@ -102,12 +102,21 @@ test('prose roles are quiet by default: headings, inline code and quotes stay as
 test('the prose rules read the role tokens the setting switches', () => {
   assert.equal(colourOf('html[data-theme] .ls-block h1'), 'var(--adw-heading-fg)', 'block headings');
   assert.equal(colourOf('html[data-theme] .ls-block h6'), 'var(--adw-heading-fg)', 'all six levels');
-  assert.equal(colourOf('html[data-theme] h1.title'), undefined, 'the page title stays body text, like a window title');
   // Logseq's inline-code rule reads --lx-gray-11 before the variable, so the
   // element itself has to be painted; the variable is kept for builds that read it.
   assert.equal(colourOf('html[data-theme] :not(pre) > code'), 'var(--adw-code-fg)', 'inline code');
   assert.equal(declaredValue(css, /html\[data-theme\]/, '--ls-page-inline-code-color'), 'var(--adw-code-fg)');
   assert.equal(declaredValue(css, /^html\[data-theme\] blockquote$/, 'border-left-color'), 'var(--adw-quote-border)');
+});
+
+test('page titles and journal dates are Text Editor’s body-text grey, under either setting', () => {
+  // Both are h1.title (a journal date is `a.journal-title > h1.title`). Logseq's
+  // own rule reads --lx-gray-12 before --ls-title-text-color, so the element is
+  // painted — and the input shown while renaming a page with it.
+  assert.equal(colourOf('html[data-theme] h1.title'), 'var(--adw-title-fg)');
+  assert.equal(colourOf('html[data-theme] h1.title input'), 'var(--adw-title-fg)');
+  // --adw-gray-11: #c0bfbc on dark (Text Editor's body text), #3d3846 on light.
+  assert.equal(declaredValue(css, /html\[data-theme\]/, '--adw-title-fg'), 'var(--adw-gray-11)');
 });
 
 test('==highlights== use the Adwaita search-match colours', () => {

@@ -37,12 +37,24 @@ html[data-theme][data-color] {
   --adw-code-fg:      var(--adw-gray-11);
   --adw-quote-border: var(--adw-border);
 
+  /* Page titles and journal dates: Text Editor's body-text grey (#c0bfbc on
+     dark), a step softer than the white prose below them. Not a setting. */
+  --adw-title-fg:     var(--adw-gray-11);
+
   --ls-page-mark-bg-color: var(--adw-mark-bg);
   --ls-page-mark-color:    var(--adw-mark-fg);
 }
 
-/* Block headings. The page title (h1.title) is left as body text — a window
-   title, not content. */
+/* Page titles and journal dates — both h1.title (a journal's date is
+   `a.journal-title > h1.title`), plus the input shown while renaming a page.
+   Logseq's own rule reads --lx-gray-12 before --ls-title-text-color, so the
+   variable never applies; paint the element. (0,2,2) beats its (0,1,1). */
+html[data-theme] h1.title,
+html[data-theme] h1.title input {
+  color: var(--adw-title-fg);
+}
+
+/* Block headings — the markdown headings inside notes. */
 html[data-theme] .ls-block h1,
 html[data-theme] .ls-block h2,
 html[data-theme] .ls-block h3,
