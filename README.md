@@ -221,7 +221,7 @@ the same under both settings. Code blocks and highlights use the Adwaita scheme 
 
   | Build | Status |
   |---|---|
-  | **Logseq OG** (Electron 43) | every live case passes, with the screen unlocked (see [Tests](#tests)) |
+  | **Logseq OG** (Electron 43) | every live case passes, with the screen unlocked (see [Tests](#tests)), except the graph-picker case, which reports itself skipped: OG draws the picker only with a current graph, which the harness cannot give it ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)) |
   | **Logseq 2.x** (2.0.1, DB build) | every live case passes except three that skip, each with its reason: the search-dialog and divider cases need an open graph, which the harness cannot yet open in a fresh 2.x profile ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)); and the task-marker case, because 2.x has no text markers (TODO/DOING) — DB tasks carry a status property, and how the theme colours those is unverified |
   | **Logseq 0.10.13** | stylesheet verified by CDP probe; not in the live suite, because its renderer aborts unprompted on the development machine |
 
@@ -337,7 +337,15 @@ A target whose binary is missing is skipped with a reason, never silently passed
 Run it with the screen **unlocked**. A locked session stops the compositor painting the
 scratch window, so `requestAnimationFrame` never fires and Logseq stops re-rendering: the
 light/dark switch times out ("the app never switched to light") and pages created through
-the API never appear. The task-marker case detects this and skips; the others fail.
+the API never appear. The task-marker case detects this and skips; the others fail. A
+screen that locks partway through a run shows up as a burst of unrelated timeouts; rerun
+unlocked. To check first (`XDG_SESSION_ID` isn't always set, so look the session up):
+
+```
+loginctl show-session "$(loginctl list-sessions --no-legend | awk '/seat0/{print $1; exit}')" -p LockedHint
+```
+
+It must print `LockedHint=no`.
 
 Known gap: `openGraph()` does not actually open the seeded graph on OG — the app stays on
 its demo graph ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)). The two

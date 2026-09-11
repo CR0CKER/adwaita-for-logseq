@@ -193,7 +193,9 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
 - **A locked screen stops rendering.** The compositor stops sending frames, so
   `requestAnimationFrame` never fires and Logseq stops re-rendering: mode switches time out
   and new pages never appear. Run the live suite with the screen unlocked; cases that need
-  rendering check for painting frames first.
+  rendering check for painting frames first. Reading styles and fonts still works while
+  locked, so a font failure in a locked run is real; layout and interaction failures may not be.
+  Check with `loginctl show-session "$(loginctl list-sessions --no-legend | awk '/seat0/{print $1; exit}')" -p LockedHint`.
 - **Appended blocks may not render.** Blocks appended in quick succession through the plugin
   API often stay unrendered until the page renders again. Navigate away and back
   (`renderPage()` in `tests/live/cases.mjs`).
@@ -216,6 +218,10 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   (`familyName`, `postScriptName`, glyph count). It reports a node's *own* text only, so
   walk down to a text-bearing descendant. A pseudo-element like the sidebar title isn't a
   node: read `getComputedStyle(el, '::after')`.
+- **Walking `document.styleSheets`, skip rules without a `selectorText`.** `@font-face`
+  (and other at-rules without nested rules) have none, so `r.selectorText.slice(...)` throws
+  and, inside a per-sheet `try`, silently abandons the rest of that stylesheet. The first
+  listing of 2.x's font rules missed the query-builder rule this way.
 - **A `DevToolsActivePort` file in a profile doesn't mean the port is open.** Chromium leaves
   it behind from an earlier `--remote-debugging-port` session. Check with
   `curl -fsS http://127.0.0.1:<port>/json/version` before assuming the running app can be
