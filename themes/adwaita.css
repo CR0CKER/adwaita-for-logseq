@@ -657,7 +657,8 @@ html[data-theme][data-color] {
    Logseq's own rule reads --lx-gray-12 before --ls-title-text-color, so the
    variable never applies; paint the element. (0,2,2) beats its (0,1,1). */
 html[data-theme] h1.title,
-html[data-theme] h1.title input {
+html[data-theme] h1.title input,
+html[data-theme] .ls-page-title .block-title-wrap {   /* Logseq 2.x: titles are blocks */
   color: var(--adw-title-fg);
 }
 
@@ -861,14 +862,25 @@ html[data-theme] .cp__header > .r {
   padding-right: 8px;
 }
 
-/* header buttons: Adwaita flat icon buttons */
-html[data-theme] .cp__header .button {
+/* header buttons: Adwaita flat icon buttons. Logseq 2.x renders its header
+   buttons as shui ghost buttons (.ui__button.as-ghost, h-10: 40x44px), which
+   need the same size to line up with OG's. */
+html[data-theme] .cp__header .button,
+html[data-theme] .cp__header .ui__button.as-ghost {
   height: 32px;
   min-width: 32px;
   border-radius: var(--adw-radius-button);
   background: transparent;
   color: var(--adw-fg);
   opacity: .85;
+}
+
+/* 2.x's ghost buttons are content-box, and the general .ui__button padding
+   (5px 10px) would grow that 32px box to 52x42. Icon-only ones get GTK's
+   32px square; ones with a label keep their padding. */
+html[data-theme] .cp__header .ui__button.as-ghost:has(> .ui__icon:only-child) {
+  box-sizing: border-box;
+  padding: 0;
 }
 
 html[data-theme] .cp__header .button:hover {
@@ -925,9 +937,29 @@ html[data-theme] #head .r > div:has(.navigation) {
    header and is hidden with the sidebar, instead of jumping to the far end of
    the bar when the sidebar closes. (GNOME apps whose sidebar can be hidden,
    like Calendar, fix the menu at the content header's end instead; this theme
-   follows Files.) Logseq puts .ls-left-sidebar-open on main.theme-inner. */
-html[data-theme] main.theme-inner:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn) {
+   follows Files.) Logseq puts .ls-left-sidebar-open on <main> — OG's
+   main.theme-inner, 2.x's plain main — and wraps ⋮ in a trigger only in OG. */
+html[data-theme] main:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
+html[data-theme] main:not(.ls-left-sidebar-open) #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
   display: none;
+}
+
+/* Logseq 2.x puts Back/Forward, ⋮ and the right-sidebar toggle in one flex
+   group at the start of .r. Unpacked, each becomes a flex item of .r and takes
+   its Files slot: Back/Forward first, the right-sidebar toggle last, ⋮ placed
+   by the rules above. (OG wraps its right-sidebar toggle alone, so unpacking
+   that wrapper changes nothing there.) */
+html[data-theme] #head .r > div:has(> .toggle-right-sidebar) {
+  display: contents;
+}
+
+html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > div:has(> .navigation) {
+  order: -1;
+  margin-right: auto;
+}
+
+html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sidebar {
+  order: 1;
 }
 
 /* Everything below applies while the sidebar is open *and docked*. Logseq
@@ -947,7 +979,8 @@ html[data-theme] main.theme-inner:not(.ls-left-sidebar-open) #head .r > .ui__dro
      That spot is over .r, which Logseq gives a transform — a stacking context
      painted after .l — so without a z-index the pointer reaches .r (a window
      drag region) and the toggle cannot be clicked. */
-  html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu) {
+  html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu),
+  html[data-theme] .ls-left-sidebar-open #head > .l > #left-menu {
     position: absolute;
     z-index: 1;
     top: 50%;
@@ -957,18 +990,24 @@ html[data-theme] main.theme-inner:not(.ls-left-sidebar-open) #head .r > .ui__dro
 
   html[data-theme] .ls-left-sidebar-open #head > .r {
     padding-left: 44px;   /* 6px + the 32px toggle + 6px */
+    /* The menu is placed outside .r (below); Logseq 2.x's overflow-x-hidden
+       on .r would clip it away. */
+    overflow: visible;
   }
 
   /* The app menu is the primary menu (HIG: open-menu-symbolic), and Files puts
      it at the end of the sidebar header. Logseq gives .r a transform, which makes
      .r — not #head — its containing block; while the sidebar is open .r starts
-     exactly at the sidebar's edge, so the slot is a fixed 38px back from it
-     (32px button + 6px), whatever the sidebar's width. Its dropdown is
-     positioned inside the trigger, so it opens under the new position. */
-  html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn) {
+     exactly at the sidebar's edge, so the button is placed by its right edge,
+     6px before .r — inside the sidebar, whatever the sidebar's or the button's
+     width. OG's dropdown sits inside the trigger and 2.x's Radix popup anchors
+     to it, so either opens under the new position. */
+  html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
+  html[data-theme] .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
     position: absolute;
     top: 50%;
-    left: -38px;
+    left: auto;
+    right: calc(100% + 6px);
     transform: translateY(-50%);
   }
 

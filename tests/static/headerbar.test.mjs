@@ -79,8 +79,12 @@ test('with the sidebar open, the toggle sits just past its edge and the menu at 
   // Logseq gives .r a transform, which makes .r — not #head — the menu's
   // containing block. While the sidebar is open .r starts exactly at its edge,
   // so the menu's end-of-sidebar-header slot is a fixed offset back from .r.
-  const menu = valueOf('html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)', 'left');
-  assert.equal(menu, '-38px', 'menu: 32px button + 6px from the sidebar edge, measured from .r');
+  // Placed by its right edge, 6px inside the sidebar, so the button's own width
+  // (32px in OG, 44px for Logseq 2.x's ghost buttons before the theme sizes them)
+  // cannot push it over the edge.
+  const menu = 'html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)';
+  assert.equal(valueOf(menu, 'right'), 'calc(100% + 6px)', 'menu: its right edge 6px before .r, i.e. inside the sidebar');
+  assert.equal(valueOf(menu, 'left'), 'auto');
 });
 
 test('the sidebar header carries the app name, like Files\' AdwWindowTitle', () => {
@@ -97,6 +101,9 @@ test('the open-sidebar placements apply only where Logseq docks the sidebar (min
     'html[data-theme] .ls-left-sidebar-open #head > .r',
     'html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)',
     'html[data-theme] .ls-left-sidebar-open #head > .l::after',
+    // Logseq 2.x: #left-menu sits directly in .l, and ⋮ has no dropdown wrapper
+    'html[data-theme] .ls-left-sidebar-open #head > .l > #left-menu',
+    'html[data-theme] .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn',
   ];
   const wrong = [];
   for (const sel of docked) {
@@ -121,10 +128,44 @@ test('the main menu belongs to the sidebar: hidden with it, never moved into the
   // Files' pattern (the user's choice over Calendar's fixed content-header
   // menu): the menu lives in the sidebar header and goes away with the sidebar,
   // rather than jumping to the other end of the bar when the sidebar closes.
-  assert.equal(
-    valueOf('html[data-theme] main.theme-inner:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)', 'display'),
-    'none'
-  );
+  // Logseq sets .ls-left-sidebar-open on <main> in both builds (OG's is
+  // main.theme-inner, 2.x's a plain main), and ⋮ is wrapped only in OG.
+  for (const menu of [
+    '.ui__dropdown-trigger:has(.toolbar-dots-btn)',
+    'div:has(> .toggle-right-sidebar) > .toolbar-dots-btn',
+  ]) {
+    assert.equal(valueOf(`html[data-theme] main:not(.ls-left-sidebar-open) #head .r > ${menu}`, 'display'), 'none', menu);
+  }
+});
+
+test('Logseq 2.x: its one control group is unpacked so each control can take its Files slot', () => {
+  // 2.x puts Back/Forward, ⋮ and the right-sidebar toggle in a single flex
+  // group at the start of .r. Unpacked (display: contents), Back/Forward lead,
+  // the right-sidebar toggle goes last, and ⋮ is placed like OG's.
+  const group = 'html[data-theme] #head .r > div:has(> .toggle-right-sidebar)';
+  assert.equal(valueOf(group, 'display'), 'contents');
+  assert.equal(valueOf(`${group} > div:has(> .navigation)`, 'order'), '-1');
+  assert.equal(valueOf(`${group} > div:has(> .navigation)`, 'margin-right'), 'auto');
+  assert.equal(valueOf(`${group} > .toggle-right-sidebar`, 'order'), '1');
+});
+
+test('Logseq 2.x header buttons get the same 32px Adwaita flat-button size as OG\'s', () => {
+  // 2.x renders them as shui ghost buttons (.ui__button.as-ghost, h-10: 40x44px),
+  // which the OG-era `.cp__header .button` rule never reached.
+  for (const [prop, want] of [['height', '32px'], ['min-width', '32px']]) {
+    assert.equal(valueOf('html[data-theme] .cp__header .ui__button.as-ghost', prop), want, prop);
+  }
+  // They are content-box, and the theme's general .ui__button padding (5px 10px)
+  // then grew the 32px box to 52x42. Icon-only ones are sized as GTK's are.
+  const iconOnly = 'html[data-theme] .cp__header .ui__button.as-ghost:has(> .ui__icon:only-child)';
+  assert.equal(valueOf(iconOnly, 'box-sizing'), 'border-box');
+  assert.equal(valueOf(iconOnly, 'padding'), '0');
+});
+
+test('the menu placed outside .r is not clipped by it (Logseq 2.x: overflow-x-hidden)', () => {
+  // The menu sits 38px left of .r's box. Logseq 2.x gives .r Tailwind's
+  // overflow-x-hidden, which clipped it away — the pointer then reached .l.
+  assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .r', 'overflow'), 'visible');
 });
 
 test('the header reserves room for the window controls only while they sit over it', () => {

@@ -50,7 +50,8 @@ html[data-theme][data-color] {
    Logseq's own rule reads --lx-gray-12 before --ls-title-text-color, so the
    variable never applies; paint the element. (0,2,2) beats its (0,1,1). */
 html[data-theme] h1.title,
-html[data-theme] h1.title input {
+html[data-theme] h1.title input,
+html[data-theme] .ls-page-title .block-title-wrap {   /* Logseq 2.x: titles are blocks */
   color: var(--adw-title-fg);
 }
 

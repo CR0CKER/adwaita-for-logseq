@@ -26,9 +26,11 @@ export const TARGETS = {
   db: {
     id: 'db',
     label: 'Logseq 2.x (DB build)',
-    // No default path: 2.x is not installed system-wide on the dev machine, so
-    // the suite refuses to guess. Point LOGSEQ_DB_BIN at the extracted binary.
-    bin: process.env.LOGSEQ_DB_BIN || '',
+    // The theme has to work on both builds, so the suite runs both by default.
+    // The default is where the dev machine keeps the checksum-verified
+    // Logseq-linux-arm64-2.0.1.zip, extracted; point LOGSEQ_DB_BIN elsewhere.
+    // A missing binary is skipped with a reason, never silently passed.
+    bin: process.env.LOGSEQ_DB_BIN || join(homedir(), '.local/opt/logseq-db-2.0.1/logseq'),
     dotRoot: '.logseq',
     // Same flags the README tells users to add. Without WaylandWindowDecorations
     // Chromium draws no client-side frame, so the frameless window has square
