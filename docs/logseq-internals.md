@@ -70,6 +70,22 @@ The theme must work on both. Their markup differs in ways that break OG-only sel
 | Page title / journal date | `h1.title` | a block: `.ls-page-title .block-title-wrap` |
 | Tasks | text markers (`TODO`) in `.block-marker` | a status property; no text marker. Theme colouring of 2.x task statuses is unverified |
 | Sidebar-open class | `main.theme-inner` | `main` |
+| Home button | `button.button.icon[title=Home]` inside a tooltip `div` with inline `display: inline`, first in `.r` | untitled `.ui__button.as-ghost` in `.r`'s control group |
+| Graph picker | `nav.cp__menubar-repos > .ui__dropdown-trigger`, first row of `.wrap`; rendered only with a current graph | `.sidebar-header-container > .sidebar-graphs` (`.cp__graphs-selector`), first row of `.wrap` |
+| "Create" (new page) | `footer.create` (`#create-button`), last in `.wrap` | none in the sidebar |
+
+- **The Home button renders only away from the home route**, and not at all with a custom
+  `:default-home` page; the same condition in both builds. Its `.ls-icon-home` is the one
+  hook both share.
+- **The left sidebar is one flex column** (`.left-sidebar-inner > .wrap`): the element
+  holding the graph picker, then a contents container that is `height: 100%` and
+  shrinkable (`.nav-contents-container` / `.sidebar-contents-container`). Dissolving the
+  holder with `display: contents` makes the picker a flex item of `.wrap` that `order` can
+  move, and the list shrinks to make room. The holder's inline padding (OG `px-4`, 2.x
+  `.75rem`) goes with it and has to be put back on the children.
+- **`.wrap` overshoots the window** by a fraction of a pixel (700.2px in a 700px window).
+- OG's own Create menu opens upward (`bottom: calc(100% + 6px); top: auto`); its graph
+  menu hangs below its trigger, so it needs the same once the trigger sits at the bottom.
 
 Shared class names (`.navigation`, `.toolbar-dots-btn`, `.toggle-right-sidebar`) and the
 icon classes (`.ls-icon-arrow-left`, `.ls-icon-dots`, …) are the same in both builds.
@@ -130,7 +146,13 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   API often stay unrendered until the page renders again. Navigate away and back
   (`renderPage()` in `tests/live/cases.mjs`).
 - **The harness can't open a seeded graph** on either build; it stays on the demo graph
-  ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)).
+  ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)). On OG no graph is
+  current (the header offers "Add a graph"), so the graph dropdown never renders there;
+  2.x opens its demo DB graph, which has a picker. `logseq.api.push_state('all-pages')`
+  navigates on both builds.
+- **Plugin settings can be flipped from the host**:
+  `LSPluginCore.registeredPlugins.get(id).settings.set(key, value)` fires the plugin's
+  `onSettingsChanged`, the same path as the settings panel.
 - **A scratch profile isn't the user's app.** The real one has other styling plugins
   (Awesome UI overrode the sidebar and buttons), a graph `custom.css`, a resized sidebar
   and a persistent Chromium cache. When a fix "doesn't work" for the user:

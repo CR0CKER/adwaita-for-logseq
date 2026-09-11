@@ -49,6 +49,14 @@ All notable changes to this project are documented here, in
 
 ### Added
 
+- Setting **Hide the Home button** (off by default): hides the Home button
+  Logseq puts in the headerbar away from the home page. Keyed on its icon, so it
+  covers 2.x's untitled ghost button as well as OG's.
+- Setting **Graph picker at the bottom of the sidebar** (off by default): moves
+  the graph dropdown to the sidebar's bottom edge, behind a Files-style divider,
+  with its menu opening upward. On OG it replaces the Create button. It reorders
+  the sidebar's own flex column rather than fixing the picker in place, so the
+  list still scrolls above it and it follows a resized sidebar.
 - `docs/logseq-internals.md`: the Logseq, Electron and GNOME facts the theme depends on,
   each found by measurement, with the bug it cost; and `CONTRIBUTING.md`, the working
   conventions for the repo.

@@ -66,6 +66,39 @@ async function renderPage(cdp, page, blocks) {
 
 const NOT_PAINTING = { skipped: 'the window is not painting frames (screen locked or window hidden)' };
 
+const SETTINGS_STYLE = 'style[data-injected-style="adwaita-settings-gnome-adwaita-theme"]';
+
+/**
+ * Run `fn` with one plugin setting changed, then put it back.
+ *
+ * Goes through the host's own settings object, the path the settings panel
+ * takes: it fires the plugin's onSettingsChanged, which re-injects the
+ * settings sheet. `marker` is a string that sheet contains exactly when the
+ * setting is on, so the waits are on the real re-injection, not a sleep.
+ */
+async function withSetting(cdp, key, value, marker, fn) {
+  const set = async (v) => {
+    await cdp.evaluate(`window.LSPluginCore.registeredPlugins.get('gnome-adwaita-theme').settings.set(${JSON.stringify(key)}, ${JSON.stringify(v)}); true`);
+    await waitFor(cdp, `document.querySelector(${JSON.stringify(SETTINGS_STYLE)})?.textContent.includes(${JSON.stringify(marker)}) === ${Boolean(v)}`, {
+      label: `the settings sheet to reflect ${key}=${v}`,
+      timeoutMs: 10000,
+    });
+  };
+  await set(value);
+  try {
+    return await fn();
+  } finally {
+    await set(false).catch(() => {});
+  }
+}
+
+/** A real pointer click at an element's centre (CDP Input), not element.click(),
+ *  which skips hit-testing and never opens a Radix menu. */
+async function realClick(cdp, sel) {
+  const [x, y] = await cdp.evaluateJson(`(() => { const b = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return JSON.stringify([b.left + b.width / 2, b.top + b.height / 2]); })()`);
+  for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+}
+
 export const cases = [
   {
     // First on purpose: nothing may have touched a setting yet.
@@ -613,13 +646,10 @@ export const cases = [
       // A real pointer click at the button's centre (CDP Input), not
       // element.click(): the latter bypasses hit-testing, and the toggle once
       // sat under .r's layer — clickable by script, dead to the mouse.
-      const realClick = async (sel) => {
-        const [x, y] = await cdp.evaluateJson(`(() => { const b = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return JSON.stringify([b.left + b.width / 2, b.top + b.height / 2]); })()`);
-        for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
-      };
+      const click = (sel) => realClick(cdp, sel);
       const setOpen = async (want) => {
         const open = await cdp.evaluate(`Boolean(document.querySelector('.ls-left-sidebar-open'))`);
-        if (open !== want) await realClick('#left-menu');
+        if (open !== want) await click('#left-menu');
         await waitFor(cdp, `Boolean(document.querySelector('.ls-left-sidebar-open')) === ${want}`, { label: `sidebar ${want ? 'open' : 'closed'}`, timeoutMs: 5000 });
         await new Promise((r) => setTimeout(r, 600)); // the header's own padding transition
       };
@@ -659,7 +689,7 @@ export const cases = [
         // The menu must open anchored to its moved button: below it, overlapping
         // it horizontally, inside the window. OG positions a .dropdown-wrapper
         // inside the trigger; Logseq 2.x a Radix [role=menu] popup in a portal.
-        await realClick('.toolbar-dots-btn');
+        await click('.toolbar-dots-btn');
         await waitFor(cdp, `[...document.querySelectorAll('.dropdown-wrapper, [role=menu]')].some((e) => e.getBoundingClientRect().width > 0)`, { label: 'the app menu to open', timeoutMs: 5000 });
         const drop = await cdp.evaluateJson(`(() => { const e = [...document.querySelectorAll('.dropdown-wrapper, [role=menu]')].find((x) => x.getBoundingClientRect().width > 0); const b = e.getBoundingClientRect(); return JSON.stringify({ l: b.left, r: b.right, t: b.top }); })()`);
         for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
@@ -671,15 +701,112 @@ export const cases = [
 
         // With the right sidebar open the window controls sit over it, so the
         // header's last control belongs near the main section's own edge.
-        await realClick('.toggle-right-sidebar');
+        await click('.toggle-right-sidebar');
         await waitFor(cdp, `Boolean(document.querySelector('.ls-right-sidebar-open'))`, { label: 'the right sidebar to open', timeoutMs: 5000 });
         await new Promise((r) => setTimeout(r, 600));
         const right = await cdp.evaluateJson(`(() => { const main = document.querySelector('#head').getBoundingClientRect(); const last = document.querySelector('.toggle-right-sidebar').getBoundingClientRect(); return JSON.stringify({ gap: main.right - last.right }); })()`);
-        await realClick('.toggle-right-sidebar');
+        await click('.toggle-right-sidebar');
         await waitFor(cdp, `!document.querySelector('.ls-right-sidebar-open')`, { label: 'the right sidebar to close', timeoutMs: 5000 });
         assert.ok(right.gap <= 16, `right sidebar open: ${Math.round(right.gap)}px between the last header control and the main section's edge`);
       } finally {
         await setOpen(wasOpen).catch(() => {});
+      }
+    },
+  },
+
+  {
+    // Both builds render Home only away from the home route, in different
+    // markup: OG `.button[title=Home]` in a tooltip wrapper, 2.x an untitled
+    // shui ghost button. Awesome UI's `[title=Home]` rule misses 2.x.
+    name: '"Hide the Home button" hides it on both builds, and only it',
+    async run({ cdp }) {
+      const home = `document.querySelector('#head .ls-icon-home')?.closest('button')`;
+      const state = () =>
+        cdp.evaluateJson(`(() => {
+          const b = ${home};
+          const back = document.querySelector('#head .navigation.nav-left');
+          return JSON.stringify({ home: b ? getComputedStyle(b).display : null, homeW: b ? b.getBoundingClientRect().width : 0, back: back ? back.getBoundingClientRect().width : 0 });
+        })()`);
+      await cdp.evaluate(`window.logseq.api.push_state('all-pages'); true`);
+      try {
+        await waitFor(cdp, `Boolean(${home})`, { label: 'the Home button to render off the home page', timeoutMs: 8000 }).catch(() => {});
+        const off = await state();
+        if (off.home === null) return { skipped: 'no Home button rendered off the home page (custom :default-home?)' };
+        assert.notEqual(off.home, 'none', 'the Home button shows by default');
+        assert.ok(off.homeW > 0, 'the Home button has a size by default');
+
+        const on = await withSetting(cdp, 'hideHomeButton', true, 'ls-icon-home', state);
+        assert.equal(on.home, 'none', 'the setting hides the Home button');
+        assert.ok(on.back > 0, 'Back stays');
+
+        assert.notEqual((await state()).home, 'none', 'turning the setting off brings it back');
+      } finally {
+        await cdp.evaluate(`location.hash = '#/'; true`);
+      }
+    },
+  },
+
+  {
+    // Awesome UI pins the picker with position: fixed; the theme reorders the
+    // sidebar's flex column instead (settings-css.ts), so these are geometry
+    // checks: last in the column, flush with the window's bottom, the list
+    // above it intact, reachable by a pointer, its menu inside the window.
+    name: '"Graph picker at the bottom" moves it under the list, replacing Create',
+    async run({ cdp }) {
+      const measure = () =>
+        cdp.evaluateJson(`(() => {
+          const box = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+          const picker = document.querySelector('#left-sidebar nav.cp__menubar-repos > .ui__dropdown-trigger, #left-sidebar .sidebar-graphs');
+          const list = document.querySelector('#left-sidebar .nav-contents-container, #left-sidebar .sidebar-contents-container');
+          const row = document.querySelector('#left-sidebar .nav-header a.item, #left-sidebar .sidebar-header-container .sidebar-content-group');
+          const create = document.querySelector('#left-sidebar .create');
+          const p = box(picker);
+          return JSON.stringify({
+            picker: p, list: box(list), row: box(row), h: innerHeight,
+            create: create ? getComputedStyle(create).display : null,
+            reached: p ? picker.contains(document.elementFromPoint((p.l + p.r) / 2, (p.t + p.b) / 2)) : false,
+          });
+        })()`);
+      const wasOpen = await cdp.evaluate(`Boolean(document.querySelector('.ls-left-sidebar-open'))`);
+      if (!wasOpen) {
+        await realClick(cdp, '#left-menu');
+        await waitFor(cdp, `Boolean(document.querySelector('.ls-left-sidebar-open'))`, { label: 'the sidebar to open', timeoutMs: 5000 });
+        await new Promise((r) => setTimeout(r, 600));
+      }
+      try {
+        const before = await measure();
+        const after = await withSetting(cdp, 'graphPickerAtBottom', true, 'sidebar-graphs', async () => {
+          const m = await measure();
+          if (!m.picker) return m;
+          // Its menu must open inside the window, i.e. upward: OG positions a
+          // .dropdown-wrapper inside the trigger, 2.x a Radix popup in a portal.
+          await realClick(cdp, '#left-sidebar nav.cp__menubar-repos > .ui__dropdown-trigger a, #left-sidebar .cp__graphs-selector > a.item');
+          await waitFor(cdp, `[...document.querySelectorAll('#left-sidebar .dropdown-wrapper, [data-radix-popper-content-wrapper] > *')].some((e) => e.getBoundingClientRect().height > 0)`, { label: 'the graph menu to open', timeoutMs: 5000 });
+          m.menu = await cdp.evaluateJson(`(() => { const e = [...document.querySelectorAll('#left-sidebar .dropdown-wrapper, [data-radix-popper-content-wrapper] > *')].find((x) => x.getBoundingClientRect().height > 0); const b = e.getBoundingClientRect(); return JSON.stringify({ t: b.top, b: b.bottom, l: b.left }); })()`);
+          for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+          await new Promise((r) => setTimeout(r, 300));
+          return m;
+        });
+
+        if (after.create !== null) assert.equal(after.create, 'none', 'the Create button is replaced');
+        if (!after.picker) {
+          return { skipped: `no graph picker rendered (${after.create === 'none' ? 'Create hidden; ' : ''}OG draws it only with a current graph, which this harness cannot give it — issue #2)` };
+        }
+        const { picker, list, row, menu, h } = after;
+        assert.ok(before.picker.t < before.list.t, 'without the setting the picker leads the sidebar');
+        assert.ok(picker.t >= list.b - 0.5, `the picker sits below the list (picker top ${picker.t}, list bottom ${list.b})`);
+        // -1: Logseq's own .wrap overshoots the window by a fraction (700.2px of 700).
+        assert.ok(h - picker.b > -1 && h - picker.b < 12, `the picker ends at the window's bottom edge (${(h - picker.b).toFixed(1)}px short)`);
+        assert.ok(list.b - list.t > 40, 'the list keeps its room above the picker');
+        assert.ok(after.reached, 'a pointer at the picker reaches it');
+        // The nav rows keep the inset their dissolved holder gave them.
+        assert.ok(Math.abs(row.l - before.row.l) < 1 && Math.abs(row.r - before.row.r) < 1, `nav rows keep their inset (before ${JSON.stringify(before.row)}, after ${JSON.stringify(row)})`);
+        assert.ok(menu.t >= 0 && menu.b <= h, `the graph menu opens inside the window (${JSON.stringify(menu)})`);
+
+        const back = await measure();
+        assert.ok(back.picker.t < back.list.t, 'turning the setting off puts the picker back on top');
+      } finally {
+        if (!wasOpen) await realClick(cdp, '#left-menu').catch(() => {});
       }
     },
   },

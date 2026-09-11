@@ -79,6 +79,22 @@ const settings: SettingSchemaDesc[] = [
     description: 'Removes the sidebar’s own header strip, leaving one continuous headerbar.',
   },
   {
+    key: 'hideHomeButton',
+    type: 'boolean',
+    default: false,
+    title: 'Hide the Home button',
+    description:
+      'Logseq shows a Home button in the headerbar whenever you are away from the home page. GNOME Files has none: Back and the Journals row do that job, and the g h shortcut still works.',
+  },
+  {
+    key: 'graphPickerAtBottom',
+    type: 'boolean',
+    default: false,
+    title: 'Graph picker at the bottom of the sidebar',
+    description:
+      'Moves the graph dropdown from the top of the left sidebar to its bottom edge, as Awesome UI’s “Move vaults list to bottom” does (turn that one off). In Logseq OG it takes the place of the Create button, which is hidden: Search still creates pages. Logseq 2.x has no Create button there.',
+  },
+  {
     key: 'fontSans',
     type: 'string',
     default: '"Adwaita Sans", Cantarell, system-ui, sans-serif',
