@@ -39,6 +39,11 @@ npm run test:live          # both builds; screen unlocked
 ## Git
 
 - Work on a branch and open a PR. Squash-merge (`gh pr merge --squash --delete-branch`).
+- **Stacked PRs:** retarget the dependent PR to `master` *before* merging the one it's based
+  on (`gh pr edit <n> --base master`). `--delete-branch` deletes its base, and GitHub then
+  **closes** the dependent PR, unmerged and impossible to reopen. That happened to #4, which
+  was re-opened as a new PR. After the base squash-merges, rebase the dependent branch with
+  `git rebase --onto origin/master <old base tip>` so it holds only its own commits.
 - Commits use the noreply identity (`6056387+CR0CKER@users.noreply.github.com`);
   `user.useConfigOnly` is set.
 - Releases are tag-driven; see README → Releasing.
