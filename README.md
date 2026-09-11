@@ -210,7 +210,9 @@ styles: stored settings winning over the theme sheet, surfaces, light/dark inver
 accent precedence, the search dialog's edges, divider geometry, sidebar section headers,
 button hover colour, accent contrast, task markers (accent colour, full opacity, the
 accent hover step on hover), and text colours (code-block surface and tokens, highlights,
-and headings / inline code / quote bars under the "Text Editor" setting the harness seeds).
+and headings / inline code / quote bars under the "Text Editor" setting the harness seeds),
+and that no visible text or icon in the headerbar or sidebar is anything but the full
+foreground.
 
 ```
 npm run test:live -- --target=og      # one target

@@ -860,6 +860,14 @@ html[data-theme] .cp__header .button:active {
   background-color: var(--adw-active);
 }
 
+/* Plugin toolbar icons (PDF print, journals calendar, the plugins puzzle).
+   Logseq greys every link in the header's right side with
+   `.cp__header > .r > div:not(.ui__dropdown-trigger) a` (0,3,2), which the
+   rule above (0,3,1) loses to. Same selector, theme-prefixed: (0,4,3). */
+html[data-theme] .cp__header > .r > div:not(.ui__dropdown-trigger) a {
+  color: var(--adw-fg);
+}
+
 html[data-theme] .cp__header .button .ti,
 html[data-theme] .cp__header .button .tie {
   font-size: 17px;
@@ -1061,6 +1069,12 @@ html[data-theme] #left-sidebar .left-sidebar-inner a.item.active {
   background-color: var(--adw-active);
   color: var(--adw-fg);
   font-weight: 500;
+}
+
+/* The keyboard-shortcut tiles beside sidebar items ("g j"): Logseq's
+   `.text-gray-10` utility greys them. Files' sidebar has no grey text. */
+html[data-theme] #left-sidebar .keyboard-shortcut .ui__button {
+  color: var(--adw-fg);
 }
 
 html[data-theme] .cp__menubar-repos .ui__dropdown-trigger {

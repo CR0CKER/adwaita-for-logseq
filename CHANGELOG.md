@@ -10,6 +10,10 @@ All notable changes to this project are documented here, in
 - The plugin list and settings panel show **Gnome Adwaita Theme** again, not
   the id `gnome-adwaita-theme`: the rename had set `logseq.title` to the id.
   The id itself is unchanged, so stored settings carry over.
+- Headerbar plugin icons (PDF print, journals calendar, the plugins button) and
+  the sidebar's keyboard-shortcut tiles were grey (`--lx-gray-11` / `-10`), unlike
+  GNOME Files. Logseq greys them at a specificity the theme's header-button
+  rule lost to; they are now the full foreground.
 
 ### Added
 

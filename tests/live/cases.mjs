@@ -526,4 +526,31 @@ export const cases = [
       assert.equal(got.quoteBorder, t.grey, 'quote bar');
     },
   },
+
+  {
+    // GNOME Files has no grey text or icons in its headerbar or sidebar. Logseq
+    // greys some at specificities the theme's general rules lose to — plugin
+    // toolbar icons, the sidebar's keyboard-shortcut tiles — so check every
+    // visible one rather than a list of known offenders.
+    name: 'headerbar and sidebar text and icons are the full foreground, never grey',
+    async run({ cdp }) {
+      const got = await cdp.evaluateJson(`(() => {
+        const probe = document.createElement('div');
+        document.body.appendChild(probe);
+        probe.style.color = 'var(--adw-fg)';
+        const fg = getComputedStyle(probe).color;
+        probe.remove();
+        const grey = [];
+        for (const e of document.querySelectorAll('#left-sidebar *, .cp__header *')) {
+          if (!e.offsetParent) continue;   // not rendered
+          const hasText = [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+          if (!hasText && !e.matches('.ti, svg')) continue;
+          const c = getComputedStyle(e).color;
+          if (c !== fg) grey.push(e.tagName.toLowerCase() + '.' + String(e.className?.baseVal ?? e.className).trim().split(/\\s+/).slice(0, 3).join('.') + ' ' + c);
+        }
+        return JSON.stringify({ fg, grey: [...new Set(grey)] });
+      })()`);
+      assert.deepEqual(got.grey, [], 'not the full foreground (' + got.fg + '):\n  ' + got.grey.join('\n  '));
+    },
+  },
 ];
