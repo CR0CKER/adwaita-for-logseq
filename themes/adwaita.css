@@ -1901,6 +1901,17 @@ html[data-theme] .extensions__pdf-hls-ctx-menu > li.item-colors > a {
        One OSD treatment fixes 2.x and makes both builds look the same.
    -------------------------------------------------------------------------- */
 
+/* The icon buttons centre their icon. Logseq 2.x already makes these flex
+   boxes; OG leaves them `display: block`, so the icon sat on the text baseline
+   — 4px below the pill's top edge and 11px above its bottom. The file-path
+   button (OG's `.text-left`) is excluded: it is a text button that relies on
+   text-overflow: ellipsis, which does not apply inside a flex container. */
+html[data-theme] .asset-container .asset-action-btn:not(.text-left) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 html[data-theme] .asset-container .asset-action-btn {
   padding: 4px;
   border-radius: var(--adw-radius-button);

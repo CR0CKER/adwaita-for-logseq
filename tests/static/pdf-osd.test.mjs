@@ -171,6 +171,15 @@ test('the image action bar is OSD too, on both builds', () => {
   assert.match(valueOf(`${btn}:hover`, 'background-color') ?? '', /color-mix\(in srgb, currentColor 15%/);
   assert.match(valueOf(`${btn}:active`, 'background-color') ?? '', /color-mix\(in srgb, currentColor 25%/);
 
+  // Logseq OG leaves these `display: block`, so the icon sits on the text
+  // baseline rather than in the middle of the pill; 2.x already flexes them.
+  // The file-path button is excluded — it is a text button whose ellipsis
+  // would stop working inside a flex container.
+  const icon = 'html[data-theme] .asset-container .asset-action-btn:not(.text-left)';
+  assert.equal(valueOf(icon, 'display'), 'flex');
+  assert.equal(valueOf(icon, 'align-items'), 'center');
+  assert.equal(valueOf(icon, 'justify-content'), 'center');
+
   // The buttons carry their own ground now, so OG's full-image scrim goes:
   // GNOME does not dim content to make controls readable.
   assert.equal(valueOf('html[data-theme] .block-content .asset-container .asset-overlay', 'display'), 'none');

@@ -1012,6 +1012,24 @@ export const cases = [
       assert.equal(got.btnFg, 'rgba(255, 255, 255, 0.9)', 'the action icons are not the OSD foreground');
       // Logseq dims them (.7 in 2.x, .8 in OG); an OSD button is opaque.
       assert.equal(got.btnOpacity, '1', 'the buttons are still dimmed');
+
+      // Centred in the pill. Logseq 2.x makes these flex boxes; OG leaves them
+      // `display: block`, so the icon sat on the text baseline — 4px below the
+      // pill's top edge and 11px above its bottom.
+      const icons = await cdp.evaluateJson(`(() => {
+        const btns = [...document.querySelectorAll('.asset-container .asset-action-btn:not(.text-left)')];
+        return JSON.stringify(btns.map((b) => {
+          const r = b.getBoundingClientRect();
+          const icon = b.querySelector('svg, .ui__icon');
+          if (!icon) return null;
+          const ir = icon.getBoundingClientRect();
+          return { title: (b.title || '').slice(0, 20), above: ir.top - r.top, below: r.bottom - ir.bottom };
+        }).filter(Boolean));
+      })()`);
+      assert.ok(icons.length, 'no icon buttons found to measure');
+      const offCentre = icons.filter((i) => Math.abs(i.above - i.below) > 1)
+        .map((i) => `${i.title}: ${Math.round(i.above)}px above, ${Math.round(i.below)}px below`);
+      assert.deepEqual(offCentre, [], offCentre.join('\n  '));
       if (got.overlay !== '(missing)') {
         assert.equal(got.overlay, 'none', "OG's full-image scrim is still dimming the image");
       }
