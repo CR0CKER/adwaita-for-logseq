@@ -5,6 +5,8 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-15
+
 ### Added
 
 - `docs/logseq-internals.md`: an "Electron on GNOME: fonts and scale" section, from a
@@ -17,29 +19,6 @@ All notable changes to this project are documented here, in
 - README and `docs/logseq-internals.md`: how to check the screen is unlocked before a live
   run, and what a run that locks partway looks like. A testing note on walking
   `document.styleSheets` past `@font-face` rules.
-
-### Changed
-
-- The hover controls over an embedded image are **Adwaita OSD buttons**, like the PDF
-  viewer's chrome: they float over a picture whose colour the theme cannot know, so each
-  carries its own dark translucent ground. This fixes Logseq 2.x, which ships no backdrop
-  for them and no colour — the icons landed on the image itself at `opacity: .7`, white on
-  a white photo in dark mode. Logseq OG instead dimmed the *whole image* to make them
-  readable; that scrim goes, since the buttons no longer need it and GNOME does not dim
-  content to show controls. Found by sweeping every `--ls-*`/`--lx-*` the theme remaps for
-  rules that paint chrome over content. The icons are centred in their buttons on Logseq
-  OG too, which leaves them `display: block` — the icon sat on the text baseline, 4px below
-  the top edge and 11px above the bottom; 2.x already flexed them.
-
-- The PDF viewer's external window ("open in external window") is documented as a known
-  limitation rather than worked around. Logseq builds that window by hand and links only
-  its own stylesheet into it, so no theme can reach it from CSS; getting a sheet in there
-  means patching `window.open` on the host, which is the kind of unofficial host access
-  the plugin SDK says is unsupported on the Marketplace. Filed upstream as
-  [logseq/og#54](https://github.com/logseq/og/issues/54).
-
-- README's scope table no longer claims every OG live case passes. The graph-picker
-  case reports itself skipped on OG ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)).
 
 ### Changed
 
@@ -58,6 +37,25 @@ All notable changes to this project are documented here, in
   OSD is dark in **both** colour schemes on purpose: it floats over document content whose
   colour the app does not choose, which is why Papers and Image Viewer do the same with
   their page controls.
+
+- The hover controls over an embedded image are **Adwaita OSD buttons**, like the PDF
+  viewer's chrome: they float over a picture whose colour the theme cannot know, so each
+  carries its own dark translucent ground. This fixes Logseq 2.x, which ships no backdrop
+  for them and no colour — the icons landed on the image itself at `opacity: .7`, white on
+  a white photo in dark mode. Logseq OG instead dimmed the *whole image* to make them
+  readable; that scrim goes, since the buttons no longer need it and GNOME does not dim
+  content to show controls. Found by sweeping every `--ls-*`/`--lx-*` the theme remaps for
+  rules that paint chrome over content. The icons are centred in their buttons on Logseq
+  OG too, which leaves them `display: block` — the icon sat on the text baseline, 4px below
+  the top edge and 11px above the bottom; 2.x already flexed them.
+- The PDF viewer's external window ("open in external window") is documented as a known
+  limitation rather than worked around. Logseq builds that window by hand and links only
+  its own stylesheet into it, so no theme can reach it from CSS; getting a sheet in there
+  means patching `window.open` on the host, which is the kind of unofficial host access
+  the plugin SDK says is unsupported on the Marketplace. Filed upstream as
+  [logseq/og#54](https://github.com/logseq/og/issues/54).
+- README's scope table no longer claims every OG live case passes. The graph-picker
+  case reports itself skipped on OG ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)).
 
 ### Fixed
 
@@ -278,7 +276,8 @@ All notable changes to this project are documented here, in
   highlights when `logseq-awesome-ui` restyles the sidebar; on stock Logseq the
   rows sit at 22px, so the divider is 8px narrower than the highlight.
 
-[Unreleased]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/CR0CKER/adwaita-for-logseq/releases/tag/v0.1.0
