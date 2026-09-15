@@ -25,6 +25,16 @@ All notable changes to this project are documented here, in
 
 ### Fixed
 
+- Opening a PDF broke the headerbar. Logseq's viewer takes the left ~42% of the window
+  and hides the left sidebar **and** its toggle, but leaves the sidebar's open-state
+  class set — and every one of the theme's docked placements is measured from
+  `--ls-left-sidebar-width`. The bar was left carrying a 246px sidebar header over no
+  sidebar, with the "Logseq" title and the main menu in it, and in the space that was
+  left the window's ✕ was drawn on top of the plugin icons. The docked layout now asks
+  whether a sidebar is *rendered*, not whether it is open, so with a PDF open the header
+  collapses as it does with the sidebar closed: search, then Back / Forward, plugin icons
+  and the right-sidebar toggle at the end, and the main menu hidden with the sidebar it
+  belongs to. Both builds were affected identically.
 - Logseq 2.x drew its keyboard-shortcut keys (the sidebar's "G J", the search dialog,
   menus) and the query builder's brackets in Inter, its bundled web font: it names Inter
   on those elements, which beats the font the theme sets on their containers. They're

@@ -55,6 +55,17 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
   2.x.
 - OG's ⋮ menu is a `.dropdown-wrapper` positioned inside its trigger, so it follows the
   trigger wherever CSS moves it.
+- **The PDF viewer takes the sidebar away but keeps the open-state class.** Opening a PDF
+  puts `is-pdf-active` on `<body>`, and Logseq's own rules then `display: none` both
+  `#left-sidebar` and `#left-menu` (its toggle) and pad `#app-container` past a
+  `position: fixed` overlay holding the left `--ph-view-container-width` (42vw), so the
+  header shrinks to what is left. `.ls-left-sidebar-open` **stays set** through all of it
+  — Logseq's `body.is-pdf-active #main-container.is-left-sidebar-open { padding-left:
+  unset }` exists precisely because it survives. So "the sidebar is open" and "there is a
+  sidebar" are different questions, and anything measured from
+  `--ls-left-sidebar-width` must ask the second one: `body:not(.is-pdf-active)`. Both
+  builds ship these rules byte-identically (OG's
+  `resources/app/css/style.css`; 2.x's inside `app.asar`).
 
 ## Logseq OG vs 2.x
 

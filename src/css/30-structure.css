@@ -47,7 +47,7 @@ html[data-theme] #head {
 }
 
 /* Left half of the bar continues the sidebar — but only while the sidebar is
-   open, otherwise a light block floats over the dark bar. The divider in Files
+   there, otherwise a light block floats over the dark bar. The divider in Files
    is a *darker* edge, not a light hairline (#2e2e32 → #28282c → #1d1d20). */
 html[data-theme] .cp__header > .l {
   height: 100%;
@@ -56,7 +56,7 @@ html[data-theme] .cp__header > .l {
   box-shadow: none;
 }
 
-html[data-theme] .ls-left-sidebar-open .cp__header > .l {
+html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open .cp__header > .l {
   background-color: var(--adw-sidebar-bg);
   box-shadow: inset -1px 0 var(--adw-sidebar-divider);
 }
@@ -142,9 +142,16 @@ html[data-theme] #head .r > div:has(.navigation) {
    the bar when the sidebar closes. (GNOME apps whose sidebar can be hidden,
    like Calendar, fix the menu at the content header's end instead; this theme
    follows Files.) Logseq puts .ls-left-sidebar-open on <main> — OG's
-   main.theme-inner, 2.x's plain main — and wraps ⋮ in a trigger only in OG. */
+   main.theme-inner, 2.x's plain main — and wraps ⋮ in a trigger only in OG.
+
+   Two states have no sidebar on screen, so this is an OR, not a guard: the user
+   closed it, or the PDF viewer took it away (§3c). With a PDF open Logseq has
+   also hidden the toggle that would bring the sidebar back, and the menu must
+   not be the one piece of the sidebar header left behind on the bar. */
 html[data-theme] main:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
-html[data-theme] main:not(.ls-left-sidebar-open) #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
+html[data-theme] main:not(.ls-left-sidebar-open) #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn,
+html[data-theme] body.is-pdf-active #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
+html[data-theme] body.is-pdf-active #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
   display: none;
 }
 
@@ -169,9 +176,21 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
 /* Everything below applies while the sidebar is open *and docked*. Logseq
    docks it only at min-width 640px (its own breakpoint); narrower, the
    sidebar is a wider overlay and these placements would land on top of it,
-   so the header keeps the collapsed layout — as Files does when narrow. */
+   so the header keeps the collapsed layout — as Files does when narrow.
+
+   3c. And only while the sidebar is actually *rendered*. Every placement below
+   is measured from --ls-left-sidebar-width, so each one assumes a sidebar under
+   the bar's left half. Logseq's PDF viewer is the one state where that
+   assumption fails without the open-class changing: `body.is-pdf-active`
+   display:none's both #left-sidebar and #left-menu and pads #app-container past
+   a fixed overlay holding the left ~42vw, so the whole header shrinks with it —
+   yet the open-class stays set (Logseq's own
+   `body.is-pdf-active #main-container.is-left-sidebar-open` rule exists because
+   it survives). Unguarded, the theme paints a 246px sidebar header over no
+   sidebar and squeezes .r until its buttons collide with the window controls.
+   Both builds ship these rules byte-identically (docs/logseq-internals.md). */
 @media (min-width: 640px) {
-  html[data-theme] .ls-left-sidebar-open #head > .l {
+  html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l {
     min-width: var(--ls-left-sidebar-width);
     /* Logseq's identity transform makes .l a stacking context, which would
        confine the moved toggle's z-index to .l — and .r paints over .l. */
@@ -183,8 +202,8 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
      That spot is over .r, which Logseq gives a transform — a stacking context
      painted after .l — so without a z-index the pointer reaches .r (a window
      drag region) and the toggle cannot be clicked. */
-  html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu),
-  html[data-theme] .ls-left-sidebar-open #head > .l > #left-menu {
+  html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l > div:has(> #left-menu),
+  html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l > #left-menu {
     position: absolute;
     z-index: 1;
     top: 50%;
@@ -197,7 +216,7 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
      region overrides an earlier no-drag one whatever is painted on top. With
      padding, .r (drag, later) lay under the toggle (in .l, earlier) and a real
      mouse press dragged the window. Now only #head, an ancestor, is under it. */
-  html[data-theme] .ls-left-sidebar-open #head > .r {
+  html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .r {
     margin-left: 44px;
     /* The menu is placed outside .r (below); Logseq 2.x's overflow-x-hidden
        on .r would clip it away. */
@@ -211,8 +230,8 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
      its right edge, 50px before .r — 6px inside the sidebar, whatever the
      sidebar's or the button's width. OG's dropdown sits inside the trigger and 2.x's Radix popup anchors
      to it, so either opens under the new position. */
-  html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
-  html[data-theme] .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
+  html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
+  html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
     position: absolute;
     top: 50%;
     left: auto;
@@ -222,7 +241,7 @@ html[data-theme] #head .r > div:has(> .toggle-right-sidebar) > .toggle-right-sid
 
   /* The app name, bold and centred, like Files' AdwWindowTitle. Decorative:
      the window title already names the app for assistive technology. */
-  html[data-theme] .ls-left-sidebar-open #head > .l::after {
+  html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l::after {
     content: "Logseq";
     position: absolute;
     inset: 0;
