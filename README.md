@@ -93,6 +93,16 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
   header keeps only the collapsed layout — search, then Back / Forward, with the plugin
   icons and the right-sidebar toggle at the end. No sidebar header, no "Logseq" title and
   no main menu while the PDF is open; close it and all three come back.
+- **The PDF viewer's floating controls are an Adwaita OSD toolbar.** Its toolbar,
+  settings, outline, search and highlight menu all sit over the page, so they take GTK's
+  style for controls overlaid on content: a dark translucent ground with white icons,
+  rounded, flat buttons. OSD is dark in *both* light and dark mode by design — the app
+  does not choose the colour of the page underneath, and Logseq's viewer has light, dark
+  and warm page themes that one treatment has to stay readable over. Papers and Image
+  Viewer do the same thing with their page controls, and like them the bar is **centred
+  over the page** rather than parked against its right edge. It follows the PDF into its own window
+  too ("open in external window"): Logseq builds that window by hand and links only its own
+  stylesheet into it, so the plugin puts the theme there itself.
 - **With the sidebar closed** — or below 640px, where Logseq turns the sidebar into an
   overlay — the header collapses as Files does when narrow: toggle, search and
   Back/Forward first.
@@ -278,7 +288,12 @@ in a `git worktree` rather than by switching branches in the directory Logseq lo
 | `25-accent.css` | accent derivation and the neutral-ramp restatement |
 | `27-text.css` | text colours inside notes: the Adwaita scheme's hues through the accent clamp, code blocks, highlights, and the prose roles the Text colours setting switches |
 | `28-icons.css` | **generated** by `scripts/encode-icons.mjs` from `src/icons/`: the vendored Adwaita icons as mask tokens |
-| `30-structure.css` | headerbar (including the Files layout), sidebar, window controls, widgets, content — geometry only, every colour a token |
+| `30-structure.css` | headerbar (including the Files layout), sidebar, window controls, widgets, content, the PDF viewer's OSD chrome — geometry only, every colour a token |
+
+The plugin's own TypeScript is two files besides the settings: `index.ts` registers the
+themes and the settings, and `system-window.ts` carries the stylesheet into the PDF
+viewer's external window — the one thing this theme cannot do in CSS, because Logseq
+builds that window's document by hand and links only its own sheet into it.
 
 The structure rules are scoped `html[data-theme]`, not `html[data-theme="dark"]`, so one
 sheet serves both schemes and the palette files are the only difference between them.
@@ -294,7 +309,9 @@ structure and text sheets stay scheme-agnostic and free of literal colours; ever
 `[data-color]` specificity tie is present; all nine accents clear WCAG AA on both surfaces
 in both schemes, as text and as task markers at the opacity they render with; every
 Adwaita-scheme text colour clears AA once clamped, inline code on its fill too, and so
-does highlight text on its highlight; every code token Logseq colours is re-pointed; the
+does highlight text on its highlight; the PDF viewer's OSD chrome clears AA over all
+three of Logseq's page themes and over black; every code token Logseq colours is
+re-pointed; the
 settings logic behaves; the vendored Adwaita icons are inlined byte-for-byte and each
 headerbar button uses the right one, with the docked-sidebar placements scoped both to
 Logseq's 640px breakpoint and to the states where a sidebar is really rendered (the PDF
@@ -321,8 +338,9 @@ the sidebar title bold at the rows' 11pt,
 none overlapping, each reachable by a real pointer click, Adwaita icons drawn, and the main
 menu opening under its new position — and again with a PDF open, where Logseq removes the
 sidebar but not the class the layout keys on: no sidebar block, no title, no orphaned menu,
-nothing overlapping (OG only, since the harness opens a graph there). Two cases flip a
-setting through the host's own settings object and back: *Hide the Home button* (off the home page, where Logseq draws
+nothing overlapping — and the viewer's chrome measured as OSD under each of its three
+page themes, toolbar and popovers alike (both OG only, since the harness opens a graph
+there). Two cases flip a setting through the host's own settings object and back: *Hide the Home button* (off the home page, where Logseq draws
 it) and *Graph picker at the bottom* (below the list, flush with the window's edge,
 reachable, nav rows keeping their inset, its menu opening inside the window). OG's graph
 dropdown renders only with a current graph, which the harness cannot give it (#2), so on

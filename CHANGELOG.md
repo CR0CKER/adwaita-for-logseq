@@ -23,8 +23,38 @@ All notable changes to this project are documented here, in
 - README's scope table no longer claims every OG live case passes. The graph-picker
   case reports itself skipped on OG ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)).
 
+### Changed
+
+- The PDF viewer's floating chrome is an **Adwaita OSD toolbar** — GTK's style for controls
+  overlaid on content rather than on a window surface: a dark translucent ground under
+  white icons, 15px rounded, with 32px flat buttons that fill on hover and stay filled
+  while a toggle is on. It covers the toolbar, the settings, outline and search popovers,
+  and the highlight context menu, so the viewer speaks one visual language over the page.
+  The bar is also **centred over the page**, as GTK centres a floating toolbar (Text
+  Editor's own is a box with `halign=center`); Logseq right-aligns it twice, so it hugged
+  the pane's right edge.
+  Values are libadwaita's own (`.osd`, `.toolbar.osd`, `button.osd`, `button.flat`);
+  legibility is measured over all three of Logseq's page themes — light, dark and warm —
+  plus black, the worst case a rendered page can be.
+
+  OSD is dark in **both** colour schemes on purpose: it floats over document content whose
+  colour the app does not choose, which is why Papers and Image Viewer do the same with
+  their page controls.
+
+  The theme also follows the PDF into its **own window** ("open in external window").
+  Logseq builds that window by hand and links only its own stylesheet into it, so no theme
+  has ever reached it; the plugin now injects the sheet there itself, after Logseq's setup
+  so the cascade order matches the main window. It is the one part of this theme that
+  cannot be CSS (`src/system-window.ts`).
+
 ### Fixed
 
+- The PDF toolbar sat on an opaque slab of the app's view colour. The cause was a new kind
+  of cascade trap: Logseq paints it with `var(--ls-primary-background-color)` but declares
+  that variable only under `[data-color=logseq]` or a named accent, so by default the
+  declaration is invalid and the toolbar is transparent. Mapping the variable **woke a
+  Logseq rule that had never fired**, and painted a window surface over the page. Now
+  painted as OSD (above), which is what the surface is.
 - Opening a PDF broke the headerbar. Logseq's viewer takes the left ~42% of the window
   and hides the left sidebar **and** its toggle, but leaves the sidebar's open-state
   class set — and every one of the theme's docked placements is measured from

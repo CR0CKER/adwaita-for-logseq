@@ -805,3 +805,247 @@ html[data-theme] .dark .color-level {
 html[data-theme] .cp__sidebar-main-content > div {
   padding: 0 var(--adw-content-padding);
 }
+
+
+/* --------------------------------------------------------------------------
+   9. PDF viewer — Adwaita OSD
+      Everything the viewer floats over the page is OSD: GTK's style for
+      controls overlaid on *content* rather than on a window surface. Values
+      from libadwaita on this machine (gresource extract
+      /usr/lib64/libadwaita-1.so.0 /org/gnome/Adwaita/styles/default.css):
+
+        .osd            color: RGB(255 255 255/90%); background-color: RGB(0 0 0/70%);
+                        border: none; background-clip: padding-box
+        .toolbar.osd    padding: 12px; border-radius: 15px
+        button.osd      min-width: 32px; min-height: 32px
+        button.flat     transparent; hover/active/checked
+                        color-mix(in srgb, currentColor 7%/16%/10%, transparent)
+        .osd popover > contents
+                        border-color: RGB(255 255 255/10%); box-shadow: none
+
+      OSD is dark in *both* colour schemes by design — it sits over document
+      content whose colour the app does not control. That is exactly right
+      here: Logseq's viewer has light, dark and warm page themes, and one OSD
+      treatment is legible over all of them.
+
+      The cascade trap this section also fixes: Logseq paints the toolbar with
+      `background-color: var(--ls-primary-background-color)` but declares that
+      variable only under [data-color=logseq] or a named accent. Left undefined
+      the declaration is invalid and the bar is transparent — grey icons on the
+      page. Mapping the variable (20-mappings.css) woke that dormant rule and
+      painted a window surface over the document. See docs/logseq-internals.md.
+
+      Careful: .extensions__pdf-container carries its OWN data-theme attribute
+      (light/dark/warm, the *page* theme) — a different element from
+      html[data-theme], which is the app's scheme.
+   -------------------------------------------------------------------------- */
+
+/* 9a. Centred over the page, as GTK centres a floating toolbar. Text Editor's
+   own bar is a box with `<property name="halign">center</property>`
+   (gresource extract /usr/bin/gnome-text-editor
+   /org/gnome/TextEditor/ui/editor-page.ui), and Papers and Loupe place their
+   page controls the same way. Logseq right-aligns twice — on the header and
+   again on .inner — so the bar hugs the pane's right edge and grows leftwards.
+
+   The header's own box is inset 10px from the right (`right: 10px` with
+   `width: calc(100% - 10px)`, so it spans 0 → width-10). Centring inside that
+   box would sit 5px left of the pane's true centre, so the box is squared up to
+   the full width first. */
+html[data-theme] .extensions__pdf-header {
+  right: 0;
+  width: 100%;
+  justify-content: center;
+}
+
+html[data-theme] .extensions__pdf-toolbar > .inner {
+  justify-content: center;
+}
+
+/* 9b. The toolbar itself, as .toolbar.osd. Beats Logseq's per-page-theme
+   variants: the base rule is (0,3,0) and the warm one (0,4,0). */
+html[data-theme] .extensions__pdf-container .extensions__pdf-toolbar .buttons {
+  padding: 12px;
+  gap: 6px;
+  border-radius: var(--adw-window-radius);
+  background-color: var(--adw-osd-bg);
+  background-clip: padding-box;
+  color: var(--adw-osd-fg);
+}
+
+/* The dark page theme fades the bar into a solid teal gradient; OSD replaces
+   it, so the bar is one thing across all three page themes. */
+html[data-theme] .extensions__pdf-container[data-theme] .extensions__pdf-toolbar {
+  background: none;
+}
+
+/* 9c. Its buttons, as GTK flat buttons in an OSD toolbar. `color: inherit`
+   takes them off --ls-icon-color and onto the OSD foreground; the gap above
+   replaces Logseq's 8px side margins. The Close button carries a label rather
+   than an icon, so the padding is horizontal and min-width does the rest. */
+html[data-theme] .extensions__pdf-toolbar > .inner > .r a.button {
+  min-width: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 6px;
+  justify-content: center;
+  border-radius: var(--adw-radius-button);
+  background-color: transparent;
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-toolbar > .inner > .r a.button:hover {
+  background-color: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+/* Logseq dims to opacity .6 on press; GTK darkens the fill instead. */
+html[data-theme] .extensions__pdf-toolbar > .inner > .r a.button:active {
+  background-color: color-mix(in srgb, currentColor 16%, transparent);
+  opacity: 1;
+}
+
+/* The two toggles (Area highlight, Highlight mode) are GTK *checked* buttons,
+   not underlined ones. */
+html[data-theme] .extensions__pdf-toolbar > .inner > .r a.button.is-active {
+  border-bottom: none;
+  border-radius: var(--adw-radius-button);
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* 9d. The pager. Its <input type=number> sets no colour of its own, so without
+   this it stays the UA's black on the OSD ground. */
+html[data-theme] .extensions__pdf-toolbar > .inner .pager > .nu input {
+  background-color: transparent;
+  color: inherit;
+}
+
+/* 9e. The popovers the toolbar opens — settings, finder and outline all share
+   .hls-popup-box — plus the highlight context menu. In GTK a popover inside an
+   OSD context is itself OSD (`.osd popover > contents`). Logseq draws its
+   hairline border as a scaled ::after box; GTK uses a real 1px border. */
+html[data-theme] .extensions__pdf-container .hls-popup-box,
+html[data-theme] .extensions__pdf-hls-ctx-menu {
+  border: 1px solid var(--adw-osd-border);
+  border-radius: var(--adw-radius-popover);
+  background-color: var(--adw-osd-bg);
+  background-clip: padding-box;
+  color: var(--adw-osd-fg);
+  box-shadow: none;
+}
+
+html[data-theme] .extensions__pdf-container .hls-popup-box::after,
+html[data-theme] .extensions__pdf-hls-ctx-menu::after {
+  display: none;
+}
+
+/* 9f. Settings popover. The theme-picker circles are *previews* of the page
+   themes, so their fills stay; only their border joins the OSD. */
+html[data-theme] .extensions__pdf-settings-item {
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-settings-item.theme-picker > button {
+  border-color: var(--adw-osd-swatch-border);
+}
+
+html[data-theme] .extensions__pdf-settings-item.toggle-input {
+  border-top-color: var(--adw-osd-border);
+}
+
+/* 9g. Finder. Its entry is a GTK entry on an OSD ground: a translucent fill
+   rather than a light grey one, and the accent on focus. */
+html[data-theme] .extensions__pdf-finder.hls-popup-box > .input-inner .input-wrap {
+  border-color: var(--adw-osd-border);
+}
+
+html[data-theme] .extensions__pdf-finder.hls-popup-box > .input-inner input {
+  border-radius: var(--adw-radius-entry);
+  border-color: transparent;
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-finder.hls-popup-box > .input-inner input:focus {
+  border-color: var(--adw-accent);
+}
+
+html[data-theme] .extensions__pdf-finder.hls-popup-box > .input-inner .ui__button .ti {
+  color: inherit;
+  opacity: .7;
+}
+
+/* Logseq sets the hover/active colour with !important, so this must too. */
+html[data-theme] .extensions__pdf-finder.hls-popup-box > .input-inner .ui__button.active .ti,
+html[data-theme] .extensions__pdf-finder.hls-popup-box > .input-inner .ui__button:hover .ti {
+  color: inherit !important;
+  opacity: 1;
+}
+
+html[data-theme] .extensions__pdf-finder.hls-popup-box > .result-inner {
+  color: inherit;
+}
+
+/* 9h. Outline panel: rows as GTK list rows, tabs as a linked button group. */
+html[data-theme] .extensions__pdf-outline > section,
+html[data-theme] .extensions__pdf-outline-item > .inner > a,
+html[data-theme] .extensions__pdf-outline-item > .inner > a > i svg {
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-outline-item > .inner > a {
+  border-radius: var(--adw-radius-button);
+}
+
+html[data-theme] .extensions__pdf-outline-item > .inner > a:hover {
+  background-color: color-mix(in srgb, currentColor 7%, transparent);
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-outline-item > .inner > a:active,
+html[data-theme] .extensions__pdf-outline-item > .inner > a:focus {
+  background-color: color-mix(in srgb, currentColor 16%, transparent);
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-outline-item > .inner > a:active > i svg,
+html[data-theme] .extensions__pdf-outline-item > .inner > a:focus > i svg {
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-outline-tabs {
+  border-bottom-color: var(--adw-osd-border);
+}
+
+html[data-theme] .extensions__pdf-outline-tabs > .inner {
+  border-color: var(--adw-osd-border);
+  border-radius: var(--adw-radius-button);
+}
+
+html[data-theme] .extensions__pdf-outline-tabs button {
+  border-radius: var(--adw-radius-button);
+  color: inherit;
+}
+
+html[data-theme] .extensions__pdf-outline-tabs button:hover {
+  background-color: color-mix(in srgb, currentColor 7%, transparent);
+  color: inherit;
+  opacity: 1;
+}
+
+html[data-theme] .extensions__pdf-outline-tabs button:active {
+  background-color: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+html[data-theme] .extensions__pdf-outline-tabs button.active {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* 9i. Highlight context menu. The colour dots are the highlight colours
+   themselves — only the ring around them joins the OSD. */
+html[data-theme] .extensions__pdf-hls-ctx-menu > li.item:hover {
+  border-radius: var(--adw-radius-button);
+  background-color: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+html[data-theme] .extensions__pdf-hls-ctx-menu > li.item-colors > a {
+  border: 1px solid var(--adw-osd-swatch-border);
+}

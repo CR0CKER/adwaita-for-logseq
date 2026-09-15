@@ -165,3 +165,44 @@ for (const [mode, s] of Object.entries(SCHEMES)) {
     assert.deepEqual(failures, [], failures.join('\n  '));
   });
 }
+
+/**
+ * The PDF viewer's OSD surfaces, over every page colour Logseq can show.
+ *
+ * OSD is the one place the theme paints dark in *both* schemes, so its
+ * legibility cannot be argued from the app's own surfaces: it floats over
+ * document content. libadwaita's values are a translucent black ground under a
+ * translucent white foreground, which means the page colour bleeds through
+ * both — the ratio has to be computed against each page theme, not assumed.
+ */
+for (const [mode, file, selectorRe] of [
+  ['dark', '10-tokens-dark.css', /html\[data-theme="dark"\]/],
+  ['light', '15-tokens-light.css', /html\[data-theme="light"\]/],
+]) {
+  test(`${mode}: OSD text clears AA over every PDF page theme`, () => {
+    const css = palette(file);
+    const bg = parseColor(declaredValue(css, selectorRe, '--adw-osd-bg'));
+    const fg = parseColor(declaredValue(css, selectorRe, '--adw-osd-fg'));
+    assert.ok(bg && fg, '--adw-osd-bg / --adw-osd-fg must be declared in this palette');
+
+    // Logseq's three page themes, from its own stylesheet:
+    //   light #fff · warm #f6efdf · dark var(--lx-gray-03), which the theme
+    //   maps to --adw-gray-03. Black is the worst case a rendered page can be.
+    const pages = {
+      'light page': [1, 1, 1],
+      'warm page': parseColor('#f6efdf').rgb,
+      'dark page': parseColor(declaredValue(css, selectorRe, '--adw-gray-03')).rgb,
+      'black page': [0, 0, 0],
+    };
+    const failures = [];
+    for (const [name, page] of Object.entries(pages)) {
+      // Both layers are translucent: the ground composites over the page, then
+      // the foreground over that ground.
+      const ground = over(bg, page);
+      const text = over(fg, ground);
+      const ratio = contrastRatio(text, ground);
+      if (ratio < AA_NORMAL) failures.push(`${name}: ${ratio.toFixed(2)}:1 (floor ${AA_NORMAL})`);
+    }
+    assert.deepEqual(failures, [], failures.join('\n  '));
+  });
+}

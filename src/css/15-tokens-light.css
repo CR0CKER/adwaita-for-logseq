@@ -42,6 +42,18 @@ html[data-theme="light"][data-color] {
   --adw-overlay:        rgba(0, 0, 6, 0.25);
   --adw-scrollbar-thumb: rgba(0, 0, 6, 0.35);
 
+  /* Adwaita OSD — controls overlaid on *content*, not on a window surface.
+     libadwaita paints these identically in light and dark (default.css `.osd`:
+     `color: RGB(255 255 255 / 90%); background-color: RGB(0 0 0 / 70%)`),
+     because they float over document content whose colour the app does not
+     control. Logseq's PDF viewer has light, dark and warm page themes, and one
+     OSD treatment stays legible over all three — verified against each in
+     tests/static/contrast.test.mjs. Same values in both palettes on purpose. */
+  --adw-osd-bg:         rgba(0, 0, 0, 0.70);
+  --adw-osd-fg:         rgba(255, 255, 255, 0.90);
+  --adw-osd-border:     rgba(255, 255, 255, 0.10);
+  --adw-osd-swatch-border: rgba(255, 255, 255, 0.20);
+
   /* Accent derivation, light — the mirror of the dark clamps.
      libadwaita: accent_color = oklab(from accent_bg min(l, 0.5) a b), so the
      standalone accent sits *darker* than the fill, which stays accent_bg.

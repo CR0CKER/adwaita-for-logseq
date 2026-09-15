@@ -147,6 +147,50 @@ const measureHeader = (cdp) =>
   });
 })()`);
 
+/**
+ * Open the seeded PDF asset and wait for Logseq's viewer, or report why not.
+ *
+ * Returns null when it opened, or a `{ skipped }` outcome when it did not.
+ *
+ * Logseq opens the viewer from its own click handler on the asset ref
+ * (`e.target.dataset.href` -> `state/set-current-pdf!`). In this harness that
+ * handler is racy: the block renders and the click lands — measured with both a
+ * real CDP press and `.click()`, with no error thrown and `pdf/current` left
+ * null — yet the viewer often does not mount, apparently because the seeded
+ * block is not indexed the way a user-typed one is. It is the same family of
+ * harness limit as the graph picker (#2).
+ *
+ * Skipping is safe here *because the theme cannot influence this step*: whether
+ * `is-pdf-active` appears is decided entirely inside Logseq's handler, before a
+ * single theme rule applies. Everything after it is measured.
+ */
+async function openSeededPdf(cdp, page) {
+  const asset = '.asset-ref.is-pdf, .asset-ref-wrap[data-ext=pdf] a';
+  if (!(await renderPage(cdp, page, ['![regression](../assets/regression.pdf)']))) return NOT_PAINTING;
+  try {
+    await waitFor(cdp, `Boolean(document.querySelector(${JSON.stringify(asset)}))`, {
+      label: 'the PDF asset ref to render', timeoutMs: 15000,
+    });
+  } catch {
+    return { skipped: 'the seeded PDF asset ref never rendered in this harness' };
+  }
+  await realClick(cdp, asset);
+  try {
+    await waitFor(cdp, `document.body.classList.contains('is-pdf-active')`, {
+      label: 'the PDF viewer to open', timeoutMs: 15000,
+    });
+  } catch {
+    return { skipped: "Logseq's asset-ref handler did not open the viewer for the seeded block (harness limit, not the theme)" };
+  }
+  return null;
+}
+
+/** Close the viewer, whatever state the case left it in. */
+async function closePdf(cdp) {
+  await cdp.evaluate(`(() => { const b = [...document.querySelectorAll('.extensions__pdf-toolbar button, .extensions__pdf-toolbar a')].pop(); b?.click(); return true; })()`).catch(() => {});
+  await waitFor(cdp, `!document.body.classList.contains('is-pdf-active')`, { label: 'the PDF viewer to close', timeoutMs: 8000 }).catch(() => {});
+}
+
 export const cases = [
   {
     // First on purpose: nothing may have touched a setting yet.
@@ -798,24 +842,17 @@ export const cases = [
     name: 'headerbar with a PDF open: no sidebar header, and nothing overlapping',
     needs: ['graph'],
     async run({ cdp }) {
+      const before = await measureHeader(cdp);
+      if (before.width < 640) return { skipped: `window is ${before.width}px; the docked layout starts at 640px` };
+
       // Through the plugin API, not the seeded journal: the scratch graph's
       // files give the sidebar its sections, but Logseq never indexes them, so
       // a block written to journals/*.md renders as an empty page. The PDF
       // itself is a real file in the graph's assets/ (tests/lib/scratch.mjs);
       // `../assets/` resolves from pages/, where this one lands.
-      const asset = '.asset-ref.is-pdf, .asset-ref-wrap[data-ext=pdf] a';
-      if (!(await renderPage(cdp, 'pdf viewer', ['![regression](../assets/regression.pdf)']))) return NOT_PAINTING;
-      await waitFor(cdp, `Boolean(document.querySelector(${JSON.stringify(asset)}))`, {
-        label: 'the PDF asset ref to render', timeoutMs: 15000,
-      });
-      const before = await measureHeader(cdp);
-      if (before.width < 640) return { skipped: `window is ${before.width}px; the docked layout starts at 640px` };
-
-      await realClick(cdp, asset);
+      const notOpen = await openSeededPdf(cdp, 'pdf viewer');
+      if (notOpen) return notOpen;
       try {
-        await waitFor(cdp, `document.body.classList.contains('is-pdf-active')`, {
-          label: 'the PDF viewer to open', timeoutMs: 15000,
-        });
         await new Promise((r) => setTimeout(r, 800)); // the header's own padding transition
         const pdf = await measureHeader(cdp);
         const surfaces = await probe(cdp, { l: ['#head > .l', 'backgroundColor'] });
@@ -840,8 +877,92 @@ export const cases = [
             'PDF open: Back follows Search, as in the collapsed layout');
         }
       } finally {
-        await cdp.evaluate(`(() => { const b = [...document.querySelectorAll('.extensions__pdf-toolbar button, .extensions__pdf-toolbar a')].pop(); b?.click(); return true; })()`).catch(() => {});
-        await waitFor(cdp, `!document.body.classList.contains('is-pdf-active')`, { label: 'the PDF viewer to close', timeoutMs: 8000 }).catch(() => {});
+        await closePdf(cdp);
+      }
+    },
+  },
+
+  {
+    // The viewer's floating surfaces as Adwaita OSD: one dark, translucent
+    // treatment over *all three* of Logseq's page themes, because OSD sits over
+    // document content whose colour the app does not control.
+    //
+    // This is the tier that matters for OSD. The static test proves the rules
+    // exist and out-rank Logseq's on paper; only a running viewer proves they
+    // win under each page theme, whose attribute lives on
+    // .extensions__pdf-container — not on <html>.
+    name: 'PDF viewer chrome is Adwaita OSD under every page theme',
+    needs: ['graph'],
+    async run({ cdp }) {
+      const notOpen = await openSeededPdf(cdp, 'pdf osd');
+      if (notOpen) return notOpen;
+      try {
+        await waitFor(cdp, `Boolean(document.querySelector('.extensions__pdf-toolbar .buttons'))`, {
+          label: 'the PDF toolbar to render', timeoutMs: 15000,
+        });
+
+        // libadwaita's .osd, from default.css on this machine.
+        const OSD_BG = 'rgba(0, 0, 0, 0.7)';
+        const OSD_FG = 'rgba(255, 255, 255, 0.9)';
+
+        // Logseq stores the page theme on the container itself; set it directly
+        // rather than driving the settings popover, so the case measures all
+        // three without depending on that popover's own markup.
+        for (const pageTheme of ['light', 'dark', 'warm']) {
+          await cdp.evaluate(`(() => { document.querySelector('.extensions__pdf-container').setAttribute('data-theme', ${JSON.stringify(pageTheme)}); return true; })()`);
+          await new Promise((r) => setTimeout(r, 300));
+          const got = await probe(cdp, {
+            pill: ['.extensions__pdf-toolbar .buttons', 'backgroundColor'],
+            pillFg: ['.extensions__pdf-toolbar .buttons', 'color'],
+            // Logseq fades the bar into a solid gradient under the dark page
+            // theme; OSD replaces it, so the bar is one thing in all three.
+            bar: ['.extensions__pdf-toolbar', 'backgroundImage'],
+            btnFg: ['.extensions__pdf-toolbar > .inner > .r a.button', 'color'],
+            btnBg: ['.extensions__pdf-toolbar > .inner > .r a.button', 'backgroundColor'],
+            pagerFg: ['.extensions__pdf-toolbar > .inner .pager > .nu input', 'color'],
+          });
+          assert.equal(got.pill, OSD_BG, `${pageTheme} page: the toolbar is not on the OSD ground`);
+          assert.equal(got.pillFg, OSD_FG, `${pageTheme} page: the toolbar's foreground is not OSD`);
+          assert.equal(got.bar, 'none', `${pageTheme} page: a gradient still paints behind the toolbar`);
+          // The buttons inherit the OSD foreground rather than --ls-icon-color,
+          // and stay transparent until hovered (GTK flat buttons).
+          assert.equal(got.btnFg, OSD_FG, `${pageTheme} page: toolbar icons are not the OSD foreground`);
+          assert.equal(got.btnBg, 'rgba(0, 0, 0, 0)', `${pageTheme} page: toolbar buttons are not flat`);
+          assert.equal(got.pagerFg, OSD_FG, `${pageTheme} page: the pager keeps a colour of its own`);
+        }
+
+        // Centred over the page, as GTK centres a floating toolbar. Measured
+        // against the PDF pane, not the window: the viewer is an overlay taking
+        // the left ~42vw, and "centred" means centred in that.
+        const centred = await cdp.evaluateJson(`(() => {
+          const pane = document.querySelector('.extensions__pdf-container').getBoundingClientRect();
+          const bar = document.querySelector('.extensions__pdf-toolbar .buttons').getBoundingClientRect();
+          return JSON.stringify({ off: Math.abs((bar.left + bar.right) / 2 - (pane.left + pane.right) / 2), pane: pane.width, bar: bar.width });
+        })()`);
+        assert.ok(centred.off <= 2, `the toolbar is ${Math.round(centred.off)}px off the pane's centre (pane ${Math.round(centred.pane)}px, bar ${Math.round(centred.bar)}px)`);
+
+        // The popovers the toolbar opens. Each is mounted only while visible, so
+        // open it, measure, close it. They share .hls-popup-box, but each is
+        // toggled by its own button — keyed on title, which both builds set.
+        for (const [title, box] of [
+          ['More settings', '.extensions__pdf-settings-inner.hls-popup-box'],
+          ['Outline', '.extensions__pdf-outline.hls-popup-box'],
+          ['Search', '.extensions__pdf-finder.hls-popup-box'],
+        ]) {
+          const button = `.extensions__pdf-toolbar a.button[title^=${JSON.stringify(title)}]`;
+          if (!(await cdp.evaluate(`Boolean(document.querySelector(${JSON.stringify(button)}))`))) continue;
+          await realClick(cdp, button);
+          await waitFor(cdp, `document.querySelector(${JSON.stringify(box)})?.getBoundingClientRect().width > 0`, {
+            label: `the ${title} popover to open`, timeoutMs: 8000,
+          });
+          const got = await probe(cdp, { bg: [box, 'backgroundColor'], fg: [box, 'color'] });
+          assert.equal(got.bg, OSD_BG, `${title}: not on the OSD ground`);
+          assert.equal(got.fg, OSD_FG, `${title}: foreground is not OSD`);
+          await realClick(cdp, button);
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      } finally {
+        await closePdf(cdp);
       }
     },
   },

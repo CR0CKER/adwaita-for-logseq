@@ -428,6 +428,115 @@ PY2
 expect_red "docked sidebar-header layout still painted with a PDF open" \
   tests/static/headerbar.test.mjs "$t"
 
+# 31. The PDF toolbar left as a window surface over the page: the theme maps
+#     --ls-primary-background-color, which wakes a dormant Logseq rule and
+#     paints --adw-view-bg under the floating controls instead of OSD.
+t="$(scratch_tree pdf-osd-ground)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+old = """html[data-theme] .extensions__pdf-container .extensions__pdf-toolbar .buttons {
+  padding: 12px;
+  gap: 6px;
+  border-radius: var(--adw-window-radius);
+  background-color: var(--adw-osd-bg);
+  background-clip: padding-box;
+  color: var(--adw-osd-fg);
+}"""
+assert old in s, 'OSD pill rule not found — update this mutation'
+p.write_text(s.replace(old, ""))
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "PDF toolbar painted as a window surface, not an OSD bar" \
+  tests/static/pdf-osd.test.mjs "$t"
+
+# 32. Only the toolbar made OSD: the popovers it opens (settings, finder,
+#     outline) and the highlight menu left as Logseq's light-grey boxes, so the
+#     viewer speaks two visual languages over the same page.
+t="$(scratch_tree pdf-osd-popovers)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+new, n = re.subn(r"html\[data-theme\] \.extensions__pdf-container \.hls-popup-box,\n"
+                 r"html\[data-theme\] \.extensions__pdf-hls-ctx-menu \{[^}]*\}\n", "", s, count=1)
+assert n == 1, 'OSD popover rule not found — update this mutation'
+p.write_text(new)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "PDF popovers left as light-grey boxes while the toolbar is OSD" \
+  tests/static/pdf-osd.test.mjs "$t"
+
+# 33. The pill rule written without .extensions__pdf-container: (0,3,0) ties
+#     Logseq's base rule but LOSES to its warm page theme (0,4,0), so the bar
+#     comes out cream on a warm page and OSD everywhere else.
+t="$(scratch_tree pdf-osd-specificity)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+old = 'html[data-theme] .extensions__pdf-container .extensions__pdf-toolbar .buttons {'
+assert old in s, 'pill rule not found — update this mutation'
+p.write_text(s.replace(old, 'html[data-theme] .extensions__pdf-toolbar .buttons {', 1))
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "OSD pill rule loses to Logseq's warm page theme" \
+  tests/static/pdf-osd.test.mjs "$t"
+
+# 34. An OSD ground too translucent to read over a white page — the check that
+#     makes a dark ground legitimate rather than merely dark.
+t="$(scratch_tree pdf-osd-contrast)"
+sed -i 's/--adw-osd-bg:         rgba(0, 0, 0, 0.70);/--adw-osd-bg:         rgba(0, 0, 0, 0.25);/' "$t/src/css/10-tokens-dark.css"
+expect_red "OSD ground too translucent to read over a white PDF page" \
+  tests/static/contrast.test.mjs "$t"
+
+# 35. The floating toolbar left where Logseq puts it: right-aligned twice, so it
+#     hugs the pane's edge instead of being centred over the page as GTK centres
+#     a floating toolbar.
+t="$(scratch_tree pdf-osd-centre)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+new, n = re.subn(r"html\[data-theme\] \.extensions__pdf-header \{[^}]*\}\n\n"
+                 r"html\[data-theme\] \.extensions__pdf-toolbar > \.inner \{[^}]*\}\n", "", s, count=1)
+assert n == 1, 'toolbar centring rules not found — update this mutation'
+p.write_text(new)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "floating PDF toolbar left hugging the pane's right edge" \
+  tests/static/pdf-osd.test.mjs "$t"
+
+# 36. The external PDF window left unthemed: Logseq links only its own
+#     stylesheet into that document, so without the injection the viewer is
+#     Adwaita in-app and stock in its own window.
+t="$(scratch_tree system-window-unstyled)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/system-window.ts')
+s = p.read_text()
+new, n = re.subn(r"    const link = doc\.createElement\('link'\);", "    if (true) return false;\n    const link = doc.createElement('link');", s, count=1)
+assert n == 1, 'injection not found — update this mutation'
+p.write_text(new)
+PY2
+expect_red "external PDF window left without the theme's stylesheet" \
+  tests/static/system-window.test.mjs "$t"
+
+# 37. The sheets injected inline, before Logseq appends its own style.css to
+#     that document — every specificity tie then goes to Logseq.
+t="$(scratch_tree system-window-order)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/system-window.ts')
+s = p.read_text()
+old = "    if (win) defer(() => onOpen(win));"
+assert old in s, 'defer call not found — update this mutation'
+p.write_text(s.replace(old, "    if (win) onOpen(win);", 1))
+PY2
+expect_red "theme sheet injected before Logseq's own, losing every tie" \
+  tests/static/system-window.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"
