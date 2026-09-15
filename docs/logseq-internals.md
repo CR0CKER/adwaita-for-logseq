@@ -36,6 +36,22 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
   (0,3,1) header-button rule, so plugin toolbar icons came out grey.
 - **The sidebar's keyboard-shortcut tiles** ("g j") are greyed by the `.text-gray-10`
   utility class.
+- **Defining an `--ls-*` variable can *wake a dormant rule*.** The other traps here are
+  about a theme rule losing; this one is about a **Logseq** rule that had never fired at
+  all. Logseq paints the PDF toolbar with
+  `.extensions__pdf-container .extensions__pdf-toolbar .buttons { background-color:
+  var(--ls-primary-background-color) }`, but declares that variable **only** under
+  `[data-color=logseq]` or a named accent. With neither matching, the variable is
+  undefined, the declaration is invalid at computed-value time, and the toolbar is
+  transparent — which is what stock Logseq looks like. Mapping the variable on
+  `html[data-theme]` (`20-mappings.css`) made the rule valid for the first time and painted
+  a window surface over the page. **Before mapping an `--ls-*` variable, look at what reads
+  it:** a consumer Logseq leaves permanently invalid is a rule the theme is about to turn
+  on, not one it is about to recolour.
+- **`.extensions__pdf-container` carries its own `data-theme`** — `light`/`dark`/`warm`,
+  the *page* theme, a different attribute from `html[data-theme]`'s app scheme. Logseq
+  styles the toolbar per page theme (`[data-theme=warm] … .buttons` is (0,4,0)), so a theme
+  rule that only ties the base declaration still loses under one page theme.
 - **Window controls:** Logseq reserves header room for them only while the right sidebar is
   **closed**; open, they sit over the sidebar. Reserving room in both states left a ~100px
   gap.
@@ -191,6 +207,38 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   - Copied verbatim it fails AA on Logseq's surfaces; every hue goes through libadwaita's
     accent-text lightness clamp instead.
   - GNOME Console's ANSI colours are the HIG palette, with no light variant.
+- **OSD — controls overlaid on *content*.** GTK's style for anything floating over a
+  document rather than sitting on a window surface (libadwaita 1.8, `default.css`):
+  `.osd { color: RGB(255 255 255/90%); background-color: RGB(0 0 0/70%); border: none;
+  background-clip: padding-box }`, `.toolbar.osd { padding: 12px; border-radius: 15px }`,
+  `button.osd { min-width: 32px; min-height: 32px }`, and inside it GTK's flat-button
+  states: `button.flat` transparent, hover/active/checked
+  `color-mix(in srgb, currentColor 7%/16%/10%, transparent)`. A popover in an OSD context
+  is itself OSD: `.osd popover > contents { border-color: RGB(255 255 255/10%);
+  box-shadow: none }`.
+  - **It is dark in both colour schemes, deliberately** — the app does not control the
+    colour of the content underneath. That is why the theme's own light/dark split does not
+    apply to it, and why `--adw-osd-*` holds the same values in both palettes.
+  - A floating toolbar is **centred** over the content: Text Editor's is a box with
+    `<property name="halign">center</property>` (`gresource extract
+    /usr/bin/gnome-text-editor /org/gnome/TextEditor/ui/editor-page.ui`). Logseq
+    right-aligns its PDF bar twice — on `.extensions__pdf-header` and again on `.inner` —
+    and insets the header 10px from the right, so both have to be undone to centre it.
+  - Papers and Image Viewer use it for exactly this: floating page controls over a
+    document.
+- **The external PDF window gets no theme.** "Open in external window" is not a route: it
+  is a bare `window.open("about:blank")` document the app builds by hand
+  (`frontend/extensions/pdf/windows.cljs`, `setup-win!`). `resolve-styles!` links **only**
+  `./css/style.css` into it, so registered themes — which are injected into the *main*
+  document — never reach it. It *does* set `data-theme` on that document and put
+  `is-system-window` on its `<html>`, so a theme's own selectors match as soon as the sheet
+  is there. Logseq keeps the window handle in a ClojureScript atom and exposes no hook, so
+  the only way in is to watch `open` on the host window — possible because the plugin's
+  iframe is same-origin with the host (`lsp://logseq.com`) and unsandboxed. The sheet must
+  be appended **after** Logseq's own setup, which runs synchronously once `open()` returns:
+  injected inline it lands *before* `style.css` and loses every specificity tie. Logseq's PDF viewer is the same situation, with three page themes (light,
+    dark, warm) that one OSD treatment has to stay legible over — measured in
+    `tests/static/contrast.test.mjs` rather than assumed.
 - **Icons:** Adwaita's symbolic icons live in `/usr/share/icons/Adwaita/symbolic/actions/`,
   licensed LGPL-3.0-only OR CC-BY-SA-3.0.
 
