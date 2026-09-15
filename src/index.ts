@@ -1,12 +1,6 @@
 import '@logseq/libs';
 import type { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
 import { buildSettingsCss, FOLLOW_LOGSEQ, GNOME_ACCENTS, TEXT_COLOURS, type Settings } from './settings-css';
-import {
-  styleSystemWindow,
-  updateSystemWindow,
-  watchSystemWindows,
-  type MinimalWindow,
-} from './system-window';
 
 /**
  * Two jobs:
@@ -20,11 +14,7 @@ import {
  *    with resolveResourceFullUrl() asks the SDK for the plugin's own static
  *    root instead, which is the scheme the host actually serves.
  *
- * 2. Carry the theme into the PDF viewer's "open in external window" window,
- *    which Logseq builds by hand and links only its own stylesheet into — see
- *    system-window.ts for why that needs the host window rather than CSS.
- *
- * 3. Hold the machine-specific choices — which accent GNOME is set to,
+ * 2. Hold the machine-specific choices — which accent GNOME is set to,
  *    whether the titlebar shows one button or three — as settings rather than
  *    edits to the stylesheet. Everything it emits is a handful of custom
  *    properties on :root, injected with provideStyle(). The theme's <link> can
@@ -120,44 +110,10 @@ const settings: SettingSchemaDesc[] = [
   },
 ];
 
-/** Windows this plugin has put the theme into, so a settings change reaches them. */
-const systemWindows = new Set<MinimalWindow>();
-
-const settingsCss = () => buildSettingsCss((logseq.settings ?? {}) as Settings);
-
 function apply() {
-  const css = settingsCss();
-  logseq.provideStyle({ key: 'adwaita-settings', style: css });
-
-  // The PDF windows are separate documents, so provideStyle does not reach
-  // them. Drop any the user has closed on the way past.
-  for (const win of systemWindows) {
-    if (win.closed || !updateSystemWindow(win.document, css)) systemWindows.delete(win);
-  }
-}
-
-/**
- * Carry the theme into Logseq's external PDF window.
- *
- * `window.top` is the host renderer: the plugin's iframe is same-origin with it
- * and unsandboxed, which is what makes this reachable at all. Everything is
- * guarded — a host that cannot be reached leaves the rest of the plugin working
- * exactly as before, with only that one window unthemed.
- */
-function watchPdfWindows() {
-  let host: MinimalWindow | undefined;
-  try {
-    host = (window.top ?? undefined) as MinimalWindow | undefined;
-  } catch {
-    host = undefined; // cross-origin host: nothing to do
-  }
-  if (!host || (host as unknown) === (window as unknown)) return;
-
-  watchSystemWindows(host, (win) => {
-    const url = logseq.resolveResourceFullUrl('themes/adwaita.css');
-    if (styleSystemWindow(win.document, { themeUrl: url, settingsCss: settingsCss() })) {
-      systemWindows.add(win);
-    }
+  logseq.provideStyle({
+    key: 'adwaita-settings',
+    style: buildSettingsCss((logseq.settings ?? {}) as Settings),
   });
 }
 
@@ -172,7 +128,6 @@ function main() {
   registerThemes();
   logseq.useSettingsSchema(settings);
   apply();
-  watchPdfWindows();
   logseq.onSettingsChanged(apply);
 }
 
