@@ -1,5 +1,6 @@
 /**
- * The PDF viewer's floating surfaces, as Adwaita OSD.
+ * The surfaces this theme floats over *content*, as Adwaita OSD: the PDF
+ * viewer's chrome, and the action bar over an embedded image.
  *
  * Two things are being locked down here, and they fail differently:
  *
@@ -149,4 +150,28 @@ test('Logseq\'s scaled ::after hairline is replaced by a real border', () => {
     valueOf('html[data-theme] .extensions__pdf-container .hls-popup-box', 'border'),
     '1px solid var(--adw-osd-border)'
   );
+});
+
+test('the image action bar is OSD too, on both builds', () => {
+  // The other place the theme paints chrome over content whose colour it does
+  // not control. The builds fail differently and the fix is shared:
+  //   OG  dims the whole image with .asset-overlay and paints the bar in
+  //       --ls-primary-text-color (legible, but not how GNOME does it);
+  //   2.x ships no overlay and no colour, so the icons land on the raw image
+  //       at opacity .7 — white on a white photo in dark mode.
+  const btn = 'html[data-theme] .asset-container .asset-action-btn';
+  assert.equal(valueOf(btn, 'background-color'), 'var(--adw-osd-bg)');
+  assert.equal(valueOf(btn, 'color'), 'var(--adw-osd-fg)');
+  assert.equal(valueOf(btn, 'background-clip'), 'padding-box');
+  // Logseq dims these and brightens on hover; an OSD button is opaque and
+  // changes its fill, so the dimming has to be cleared in every state.
+  for (const sel of [btn, `${btn}:hover`, `${btn}:active`]) {
+    assert.equal(valueOf(sel, 'opacity'), '1', sel);
+  }
+  assert.match(valueOf(`${btn}:hover`, 'background-color') ?? '', /color-mix\(in srgb, currentColor 15%/);
+  assert.match(valueOf(`${btn}:active`, 'background-color') ?? '', /color-mix\(in srgb, currentColor 25%/);
+
+  // The buttons carry their own ground now, so OG's full-image scrim goes:
+  // GNOME does not dim content to make controls readable.
+  assert.equal(valueOf('html[data-theme] .block-content .asset-container .asset-overlay', 'display'), 'none');
 });

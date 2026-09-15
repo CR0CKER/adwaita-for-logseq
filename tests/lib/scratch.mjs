@@ -83,6 +83,11 @@ function seedGraph(dir) {
   // nothing more), so the block that references it is created through the plugin
   // API instead, from the case itself.
   writeFileSync(join(dir, 'assets/regression.pdf'), onePagePdf());
+  // A 1x1 white PNG: the worst case for the image action bar, whose buttons
+  // sit on the image itself in Logseq 2.x (white on white before §10's OSD).
+  writeFileSync(join(dir, 'assets/regression.png'), Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+    'base64'));
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '_');
   writeFileSync(join(dir, `journals/${today}.md`), '- hello from the regression suite\n- [[a test page]]\n');
   writeFileSync(join(dir, 'pages/a test page.md'), '- referenced by the journal\n');

@@ -1051,3 +1051,53 @@ html[data-theme] .extensions__pdf-hls-ctx-menu > li.item:hover {
 html[data-theme] .extensions__pdf-hls-ctx-menu > li.item-colors > a {
   border: 1px solid var(--adw-osd-swatch-border);
 }
+
+
+/* --------------------------------------------------------------------------
+   10. Image action bar — OSD, like the PDF toolbar
+       The hover controls over an embedded image (path, delete, copy,
+       maximise) are the other place this theme paints chrome over content
+       whose colour it does not control, so they get the same treatment as §9.
+       GTK does this per *button* here rather than as one bar — Loupe's
+       overlay controls are round `button.osd`s on the image — which also
+       suits OG, where the bar spans the full width to put the file path at
+       one end and the buttons at the other.
+
+       The two builds differ in what they give the bar to sit on:
+         OG   dims the whole image with `.asset-overlay`, a gradient of
+              --ls-primary-background-color at opacity .9, and paints the bar
+              in --ls-primary-text-color. Legible (10.8:1 at worst measured
+              over black, white and mid-grey images) but not GNOME: an OSD
+              control carries its own ground instead of dimming the content.
+         2.x  ships no overlay and sets no colour, so the icons inherit the
+              body text colour straight onto the image at opacity .7 — white
+              on a white photo in dark mode.
+       One OSD treatment fixes 2.x and makes both builds look the same.
+   -------------------------------------------------------------------------- */
+
+html[data-theme] .asset-container .asset-action-btn {
+  padding: 4px;
+  border-radius: var(--adw-radius-button);
+  background-color: var(--adw-osd-bg);
+  background-clip: padding-box;
+  color: var(--adw-osd-fg);
+  /* Logseq dims these (.7 in 2.x, .8 in OG) and brightens on hover; an OSD
+     button is fully opaque and changes its fill instead. */
+  opacity: 1;
+}
+
+html[data-theme] .asset-container .asset-action-btn:hover {
+  background-color: color-mix(in srgb, currentColor 15%, var(--adw-osd-bg));
+  opacity: 1;
+}
+
+html[data-theme] .asset-container .asset-action-btn:active {
+  background-color: color-mix(in srgb, currentColor 25%, var(--adw-osd-bg));
+  opacity: 1;
+}
+
+/* OG's scrim over the whole image goes with it: the buttons now carry their
+   own ground, and GNOME does not dim content to make controls readable. */
+html[data-theme] .block-content .asset-container .asset-overlay {
+  display: none;
+}
