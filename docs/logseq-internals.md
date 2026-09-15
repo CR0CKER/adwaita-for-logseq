@@ -250,7 +250,8 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   Logseq's synchronous setup so it does not lose every specificity tie — but that is host
   monkey-patching from a theme, and the SDK warns that unofficial host access is not
   supported on the Marketplace. **This theme does not do it**; the external window stays
-  stock, and the fix belongs upstream in `resolve-styles!`. Logseq's PDF viewer is the same situation, with three page themes (light,
+  stock, and the fix belongs upstream in `resolve-styles!` —
+  [logseq/og#54](https://github.com/logseq/og/issues/54). Logseq's PDF viewer is the same situation, with three page themes (light,
     dark, warm) that one OSD treatment has to stay legible over — measured in
     `tests/static/contrast.test.mjs` rather than assumed.
 - **Icons:** Adwaita's symbolic icons live in `/usr/share/icons/Adwaita/symbolic/actions/`,

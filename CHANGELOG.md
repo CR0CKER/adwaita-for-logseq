@@ -20,6 +20,13 @@ All notable changes to this project are documented here, in
 
 ### Changed
 
+- The PDF viewer's external window ("open in external window") is documented as a known
+  limitation rather than worked around. Logseq builds that window by hand and links only
+  its own stylesheet into it, so no theme can reach it from CSS; getting a sheet in there
+  means patching `window.open` on the host, which is the kind of unofficial host access
+  the plugin SDK says is unsupported on the Marketplace. Filed upstream as
+  [logseq/og#54](https://github.com/logseq/og/issues/54).
+
 - README's scope table no longer claims every OG live case passes. The graph-picker
   case reports itself skipped on OG ([#2](https://github.com/CR0CKER/adwaita-for-logseq/issues/2)).
 

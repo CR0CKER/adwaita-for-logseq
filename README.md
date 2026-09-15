@@ -251,7 +251,8 @@ the same under both settings. Code blocks and highlights use the Adwaita scheme 
   selectors would match the moment the sheet were there; a plugin can only get it there by
   patching `window.open` on the host, which is host monkey-patching from a theme and the
   kind of unofficial host access the plugin SDK says is unsupported on the Marketplace.
-  The fix belongs upstream, in `resolve-styles!`.
+  The fix belongs upstream, in `resolve-styles!`:
+  [logseq/og#54](https://github.com/logseq/og/issues/54).
 - **Round window corners need Electron 43 or newer.** The frame is painted by Electron
   outside the web contents, so no stylesheet can reach it. Electron 41 gave frameless
   windows client-side decorations on Wayland — a shadow and resize edges — but rounded
