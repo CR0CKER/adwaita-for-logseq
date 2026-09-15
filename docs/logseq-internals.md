@@ -36,18 +36,28 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
   (0,3,1) header-button rule, so plugin toolbar icons came out grey.
 - **The sidebar's keyboard-shortcut tiles** ("g j") are greyed by the `.text-gray-10`
   utility class.
-- **Defining an `--ls-*` variable can *wake a dormant rule*.** The other traps here are
-  about a theme rule losing; this one is about a **Logseq** rule that had never fired at
-  all. Logseq paints the PDF toolbar with
+- **An `--ls-*` variable can be read in a context where no app-surface colour is right.**
+  Logseq paints the PDF toolbar with
   `.extensions__pdf-container .extensions__pdf-toolbar .buttons { background-color:
-  var(--ls-primary-background-color) }`, but declares that variable **only** under
-  `[data-color=logseq]` or a named accent. With neither matching, the variable is
-  undefined, the declaration is invalid at computed-value time, and the toolbar is
-  transparent — which is what stock Logseq looks like. Mapping the variable on
-  `html[data-theme]` (`20-mappings.css`) made the rule valid for the first time and painted
-  a window surface over the page. **Before mapping an `--ls-*` variable, look at what reads
-  it:** a consumer Logseq leaves permanently invalid is a rule the theme is about to turn
-  on, not one it is about to recolour.
+  var(--ls-primary-background-color) }` — the app's *view* colour, on a bar floating over a
+  *document*. Measured over CDP (`data-color="logseq"` is always set, so the variable is
+  always defined):
+
+  | | `--ls-primary-background-color` | over a white PDF page |
+  |---|---|---|
+  | stock Logseq, light | `#fff` | white on white — reads as no bar at all |
+  | stock Logseq, dark | `#002b36` | a dark teal slab |
+  | this theme, dark | `#1d1d20` | a dark grey slab |
+
+  So stock Logseq only *looks* unstyled in light mode; the rule always fired. A theme that
+  maps the variable does not enable anything — it changes a value that was wrong for this
+  surface in every scheme. **The lesson is about the surface, not the cascade:** a rule
+  reading an app-surface variable on something overlaid on content needs replacing, not
+  recolouring (OSD — `30-structure.css` §9).
+
+  *(An earlier version of this note claimed the variable was undefined by default and that
+  mapping it "woke a dormant rule". That was wrong: it was read from the stylesheet without
+  checking the computed value. Verify a cascade claim against the running app.)*
 - **`.extensions__pdf-container` carries its own `data-theme`** — `light`/`dark`/`warm`,
   the *page* theme, a different attribute from `html[data-theme]`'s app scheme. Logseq
   styles the toolbar per page theme (`[data-theme=warm] … .buttons` is (0,4,0)), so a theme
@@ -226,17 +236,21 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
     and insets the header 10px from the right, so both have to be undone to centre it.
   - Papers and Image Viewer use it for exactly this: floating page controls over a
     document.
-- **The external PDF window gets no theme.** "Open in external window" is not a route: it
-  is a bare `window.open("about:blank")` document the app builds by hand
-  (`frontend/extensions/pdf/windows.cljs`, `setup-win!`). `resolve-styles!` links **only**
-  `./css/style.css` into it, so registered themes — which are injected into the *main*
-  document — never reach it. It *does* set `data-theme` on that document and put
-  `is-system-window` on its `<html>`, so a theme's own selectors match as soon as the sheet
-  is there. Logseq keeps the window handle in a ClojureScript atom and exposes no hook, so
-  the only way in is to watch `open` on the host window — possible because the plugin's
-  iframe is same-origin with the host (`lsp://logseq.com`) and unsandboxed. The sheet must
-  be appended **after** Logseq's own setup, which runs synchronously once `open()` returns:
-  injected inline it lands *before* `style.css` and loses every specificity tie. Logseq's PDF viewer is the same situation, with three page themes (light,
+- **The external PDF window gets no theme, and cannot be given one from CSS.** "Open in
+  external window" is not a route: it is a bare `window.open("about:blank")` document the
+  app builds by hand (`frontend/extensions/pdf/windows.cljs`, `setup-win!`).
+  `resolve-styles!` links **only** `./css/style.css` into it, so registered themes — which
+  are injected into the *main* document — never reach it. It *does* set `data-theme` on
+  that document and put `is-system-window` on its `<html>`, so a theme's own selectors
+  would match as soon as the sheet were there.
+
+  Logseq keeps the window handle in a ClojureScript atom and exposes no hook. A plugin
+  *can* reach it by patching `open` on the host window (its iframe is same-origin with
+  `lsp://logseq.com` and unsandboxed, verified over CDP), appending the sheet **after**
+  Logseq's synchronous setup so it does not lose every specificity tie — but that is host
+  monkey-patching from a theme, and the SDK warns that unofficial host access is not
+  supported on the Marketplace. **This theme does not do it**; the external window stays
+  stock, and the fix belongs upstream in `resolve-styles!`. Logseq's PDF viewer is the same situation, with three page themes (light,
     dark, warm) that one OSD treatment has to stay legible over — measured in
     `tests/static/contrast.test.mjs` rather than assumed.
 - **Icons:** Adwaita's symbolic icons live in `/usr/share/icons/Adwaita/symbolic/actions/`,

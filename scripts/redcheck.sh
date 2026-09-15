@@ -507,36 +507,6 @@ PY2
 (cd "$t" && node build.mjs >/dev/null 2>&1)
 expect_red "floating PDF toolbar left hugging the pane's right edge" \
   tests/static/pdf-osd.test.mjs "$t"
-
-# 36. The external PDF window left unthemed: Logseq links only its own
-#     stylesheet into that document, so without the injection the viewer is
-#     Adwaita in-app and stock in its own window.
-t="$(scratch_tree system-window-unstyled)"
-python3 - "$t" <<'PY2'
-import sys, pathlib, re
-p = pathlib.Path(sys.argv[1], 'src/system-window.ts')
-s = p.read_text()
-new, n = re.subn(r"    const link = doc\.createElement\('link'\);", "    if (true) return false;\n    const link = doc.createElement('link');", s, count=1)
-assert n == 1, 'injection not found — update this mutation'
-p.write_text(new)
-PY2
-expect_red "external PDF window left without the theme's stylesheet" \
-  tests/static/system-window.test.mjs "$t"
-
-# 37. The sheets injected inline, before Logseq appends its own style.css to
-#     that document — every specificity tie then goes to Logseq.
-t="$(scratch_tree system-window-order)"
-python3 - "$t" <<'PY2'
-import sys, pathlib
-p = pathlib.Path(sys.argv[1], 'src/system-window.ts')
-s = p.read_text()
-old = "    if (win) defer(() => onOpen(win));"
-assert old in s, 'defer call not found — update this mutation'
-p.write_text(s.replace(old, "    if (win) onOpen(win);", 1))
-PY2
-expect_red "theme sheet injected before Logseq's own, losing every tie" \
-  tests/static/system-window.test.mjs "$t"
-
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

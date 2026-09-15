@@ -41,20 +41,13 @@ All notable changes to this project are documented here, in
   colour the app does not choose, which is why Papers and Image Viewer do the same with
   their page controls.
 
-  The theme also follows the PDF into its **own window** ("open in external window").
-  Logseq builds that window by hand and links only its own stylesheet into it, so no theme
-  has ever reached it; the plugin now injects the sheet there itself, after Logseq's setup
-  so the cascade order matches the main window. It is the one part of this theme that
-  cannot be CSS (`src/system-window.ts`).
-
 ### Fixed
 
-- The PDF toolbar sat on an opaque slab of the app's view colour. The cause was a new kind
-  of cascade trap: Logseq paints it with `var(--ls-primary-background-color)` but declares
-  that variable only under `[data-color=logseq]` or a named accent, so by default the
-  declaration is invalid and the toolbar is transparent. Mapping the variable **woke a
-  Logseq rule that had never fired**, and painted a window surface over the page. Now
-  painted as OSD (above), which is what the surface is.
+- The PDF toolbar sat on an opaque slab of the app's view colour: Logseq paints that bar
+  with `var(--ls-primary-background-color)` — a *window* surface on a control floating over
+  a *document*. Stock Logseq only looks unstyled in light mode, where that value is `#fff`
+  and vanishes against a white page; in dark mode it is a `#002b36` slab, and any theme's
+  own view colour is a slab too. Now painted as OSD (above), which is what the surface is.
 - Opening a PDF broke the headerbar. Logseq's viewer takes the left ~42% of the window
   and hides the left sidebar **and** its toggle, but leaves the sidebar's open-state
   class set — and every one of the theme's docked placements is measured from

@@ -1654,12 +1654,14 @@ html[data-theme] .cp__sidebar-main-content > div {
       here: Logseq's viewer has light, dark and warm page themes, and one OSD
       treatment is legible over all of them.
 
-      The cascade trap this section also fixes: Logseq paints the toolbar with
-      `background-color: var(--ls-primary-background-color)` but declares that
-      variable only under [data-color=logseq] or a named accent. Left undefined
-      the declaration is invalid and the bar is transparent — grey icons on the
-      page. Mapping the variable (20-mappings.css) woke that dormant rule and
-      painted a window surface over the document. See docs/logseq-internals.md.
+      What this replaces: Logseq paints the bar with
+      `background-color: var(--ls-primary-background-color)` — the app's *view*
+      colour, on a control floating over a *document*. That variable is always
+      defined (data-color="logseq" is always set), so the rule always fired;
+      stock Logseq merely *looks* unstyled in light mode, where #fff is
+      invisible against a white page. Dark it is #002b36, and any theme's own
+      view colour is a slab. No app-surface colour is right here — hence OSD.
+      See docs/logseq-internals.md.
 
       Careful: .extensions__pdf-container carries its OWN data-theme attribute
       (light/dark/warm, the *page* theme) — a different element from

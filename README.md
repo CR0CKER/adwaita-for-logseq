@@ -100,9 +100,8 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
   does not choose the colour of the page underneath, and Logseq's viewer has light, dark
   and warm page themes that one treatment has to stay readable over. Papers and Image
   Viewer do the same thing with their page controls, and like them the bar is **centred
-  over the page** rather than parked against its right edge. It follows the PDF into its own window
-  too ("open in external window"): Logseq builds that window by hand and links only its own
-  stylesheet into it, so the plugin puts the theme there itself.
+  over the page** rather than parked against its right edge. The PDF's own window ("open in external
+  window") is the exception — see [Scope](#scope).
 - **With the sidebar closed** — or below 640px, where Logseq turns the sidebar into an
   overlay — the header collapses as Files does when narrow: toggle, search and
   Back/Forward first.
@@ -245,6 +244,14 @@ the same under both settings. Code blocks and highlights use the Adwaita scheme 
 - Three rules target components 0.10.13 does not have (`.ui__dialog-content`,
   `.ui__popover-content`, `.cm-editor`); they simply do not match there, and
   `.ui__modal-panel` and `.CodeMirror` cover the same ground.
+- **The PDF viewer's external window is not themed.** "Open in external window" is not a
+  route: Logseq builds that document by hand and links only its own `./css/style.css` into
+  it (`frontend/extensions/pdf/windows.cljs`, `resolve-styles!`), so no registered theme
+  reaches it — this one or any other. It sets `data-theme` on that document, so a theme's
+  selectors would match the moment the sheet were there; a plugin can only get it there by
+  patching `window.open` on the host, which is host monkey-patching from a theme and the
+  kind of unofficial host access the plugin SDK says is unsupported on the Marketplace.
+  The fix belongs upstream, in `resolve-styles!`.
 - **Round window corners need Electron 43 or newer.** The frame is painted by Electron
   outside the web contents, so no stylesheet can reach it. Electron 41 gave frameless
   windows client-side decorations on Wayland — a shadow and resize edges — but rounded
@@ -289,11 +296,6 @@ in a `git worktree` rather than by switching branches in the directory Logseq lo
 | `27-text.css` | text colours inside notes: the Adwaita scheme's hues through the accent clamp, code blocks, highlights, and the prose roles the Text colours setting switches |
 | `28-icons.css` | **generated** by `scripts/encode-icons.mjs` from `src/icons/`: the vendored Adwaita icons as mask tokens |
 | `30-structure.css` | headerbar (including the Files layout), sidebar, window controls, widgets, content, the PDF viewer's OSD chrome — geometry only, every colour a token |
-
-The plugin's own TypeScript is two files besides the settings: `index.ts` registers the
-themes and the settings, and `system-window.ts` carries the stylesheet into the PDF
-viewer's external window — the one thing this theme cannot do in CSS, because Logseq
-builds that window's document by hand and links only its own sheet into it.
 
 The structure rules are scoped `html[data-theme]`, not `html[data-theme="dark"]`, so one
 sheet serves both schemes and the palette files are the only difference between them.
