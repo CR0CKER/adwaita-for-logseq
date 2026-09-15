@@ -507,6 +507,38 @@ PY2
 (cd "$t" && node build.mjs >/dev/null 2>&1)
 expect_red "floating PDF toolbar left hugging the pane's right edge" \
   tests/static/pdf-osd.test.mjs "$t"
+# 36. The image action bar left as Logseq paints it: on 2.x that is the body
+#     text colour at opacity .7 straight onto the image — white on a white
+#     photo in dark mode — and on OG a scrim that dims the whole image.
+t="$(scratch_tree image-action-bar)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+i = s.index('   10. Image action bar')
+j = s.rindex('/* ---', 0, i)
+p.write_text(s[:j])
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "image action bar left on the raw image (2.x) / dimming it (OG)" \
+  tests/static/pdf-osd.test.mjs "$t"
+
+# 37. The image action icons left on OG's text baseline: the pill is 26x33 with
+#     the icon 4px from the top and 11px from the bottom, instead of 26x26 and
+#     centred. 2.x flexes these itself, so the miss is invisible there.
+t="$(scratch_tree image-icon-centre)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+new, n = re.subn(r"html\[data-theme\] \.asset-container \.asset-action-btn:not\(\.text-left\) \{[^}]*\}\n\n", "", s, count=1)
+assert n == 1, 'icon centring rule not found — update this mutation'
+p.write_text(new)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "image action icons on the text baseline, not centred in the pill" \
+  tests/static/pdf-osd.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

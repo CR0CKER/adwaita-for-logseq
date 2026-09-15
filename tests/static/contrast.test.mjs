@@ -188,6 +188,9 @@ for (const [mode, file, selectorRe] of [
     // Logseq's three page themes, from its own stylesheet:
     //   light #fff · warm #f6efdf · dark var(--lx-gray-03), which the theme
     //   maps to --adw-gray-03. Black is the worst case a rendered page can be.
+    // An embedded image is the same problem with a wider range: the action-bar
+    // buttons (§10) sit on the same OSD ground over a photo of any colour, so
+    // white and black bound what a page or an image can be.
     const pages = {
       'light page': [1, 1, 1],
       'warm page': parseColor('#f6efdf').rgb,

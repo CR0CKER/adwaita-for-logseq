@@ -20,6 +20,17 @@ All notable changes to this project are documented here, in
 
 ### Changed
 
+- The hover controls over an embedded image are **Adwaita OSD buttons**, like the PDF
+  viewer's chrome: they float over a picture whose colour the theme cannot know, so each
+  carries its own dark translucent ground. This fixes Logseq 2.x, which ships no backdrop
+  for them and no colour — the icons landed on the image itself at `opacity: .7`, white on
+  a white photo in dark mode. Logseq OG instead dimmed the *whole image* to make them
+  readable; that scrim goes, since the buttons no longer need it and GNOME does not dim
+  content to show controls. Found by sweeping every `--ls-*`/`--lx-*` the theme remaps for
+  rules that paint chrome over content. The icons are centred in their buttons on Logseq
+  OG too, which leaves them `display: block` — the icon sat on the text baseline, 4px below
+  the top edge and 11px above the bottom; 2.x already flexed them.
+
 - The PDF viewer's external window ("open in external window") is documented as a known
   limitation rather than worked around. Logseq builds that window by hand and links only
   its own stylesheet into it, so no theme can reach it from CSS; getting a sheet in there

@@ -102,6 +102,10 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
   Viewer do the same thing with their page controls, and like them the bar is **centred
   over the page** rather than parked against its right edge. The PDF's own window ("open in external
   window") is the exception — see [Scope](#scope).
+- **The controls over an embedded image get the same OSD buttons.** They float over a
+  picture whose colour the theme cannot know, so each carries its own dark translucent
+  ground instead of relying on the image being dark enough — and Logseq OG's habit of
+  dimming the whole image to make them readable goes with it.
 - **With the sidebar closed** — or below 640px, where Logseq turns the sidebar into an
   overlay — the header collapses as Files does when narrow: toggle, search and
   Back/Forward first.

@@ -854,6 +854,13 @@ export const cases = [
       if (notOpen) return notOpen;
       try {
         await new Promise((r) => setTimeout(r, 800)); // the header's own padding transition
+        // Still open? In this harness the viewer sometimes mounts and gives up
+        // again (the same reason its toolbar never renders for a seeded PDF),
+        // and measuring after that reads the ordinary sidebar-open header —
+        // a stale state that looks exactly like a regression.
+        if (!(await cdp.evaluate(`document.body.classList.contains('is-pdf-active')`))) {
+          return { skipped: 'the viewer closed again before anything could be measured (harness limit, not the theme)' };
+        }
         const pdf = await measureHeader(cdp);
         const surfaces = await probe(cdp, { l: ['#head > .l', 'backgroundColor'] });
 
@@ -897,9 +904,16 @@ export const cases = [
       const notOpen = await openSeededPdf(cdp, 'pdf osd');
       if (notOpen) return notOpen;
       try {
-        await waitFor(cdp, `Boolean(document.querySelector('.extensions__pdf-toolbar .buttons'))`, {
-          label: 'the PDF toolbar to render', timeoutMs: 15000,
-        });
+        // Same harness limit one step further on: the viewer mounts but pdf.js
+        // never loads the seeded document, so its toolbar is never rendered.
+        // Nothing to measure — report it rather than failing on it.
+        try {
+          await waitFor(cdp, `Boolean(document.querySelector('.extensions__pdf-toolbar .buttons'))`, {
+            label: 'the PDF toolbar to render', timeoutMs: 15000,
+          });
+        } catch {
+          return { skipped: 'the viewer opened but never rendered its toolbar for the seeded PDF (harness limit, not the theme)' };
+        }
 
         // libadwaita's .osd, from default.css on this machine.
         const OSD_BG = 'rgba(0, 0, 0, 0.7)';
@@ -963,6 +977,61 @@ export const cases = [
         }
       } finally {
         await closePdf(cdp);
+      }
+    },
+  },
+
+  {
+    // The image action bar is the theme's other chrome-over-content surface,
+    // and the one the builds disagree about: OG dims the whole image with
+    // .asset-overlay and colours the bar, 2.x ships neither and drops the icons
+    // straight onto the image at opacity .7. Both get §10's per-button OSD.
+    //
+    // Unlike the PDF cases this one renders reliably — an image asset needs no
+    // click, so nothing depends on Logseq's asset-ref handler.
+    name: 'image action bar is OSD over the image, on either build',
+    needs: ['graph'],
+    async run({ cdp }) {
+      if (!(await renderPage(cdp, 'image osd', ['![regression](../assets/regression.png)']))) return NOT_PAINTING;
+      try {
+        await waitFor(cdp, `Boolean(document.querySelector('.asset-container .asset-action-btn'))`, {
+          label: 'the image asset to render', timeoutMs: 15000,
+        });
+      } catch {
+        return { skipped: 'the seeded image asset never rendered in this harness' };
+      }
+
+      const got = await probe(cdp, {
+        btnBg: ['.asset-container .asset-action-btn', 'backgroundColor'],
+        btnFg: ['.asset-container .asset-action-btn', 'color'],
+        btnOpacity: ['.asset-container .asset-action-btn', 'opacity'],
+        // OG only; absent in 2.x, where probe() reports '(missing)'.
+        overlay: ['.asset-container .asset-overlay', 'display'],
+      });
+      assert.equal(got.btnBg, 'rgba(0, 0, 0, 0.7)', 'the action buttons are not on the OSD ground');
+      assert.equal(got.btnFg, 'rgba(255, 255, 255, 0.9)', 'the action icons are not the OSD foreground');
+      // Logseq dims them (.7 in 2.x, .8 in OG); an OSD button is opaque.
+      assert.equal(got.btnOpacity, '1', 'the buttons are still dimmed');
+
+      // Centred in the pill. Logseq 2.x makes these flex boxes; OG leaves them
+      // `display: block`, so the icon sat on the text baseline — 4px below the
+      // pill's top edge and 11px above its bottom.
+      const icons = await cdp.evaluateJson(`(() => {
+        const btns = [...document.querySelectorAll('.asset-container .asset-action-btn:not(.text-left)')];
+        return JSON.stringify(btns.map((b) => {
+          const r = b.getBoundingClientRect();
+          const icon = b.querySelector('svg, .ui__icon');
+          if (!icon) return null;
+          const ir = icon.getBoundingClientRect();
+          return { title: (b.title || '').slice(0, 20), above: ir.top - r.top, below: r.bottom - ir.bottom };
+        }).filter(Boolean));
+      })()`);
+      assert.ok(icons.length, 'no icon buttons found to measure');
+      const offCentre = icons.filter((i) => Math.abs(i.above - i.below) > 1)
+        .map((i) => `${i.title}: ${Math.round(i.above)}px above, ${Math.round(i.below)}px below`);
+      assert.deepEqual(offCentre, [], offCentre.join('\n  '));
+      if (got.overlay !== '(missing)') {
+        assert.equal(got.overlay, 'none', "OG's full-image scrim is still dimming the image");
       }
     },
   },

@@ -236,6 +236,16 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
     and insets the header 10px from the right, so both have to be undone to centre it.
   - Papers and Image Viewer use it for exactly this: floating page controls over a
     document.
+- **The image action bar is the same problem, and the builds handle it differently.** The
+  hover controls over an embedded image float over content the app does not colour, like
+  the PDF toolbar. OG dims the whole image to make them readable —
+  `.asset-overlay`, a gradient of `--ls-primary-background-color` at opacity `.9` — and
+  paints the bar in `--ls-primary-text-color`; measured over black, white and mid-grey
+  images that is 10.8:1 at worst, so it works, but dimming the content is not how GNOME
+  does it. **Logseq 2.x ships no overlay and sets no colour at all**, so the icons inherit
+  the body text colour onto the image at `opacity: .7` — white on a white photo in dark
+  mode. One OSD treatment per *button* (GTK's own pattern for overlay controls, as in
+  Loupe) fixes 2.x and makes the two builds agree.
 - **The external PDF window gets no theme, and cannot be given one from CSS.** "Open in
   external window" is not a route: it is a bare `window.open("about:blank")` document the
   app builds by hand (`frontend/extensions/pdf/windows.cljs`, `setup-win!`).
@@ -259,6 +269,15 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
 
 ## Testing: what synthetic tests cannot see
 
+- **A state the harness cannot hold is not a pass or a fail.** Logseq's asset-ref handler
+  opens the PDF viewer for a seeded block only sometimes: the click lands and throws
+  nothing (measured with a real CDP press and `.click()` alike; `pdf/current` stays null),
+  and when it does open, it can give up again before the assertions run. Measuring after
+  that reads an ordinary sidebar-open header — a stale state that looks exactly like a
+  regression. Each PDF case therefore **re-checks `is-pdf-active` immediately before
+  measuring** and reports itself skipped otherwise. Safe here because whether the viewer
+  opens is decided inside Logseq before any theme rule applies; the image-asset case needs
+  no click and does run.
 - **`element.click()` skips hit-testing.** A button under another layer still "works".
   Click with real pointer events (CDP `Input.dispatchMouseEvent`) and check
   `elementFromPoint`.
