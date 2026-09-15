@@ -412,6 +412,22 @@ PY2
 expect_red "shortcut keys set in the monospace font" \
   tests/static/fonts.test.mjs "$t"
 
+# 30. The docked layout left unguarded against Logseq's PDF viewer: it hides the
+#     sidebar and its toggle but keeps the open-state class, so the theme painted
+#     a 246px sidebar header over no sidebar and squeezed .r until the window
+#     controls collided with the plugin icons.
+t="$(scratch_tree pdf-headerbar)"
+python3 - "$t" <<'PY2'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+assert 'body:not(.is-pdf-active) ' in s, 'PDF guard not found — update this mutation'
+p.write_text(s.replace('body:not(.is-pdf-active) ', ''))
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "docked sidebar-header layout still painted with a PDF open" \
+  tests/static/headerbar.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

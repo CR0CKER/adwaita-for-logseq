@@ -74,7 +74,7 @@ test('back/forward lead the content header, as Files\' history controls do', () 
 });
 
 test('with the sidebar open, the toggle sits just past its edge and the menu at its header\'s end', () => {
-  const toggle = valueOf('html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu)', 'left');
+  const toggle = valueOf('html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l > div:has(> #left-menu)', 'left');
   assert.match(toggle ?? '', /var\(--ls-left-sidebar-width\)/, 'toggle must follow the sidebar width');
   // Logseq gives .r a transform, which makes .r — not #head — the menu's
   // containing block. While the sidebar is open .r starts exactly at its edge,
@@ -82,13 +82,13 @@ test('with the sidebar open, the toggle sits just past its edge and the menu at 
   // Placed by its right edge, 6px inside the sidebar, so the button's own width
   // (32px in OG, 44px for Logseq 2.x's ghost buttons before the theme sizes them)
   // cannot push it over the edge.
-  const menu = 'html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)';
+  const menu = 'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)';
   assert.equal(valueOf(menu, 'right'), 'calc(100% + 50px)', 'menu: its right edge 6px inside the sidebar — .r now starts 44px past it');
   assert.equal(valueOf(menu, 'left'), 'auto');
 });
 
 test('the sidebar header carries the app name, like Files\' AdwWindowTitle', () => {
-  assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .l::after', 'content'), '"Logseq"');
+  assert.equal(valueOf('html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l::after', 'content'), '"Logseq"');
 });
 
 test('the app name is a GTK headerbar title: bold, in the interface font size', () => {
@@ -96,29 +96,34 @@ test('the app name is a GTK headerbar title: bold, in the interface font size', 
   // and no font-size, so the title inherits the interface font — 'Adwaita Sans
   // 11', 11pt — the same size as the sidebar rows under it. It was 14px, set
   // when the rows were still Logseq's 14px, and left behind when they moved.
-  const title = 'html[data-theme] .ls-left-sidebar-open #head > .l::after';
+  const title = 'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l::after';
   const row = 'html[data-theme] #left-sidebar .left-sidebar-inner .nav-header a.item';
   assert.equal(valueOf(title, 'font-size'), '11pt', "GNOME's default interface font is Adwaita Sans 11");
   assert.equal(valueOf(title, 'font-size'), valueOf(row, 'font-size'), 'title and sidebar rows share one size, as in Files');
   assert.equal(valueOf(title, 'font-weight'), '700');
 });
 
+// Every placement that is measured from --ls-left-sidebar-width. They belong
+// together: each one holds only while a sidebar is really rendered under the
+// bar's left half, which is what the two tests below check from either side —
+// wide enough for Logseq to dock it, and not displaced by the PDF viewer.
+const DOCKED = [
+  'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l',
+  'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l > div:has(> #left-menu)',
+  'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .r',
+  'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)',
+  'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l::after',
+  // Logseq 2.x: #left-menu sits directly in .l, and ⋮ has no dropdown wrapper
+  'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l > #left-menu',
+  'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn',
+];
+
 test('the open-sidebar placements apply only where Logseq docks the sidebar (min-width 640px)', () => {
   // Below 640px Logseq turns the left sidebar into a wider overlay; the
   // docked placements would then land on top of it. There the header keeps
   // the collapsed layout — which is also what Files does when narrow.
-  const docked = [
-    'html[data-theme] .ls-left-sidebar-open #head > .l',
-    'html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu)',
-    'html[data-theme] .ls-left-sidebar-open #head > .r',
-    'html[data-theme] .ls-left-sidebar-open #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn)',
-    'html[data-theme] .ls-left-sidebar-open #head > .l::after',
-    // Logseq 2.x: #left-menu sits directly in .l, and ⋮ has no dropdown wrapper
-    'html[data-theme] .ls-left-sidebar-open #head > .l > #left-menu',
-    'html[data-theme] .ls-left-sidebar-open #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn',
-  ];
   const wrong = [];
-  for (const sel of docked) {
+  for (const sel of DOCKED) {
     const hits = rules(css).filter((r) => r.selector.split(',').map((s) => s.trim()).includes(sel));
     if (!hits.length) wrong.push(`${sel}: no rule`);
     for (const r of hits) if (!/min-width:\s*640px/.test(r.media ?? '')) wrong.push(`${sel}: not inside @media (min-width: 640px)`);
@@ -132,8 +137,8 @@ test('the moved sidebar toggle can be clicked: it stacks above .r', () => {
   // sits over .r's area, so a z-index on it alone is confined inside .l — a
   // real click reached .r, a window-drag region. .l's no-op transform must go
   // while the toggle is out there, so its z-index ranks it against .r.
-  assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .l', 'transform'), 'none');
-  assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .l > div:has(> #left-menu)', 'z-index'), '1');
+  assert.equal(valueOf('html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l', 'transform'), 'none');
+  assert.equal(valueOf('html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .l > div:has(> #left-menu)', 'z-index'), '1');
 });
 
 test('the main menu belongs to the sidebar: hidden with it, never moved into the content header', () => {
@@ -180,7 +185,7 @@ test('the moved toggle is outside .r\'s box, so .r\'s window-drag region cannot 
   // toggle lives in .l (earlier) but sat over .r's left padding (later, drag),
   // so a real mouse press dragged the window. Make room with a margin: .r's box
   // then starts past the toggle and only #head (an ancestor, earlier) is under it.
-  const r = 'html[data-theme] .ls-left-sidebar-open #head > .r';
+  const r = 'html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .r';
   assert.equal(valueOf(r, 'margin-left'), '44px');
   assert.equal(valueOf(r, 'padding-left'), undefined, 'padding would put .r under the toggle again');
 });
@@ -188,7 +193,7 @@ test('the moved toggle is outside .r\'s box, so .r\'s window-drag region cannot 
 test('the menu placed outside .r is not clipped by it (Logseq 2.x: overflow-x-hidden)', () => {
   // The menu sits 38px left of .r's box. Logseq 2.x gives .r Tailwind's
   // overflow-x-hidden, which clipped it away — the pointer then reached .l.
-  assert.equal(valueOf('html[data-theme] .ls-left-sidebar-open #head > .r', 'overflow'), 'visible');
+  assert.equal(valueOf('html[data-theme] body:not(.is-pdf-active) .ls-left-sidebar-open #head > .r', 'overflow'), 'visible');
 });
 
 test('the header reserves room for the window controls only while they sit over it', () => {
@@ -204,4 +209,28 @@ test('the header reserves room for the window controls only while they sit over 
 
 test('with the sidebar closed, the left part collapses so the toggle and arrows start the bar', () => {
   assert.equal(valueOf('html[data-theme] #head > .l', 'min-width'), '0');
+});
+
+test('with a PDF open there is no sidebar header, so the docked layout stands down', () => {
+  // Logseq's PDF viewer takes the left half of the window as a fixed overlay and
+  // shrinks the app to what is left. `body.is-pdf-active` hides #left-sidebar and
+  // #left-menu outright — but it does NOT clear the open-state class (Logseq's own
+  // `body.is-pdf-active #main-container.is-left-sidebar-open` rule exists because
+  // the class survives). Every placement above is measured from
+  // --ls-left-sidebar-width, so unguarded they paint a sidebar header over a
+  // sidebar that is gone: 246px of the shortened bar spent on a phantom block,
+  // and .r squeezed until its buttons collide with the window controls.
+  // Both builds ship these rules byte-identically (docs/logseq-internals.md).
+  const unguarded = DOCKED.filter((sel) => !sel.includes('body:not(.is-pdf-active)'));
+  assert.deepEqual(unguarded, [], 'docked placements that still apply with a PDF open');
+
+  // The main menu belongs to the sidebar and goes away with it (Files' pattern) —
+  // and with a PDF open Logseq has already taken away the toggle that would bring
+  // the sidebar back, so the open-state class must not keep ⋮ on screen.
+  for (const menu of [
+    '.ui__dropdown-trigger:has(.toolbar-dots-btn)',
+    'div:has(> .toggle-right-sidebar) > .toolbar-dots-btn',
+  ]) {
+    assert.equal(valueOf(`html[data-theme] body.is-pdf-active #head .r > ${menu}`, 'display'), 'none', menu);
+  }
 });

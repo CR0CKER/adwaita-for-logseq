@@ -88,6 +88,11 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
   Plugins and Themes. (GNOME apps whose sidebar the user can hide, such as Calendar, fix
   the menu at the content header's end instead; this theme follows Files. Below 640px,
   where Logseq overlays the sidebar, the menu sits at the header's end while it is open.)
+- **Opening a PDF hides the sidebar, so the header collapses with it.** Logseq's PDF
+  viewer takes the left ~42% of the window and removes the sidebar *and* its toggle; the
+  header keeps only the collapsed layout — search, then Back / Forward, with the plugin
+  icons and the right-sidebar toggle at the end. No sidebar header, no "Logseq" title and
+  no main menu while the PDF is open; close it and all three come back.
 - **With the sidebar closed** — or below 640px, where Logseq turns the sidebar into an
   overlay — the header collapses as Files does when narrow: toggle, search and
   Back/Forward first.
@@ -291,8 +296,10 @@ in both schemes, as text and as task markers at the opacity they render with; ev
 Adwaita-scheme text colour clears AA once clamped, inline code on its fill too, and so
 does highlight text on its highlight; every code token Logseq colours is re-pointed; the
 settings logic behaves; the vendored Adwaita icons are inlined byte-for-byte and each
-headerbar button uses the right one, with the docked-sidebar placements scoped to Logseq's
-640px breakpoint; text Logseq 2.x sets in its bundled Inter is named back to Adwaita Sans,
+headerbar button uses the right one, with the docked-sidebar placements scoped both to
+Logseq's 640px breakpoint and to the states where a sidebar is really rendered (the PDF
+viewer takes it away without clearing the open-state class); text Logseq 2.x sets in its
+bundled Inter is named back to Adwaita Sans,
 at a specificity that wins, and shortcut keys stay out of the monospace rule; the CSS
 reader itself handles `@media`; and `themes/adwaita.css` matches a fresh build.
 
@@ -312,8 +319,10 @@ page icons in the nav icons' column); and the Files headerbar layout
 by geometry, with the sidebar open and closed — every control in its slot and 32px square,
 the sidebar title bold at the rows' 11pt,
 none overlapping, each reachable by a real pointer click, Adwaita icons drawn, and the main
-menu opening under its new position. Two cases flip a setting through the host's own
-settings object and back: *Hide the Home button* (off the home page, where Logseq draws
+menu opening under its new position — and again with a PDF open, where Logseq removes the
+sidebar but not the class the layout keys on: no sidebar block, no title, no orphaned menu,
+nothing overlapping (OG only, since the harness opens a graph there). Two cases flip a
+setting through the host's own settings object and back: *Hide the Home button* (off the home page, where Logseq draws
 it) and *Graph picker at the bottom* (below the list, flush with the window's edge,
 reachable, nav rows keeping their inset, its menu opening inside the window). OG's graph
 dropdown renders only with a current graph, which the harness cannot give it (#2), so on

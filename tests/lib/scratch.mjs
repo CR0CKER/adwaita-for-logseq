@@ -35,12 +35,54 @@ function pickPort() {
   return 9600 + Math.floor(Math.random() * 300);
 }
 
+/**
+ * A one-page PDF, built here rather than committed as a fixture binary.
+ *
+ * The headerbar case only needs Logseq to *open* its viewer — `is-pdf-active`
+ * and the container appear on the click either way — but a file pdf.js can
+ * actually render keeps the case measuring a real viewer rather than a loader
+ * stuck on a parse error. Offsets are computed, because an xref table that
+ * does not match the bytes is exactly what makes pdf.js fall back to its
+ * recovery path.
+ */
+function onePagePdf() {
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    null, // the content stream, built below
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  const stream = 'BT /F1 24 Tf 72 742 Td (regression suite) Tj ET';
+  objects[3] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  objects.forEach((body, i) => {
+    offsets.push(pdf.length);
+    pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const startxref = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const off of offsets) pdf += `${String(off).padStart(10, '0')} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${startxref}\n%%EOF\n`;
+  // Latin-1: every byte above is ASCII, and an xref offset must be a byte count.
+  return Buffer.from(pdf, 'latin1');
+}
+
 /** A minimal file-based graph: enough for a sidebar with sections. */
 function seedGraph(dir) {
   mkdirSync(join(dir, 'logseq'), { recursive: true });
   mkdirSync(join(dir, 'journals'), { recursive: true });
   mkdirSync(join(dir, 'pages'), { recursive: true });
+  mkdirSync(join(dir, 'assets'), { recursive: true });
   writeFileSync(join(dir, 'logseq/config.edn'), '{:feature/enable-developer-mode? true}\n');
+  // An asset for the PDF viewer, which takes the left half of the window and
+  // hides the sidebar — the state the headerbar case measures. Only the file:
+  // Logseq never indexes these seeded files (they give the sidebar its sections,
+  // nothing more), so the block that references it is created through the plugin
+  // API instead, from the case itself.
+  writeFileSync(join(dir, 'assets/regression.pdf'), onePagePdf());
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '_');
   writeFileSync(join(dir, `journals/${today}.md`), '- hello from the regression suite\n- [[a test page]]\n');
   writeFileSync(join(dir, 'pages/a test page.md'), '- referenced by the journal\n');

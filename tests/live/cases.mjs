@@ -99,6 +99,54 @@ async function realClick(cdp, sel) {
   for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
 }
 
+/**
+ * Every headerbar control's geometry in one round trip, plus the three ways a
+ * control can be present and still unusable: overlapping another, unreachable
+ * by a pointer, or sitting under a later window-drag region.
+ *
+ * Shared by the two headerbar cases — the sidebar's own open/closed layout, and
+ * the layout Logseq's PDF viewer leaves behind when it takes the sidebar away.
+ */
+const measureHeader = (cdp) =>
+  cdp.evaluateJson(`(() => {
+  const r = (sel) => { const e = document.querySelector(sel); if (!e || !e.offsetParent) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+  const items = { toggle: r('#left-menu'), search: r('#search-button'), back: r('.navigation.nav-left'), fwd: r('.navigation.nav-right'), menu: r('.toolbar-dots-btn'), rside: r('.toggle-right-sidebar') };
+  const present = Object.entries(items).filter(([, v]) => v);
+  const overlaps = [];
+  for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++) {
+    const [a, A] = present[i], [b, B] = present[j];
+    if (A.l < B.r - 0.5 && B.l < A.r - 0.5 && A.t < B.b && B.t < A.b) overlaps.push(a + '/' + b);
+  }
+  const mask = (sel) => { const e = document.querySelector(sel + ' .ui__icon'); if (!e) return null; const c = getComputedStyle(e, '::before'); return c.maskImage || c.webkitMaskImage; };
+  return JSON.stringify({
+    open: Boolean(document.querySelector('.ls-left-sidebar-open')),
+    width: innerWidth,
+    sidebar: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ls-left-sidebar-width')),
+    title: getComputedStyle(document.querySelector('#head > .l'), '::after').content,
+    titleFont: (() => { const c = getComputedStyle(document.querySelector('#head > .l'), '::after'); return { size: parseFloat(c.fontSize), weight: c.fontWeight }; })(),
+    items, overlaps,
+    masks: Object.fromEntries(['#left-menu', '.toggle-right-sidebar', '.toolbar-dots-btn', '.navigation.nav-left', '.navigation.nav-right'].map((s) => [s, mask(s)])),
+    // Electron resolves -webkit-app-region in document order: a *later*
+    // drag region covering a control turns a real mouse press there into
+    // a window drag — invisible to elementFromPoint and to CDP input,
+    // which both skip that step. Simulate it: controls under a later
+    // drag region.
+    dragged: (() => {
+      const drag = [...document.querySelectorAll('*')].filter((d) => getComputedStyle(d).webkitAppRegion === 'drag');
+      return Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
+        .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
+        .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); const x = b.left + b.width / 2, y = b.top + b.height / 2;
+          return drag.some((d) => (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !d.contains(e) && !e.contains(d) && (() => { const r = d.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; })()); })
+        .map(([k]) => k);
+    })(),
+    // Which element a pointer at each control's centre actually reaches.
+    blocked: Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
+      .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
+      .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); return !e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)); })
+      .map(([k]) => k),
+  });
+})()`);
+
 export const cases = [
   {
     // First on purpose: nothing may have touched a setting yet.
@@ -658,45 +706,7 @@ export const cases = [
     // sidebar toggle and Back/Forward. Checked by geometry in both sidebar states.
     name: 'headerbar is laid out like GNOME Files, sidebar open and closed',
     async run({ cdp }) {
-      const measure = () =>
-        cdp.evaluateJson(`(() => {
-          const r = (sel) => { const e = document.querySelector(sel); if (!e || !e.offsetParent) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
-          const items = { toggle: r('#left-menu'), search: r('#search-button'), back: r('.navigation.nav-left'), fwd: r('.navigation.nav-right'), menu: r('.toolbar-dots-btn'), rside: r('.toggle-right-sidebar') };
-          const present = Object.entries(items).filter(([, v]) => v);
-          const overlaps = [];
-          for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++) {
-            const [a, A] = present[i], [b, B] = present[j];
-            if (A.l < B.r - 0.5 && B.l < A.r - 0.5 && A.t < B.b && B.t < A.b) overlaps.push(a + '/' + b);
-          }
-          const mask = (sel) => { const e = document.querySelector(sel + ' .ui__icon'); if (!e) return null; const c = getComputedStyle(e, '::before'); return c.maskImage || c.webkitMaskImage; };
-          return JSON.stringify({
-            open: Boolean(document.querySelector('.ls-left-sidebar-open')),
-            width: innerWidth,
-            sidebar: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ls-left-sidebar-width')),
-            title: getComputedStyle(document.querySelector('#head > .l'), '::after').content,
-            titleFont: (() => { const c = getComputedStyle(document.querySelector('#head > .l'), '::after'); return { size: parseFloat(c.fontSize), weight: c.fontWeight }; })(),
-            items, overlaps,
-            masks: Object.fromEntries(['#left-menu', '.toggle-right-sidebar', '.toolbar-dots-btn', '.navigation.nav-left', '.navigation.nav-right'].map((s) => [s, mask(s)])),
-            // Electron resolves -webkit-app-region in document order: a *later*
-            // drag region covering a control turns a real mouse press there into
-            // a window drag — invisible to elementFromPoint and to CDP input,
-            // which both skip that step. Simulate it: controls under a later
-            // drag region.
-            dragged: (() => {
-              const drag = [...document.querySelectorAll('*')].filter((d) => getComputedStyle(d).webkitAppRegion === 'drag');
-              return Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
-                .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
-                .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); const x = b.left + b.width / 2, y = b.top + b.height / 2;
-                  return drag.some((d) => (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !d.contains(e) && !e.contains(d) && (() => { const r = d.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; })()); })
-                .map(([k]) => k);
-            })(),
-            // Which element a pointer at each control's centre actually reaches.
-            blocked: Object.entries({ toggle: '#left-menu', search: '#search-button', back: '.navigation.nav-left', fwd: '.navigation.nav-right', menu: '.toolbar-dots-btn', rside: '.toggle-right-sidebar' })
-              .filter(([, sel]) => document.querySelector(sel)?.offsetParent)
-              .filter(([, sel]) => { const e = document.querySelector(sel); const b = e.getBoundingClientRect(); return !e.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)); })
-              .map(([k]) => k),
-          });
-        })()`);
+      const measure = () => measureHeader(cdp);
       // A real pointer click at the button's centre (CDP Input), not
       // element.click(): the latter bypasses hit-testing, and the toggle once
       // sat under .r's layer — clickable by script, dead to the mouse.
@@ -768,6 +778,70 @@ export const cases = [
         assert.ok(right.gap <= 16, `right sidebar open: ${Math.round(right.gap)}px between the last header control and the main section's edge`);
       } finally {
         await setOpen(wasOpen).catch(() => {});
+      }
+    },
+  },
+
+  {
+    // Logseq's PDF viewer is the one state where the sidebar goes away without
+    // the open-state class changing: `body.is-pdf-active` display:none's both
+    // #left-sidebar and #left-menu and pads #app-container past a fixed overlay
+    // holding the left ~42vw, so the header shrinks with it — but the class the
+    // docked placements key on survives. Unguarded, the theme drew a 246px
+    // sidebar header over no sidebar and squeezed .r until the window controls
+    // landed on top of the plugin icons.
+    //
+    // The assertions are about the header, so they hold whether or not pdf.js
+    // paints the page: `is-pdf-active` and the container appear on the click
+    // either way. (The seeded asset is a real one-page PDF all the same —
+    // tests/lib/scratch.mjs.)
+    name: 'headerbar with a PDF open: no sidebar header, and nothing overlapping',
+    needs: ['graph'],
+    async run({ cdp }) {
+      // Through the plugin API, not the seeded journal: the scratch graph's
+      // files give the sidebar its sections, but Logseq never indexes them, so
+      // a block written to journals/*.md renders as an empty page. The PDF
+      // itself is a real file in the graph's assets/ (tests/lib/scratch.mjs);
+      // `../assets/` resolves from pages/, where this one lands.
+      const asset = '.asset-ref.is-pdf, .asset-ref-wrap[data-ext=pdf] a';
+      if (!(await renderPage(cdp, 'pdf viewer', ['![regression](../assets/regression.pdf)']))) return NOT_PAINTING;
+      await waitFor(cdp, `Boolean(document.querySelector(${JSON.stringify(asset)}))`, {
+        label: 'the PDF asset ref to render', timeoutMs: 15000,
+      });
+      const before = await measureHeader(cdp);
+      if (before.width < 640) return { skipped: `window is ${before.width}px; the docked layout starts at 640px` };
+
+      await realClick(cdp, asset);
+      try {
+        await waitFor(cdp, `document.body.classList.contains('is-pdf-active')`, {
+          label: 'the PDF viewer to open', timeoutMs: 15000,
+        });
+        await new Promise((r) => setTimeout(r, 800)); // the header's own padding transition
+        const pdf = await measureHeader(cdp);
+        const surfaces = await probe(cdp, { l: ['#head > .l', 'backgroundColor'] });
+
+        // The reported bug: the ✕ drawn over the journals-calendar icon.
+        assert.deepEqual(pdf.overlaps, [], 'PDF open: header controls overlap');
+        assert.deepEqual(pdf.blocked, [], 'PDF open: controls a pointer cannot reach');
+        assert.deepEqual(pdf.dragged, [], 'PDF open: controls under a later window-drag region (a real press drags the window)');
+        // No sidebar header: no block of sidebar colour, and no title over it.
+        // Back to §3's base `.l` rule — transparent, so the bar's own fill shows
+        // through. Comparing against #head's colour would not do: they are equal
+        // only because .l paints nothing.
+        assert.equal(surfaces.l, 'rgba(0, 0, 0, 0)', 'PDF open: .l still painted as a sidebar header');
+        assert.equal(pdf.title, 'none', 'PDF open: a headerbar title with no sidebar under it');
+        // The menu belongs to the sidebar and goes with it — and Logseq has
+        // already taken away the toggle that would bring the sidebar back.
+        assert.equal(pdf.items.menu, null, 'PDF open: the main menu outlived the sidebar');
+        assert.equal(pdf.items.toggle, null, 'PDF open: Logseq hides #left-menu itself');
+        if (pdf.items.search) {
+          assert.ok(pdf.items.search.l < 12, `PDF open: search starts the bar (l=${pdf.items.search.l})`);
+          assert.ok(pdf.items.back.l >= pdf.items.search.r && pdf.items.back.l < pdf.items.search.r + 60,
+            'PDF open: Back follows Search, as in the collapsed layout');
+        }
+      } finally {
+        await cdp.evaluate(`(() => { const b = [...document.querySelectorAll('.extensions__pdf-toolbar button, .extensions__pdf-toolbar a')].pop(); b?.click(); return true; })()`).catch(() => {});
+        await waitFor(cdp, `!document.body.classList.contains('is-pdf-active')`, { label: 'the PDF viewer to close', timeoutMs: 8000 }).catch(() => {});
       }
     },
   },
