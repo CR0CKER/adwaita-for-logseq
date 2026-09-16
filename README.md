@@ -220,6 +220,11 @@ options; the theme covers the GNOME look on its own.
 `custom.css` did exactly this — overrides rules at equal specificity. Emptying it hands
 the look back to the plugin.
 
+**Copy or Maximize on an image does nothing.** That one is Logseq's, not the theme's: the
+buttons are covered by the block's own container, so the click never reaches them. It
+happens with the default theme too — measured with the theme's stylesheet disabled — and a
+theme cannot fix it without overriding someone else's layout.
+
 **Text looks larger or smaller than in other GNOME apps.** The theme matches GNOME's
 defaults: sidebar rows and the sidebar title at the interface size (`Adwaita Sans 11`,
 14.67px), note text at the document size (`Adwaita Sans 12`, 16px). It doesn't follow a

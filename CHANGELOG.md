@@ -5,6 +5,16 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Added
+
+- `docs/logseq-internals.md`: a "Logseq: chrome painted over content" section — the sweep
+  that found the image action bar, what it cleared (the whiteboard, autocomplete popups,
+  slides, the PDF backdrop) and why, so a later pass does not re-litigate them. Plus the
+  image action bar's OG/2.x differences in the build table, and a note that Copy and
+  Maximize on that bar are broken in Logseq itself.
+- README: a Troubleshooting entry for Copy/Maximize on an image doing nothing — it happens
+  with the default theme too, so it is not a theming problem.
+
 ## [0.3.0] - 2026-09-15
 
 ### Added

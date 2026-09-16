@@ -10,6 +10,7 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
 ## Contents
 
 - [Logseq: cascade traps](#logseq-cascade-traps)
+- [Logseq: chrome painted over content](#logseq-chrome-painted-over-content)
 - [Logseq: the headerbar](#logseq-the-headerbar)
 - [Logseq OG vs 2.x](#logseq-og-vs-2x)
 - [Electron: window-drag regions](#electron-window-drag-regions)
@@ -66,6 +67,29 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
   **closed**; open, they sit over the sidebar. Reserving room in both states left a ~100px
   gap.
 
+## Logseq: chrome painted over content
+
+The PDF toolbar bug generalises: Logseq paints some surfaces from an app-surface variable
+even though they float over *content* whose colour the app does not choose. A theme that
+remaps those variables inherits the mistake in a new colour.
+
+**The sweep** (2026-09-15, both builds' shipped `style.css`): take every `--ls-*`/`--lx-*`
+the theme assigns (90 of them), find the rules that consume them in a `background`,
+`border-*-color`, `box-shadow` or `color`, and keep those whose selector names an overlay
+surface. Worth re-running whenever a new variable is mapped; the script is a dozen lines of
+`re.finditer` over the stylesheet.
+
+| Surface | Verdict |
+|---|---|
+| PDF toolbar, popovers, highlight menu | **fixed** — OSD (`30-structure.css` §9) |
+| Image action bar | **fixed** — OSD per button (§10) |
+| Whiteboard / tldraw chrome (~50 rules in OG) | **cleared**: the canvas is itself app-themed, so this is app chrome on an app surface |
+| Editor autocomplete popups (`#ui__ac-inner`, `.absolute-modal`) | **cleared**: they sit over the editor, which the app colours |
+| Slides (`.reveal`) | **cleared**: same — the slide surface is themed |
+| PDF dark-page backdrop and `.textLayer` | **cleared**: the viewer's own backdrop, not a control over the page. Note both are `filter: invert(100%)`, so what a reader sees is the *inverse* of the colour set — `#2e2e32` renders as `#d1d1cd` |
+
+Recorded so a later sweep does not re-litigate the cleared ones.
+
 ## Logseq: the headerbar
 
 - `#head` is `position: sticky`, so it's a containing block and a stacking context.
@@ -114,6 +138,7 @@ The theme must work on both. Their markup differs in ways that break OG-only sel
 | Favorites / Recent rows | `.nav-content-item .bd ul a` (not `.item`): 28px, `padding: 4px 24px`, opacity .8, `span.page-icon.ml-3` (20px box, 12px lead) | `a.link-item`, 32px, opacity .8, `.page-icon` 20px box with a 4px-padded `.icon-cp-container` |
 | "Create" (new page) | `footer.create` (`#create-button`), last in `.wrap` | none in the sidebar |
 | Keyboard-shortcut keys | tiles that inherit the font | `kbd.shui-shortcut-key`, which names Inter itself |
+| Image action bar | `.asset-action-btn` is `display: block`, so an icon sits on the text baseline; the whole image is dimmed behind it by `.asset-overlay` | `display: flex` already; **no overlay and no colour at all**, so icons land on the image at `opacity: .7` |
 
 - **The Home button renders only away from the home route**, and not at all with a custom
   `:default-home` page; the same condition in both builds. Its `.ls-icon-home` is the one
@@ -246,6 +271,12 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   the body text colour onto the image at `opacity: .7` — white on a white photo in dark
   mode. One OSD treatment per *button* (GTK's own pattern for overlay controls, as in
   Loupe) fixes 2.x and makes the two builds agree.
+- **Copy and Maximize on the image action bar do nothing, and that is Logseq's.** Measured
+  in OG with a real pointer press: at each button's centre `elementFromPoint` returns a
+  block container `div`, not the button, so the click never reaches the handler. Identical
+  with this theme's stylesheet enabled and disabled, and reproduced by the maintainer
+  against the default theme, so it is not a theming problem — do not "fix" it with a
+  `z-index` on someone else's layout bug. Not filed upstream yet.
 - **The external PDF window gets no theme, and cannot be given one from CSS.** "Open in
   external window" is not a route: it is a bare `window.open("about:blank")` document the
   app builds by hand (`frontend/extensions/pdf/windows.cljs`, `setup-win!`).
