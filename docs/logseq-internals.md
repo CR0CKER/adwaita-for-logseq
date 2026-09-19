@@ -234,6 +234,14 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
     its sidebar header is empty. Text Editor (also toggleable) likewise keeps the menu out of
     its sidebar.
   - This theme follows Files, by the user's choice: the menu is hidden with the sidebar.
+    Its page items stay reachable on a right-click on the page title, which opens the same
+    page menu in both builds (OG: `page-title-custom-context-menu-content`; 2.x checked live).
+- **Search goes with the sidebar too.** Files' sidebar header button is "Search Everywhere"
+  (`nautilus-window.ui`); the content header's is "Search Current Folder"
+  (`nautilus-toolbar.ui`, `nautilus-folder-search-symbolic`), a scoped search Logseq has no
+  counterpart for. So the theme hides `#search-button` whenever the sidebar is not on screen.
+  OG renders the button only with a current graph (`header.cljs`, `(when current-repo …)`),
+  inside a `ui/with-shortcut` tooltip `div`; 2.x has it bare in `.l`.
 - **HIG, Menus:** "The button for primary menus should use the `open-menu-symbolic` icon." ⋮ is for secondary, per-view menus.
 - **HIG palette:** "intended for use in app icons and illustrations" — not for text.
 - **Text colours:** GNOME's only role-based text palette is GtkSourceView's Adwaita scheme

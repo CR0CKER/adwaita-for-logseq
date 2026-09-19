@@ -772,7 +772,11 @@ export const cases = [
         assert.deepEqual(closed.dragged, [], 'closed: controls under a later window-drag region (a real press drags the window)');
         assert.equal(closed.title, 'none', 'closed: no sidebar title');
         assert.ok(closed.items.toggle.l < 12, 'closed: the toggle starts the bar');
-        assert.ok(closed.items.back.l > closed.items.toggle.r && closed.items.back.l < closed.items.toggle.r + 60, 'closed: Back follows the toggle');
+        // Search goes with the sidebar (Files' "Search Everywhere" lives in its
+        // sidebar header), so Back sits one 6px gap after the toggle. The tight
+        // bound also catches an empty search wrapper left behind in .l.
+        assert.equal(closed.items.search, null, 'closed: search is hidden with the sidebar');
+        assert.ok(closed.items.back.l > closed.items.toggle.r && closed.items.back.l < closed.items.toggle.r + 12, 'closed: Back follows the toggle');
         assert.ok(closed.items.fwd.l >= closed.items.back.r - 0.5, 'closed: Forward follows Back');
         // Files' pattern: the main menu belongs to the sidebar and is hidden with
         // it — not moved to the other end of the bar.
@@ -878,11 +882,9 @@ export const cases = [
         // already taken away the toggle that would bring the sidebar back.
         assert.equal(pdf.items.menu, null, 'PDF open: the main menu outlived the sidebar');
         assert.equal(pdf.items.toggle, null, 'PDF open: Logseq hides #left-menu itself');
-        if (pdf.items.search) {
-          assert.ok(pdf.items.search.l < 12, `PDF open: search starts the bar (l=${pdf.items.search.l})`);
-          assert.ok(pdf.items.back.l >= pdf.items.search.r && pdf.items.back.l < pdf.items.search.r + 60,
-            'PDF open: Back follows Search, as in the collapsed layout');
-        }
+        // Search belongs to the sidebar as well, so Back/Forward start the bar.
+        assert.equal(pdf.items.search, null, 'PDF open: search outlived the sidebar');
+        assert.ok(pdf.items.back.l < 12, `PDF open: Back starts the bar (l=${pdf.items.back.l})`);
       } finally {
         await closePdf(cdp);
       }
