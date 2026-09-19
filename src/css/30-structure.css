@@ -160,12 +160,14 @@ html[data-theme] body.is-pdf-active #head .r > div:has(> .toggle-right-sidebar) 
    folder-scoped one that Logseq has no counterpart for. So it goes with the
    sidebar in the same two states as the menu, and Ctrl+K still opens it.
    Hidden is the flex item of .l — OG wraps the button in a tooltip div
-   (ui/with-shortcut), 2.x does not — so no empty wrapper keeps a 6px gap. */
+   (ui/with-shortcut), 2.x does not — so no empty wrapper keeps a 6px gap.
+   That wrapper carries an inline style="display: inline", which only
+   !important outranks. */
 html[data-theme] main:not(.ls-left-sidebar-open) #head > .l > div:has(> #search-button),
 html[data-theme] main:not(.ls-left-sidebar-open) #head > .l > #search-button,
 html[data-theme] body.is-pdf-active #head > .l > div:has(> #search-button),
 html[data-theme] body.is-pdf-active #head > .l > #search-button {
-  display: none;
+  display: none !important;
 }
 
 /* Logseq 2.x puts Back/Forward, ⋮ and the right-sidebar toggle in one flex

@@ -164,9 +164,15 @@ test('search belongs to the sidebar too: hidden whenever no sidebar is on screen
   // viewer — and Ctrl+K still opens it. The hidden item is the flex item of
   // .l: OG wraps the button in a tooltip div (ui/with-shortcut), and an
   // empty wrapper left behind would still take .l's 6px column-gap.
+  //
+  // That wrapper carries an inline style="display: inline", which beats any
+  // stylesheet rule without !important. The first version of this rule lacked
+  // it, and the search button stayed visible in a real OG window with a graph
+  // open. The live harness can't show this, because OG draws the button only
+  // with a current graph.
   for (const state of ['main:not(.ls-left-sidebar-open)', 'body.is-pdf-active']) {
     for (const item of ['div:has(> #search-button)', '#search-button']) {
-      assert.equal(valueOf(`html[data-theme] ${state} #head > .l > ${item}`, 'display'), 'none', `${state} ${item}`);
+      assert.equal(valueOf(`html[data-theme] ${state} #head > .l > ${item}`, 'display'), 'none !important', `${state} ${item}`);
     }
   }
 });
