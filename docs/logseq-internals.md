@@ -241,7 +241,9 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   (`nautilus-toolbar.ui`, `nautilus-folder-search-symbolic`), a scoped search Logseq has no
   counterpart for. So the theme hides `#search-button` whenever the sidebar is not on screen.
   OG renders the button only with a current graph (`header.cljs`, `(when current-repo …)`),
-  inside a `ui/with-shortcut` tooltip `div`; 2.x has it bare in `.l`.
+  inside a `ui/with-shortcut` tooltip `div`; 2.x has it bare in `.l`. That `div` has an
+  inline `style="display: inline"`, as the Home button's does, so hiding it needs
+  `!important`.
 - **HIG, Menus:** "The button for primary menus should use the `open-menu-symbolic` icon." ⋮ is for secondary, per-view menus.
 - **HIG palette:** "intended for use in app icons and illustrations" — not for text.
 - **Text colours:** GNOME's only role-based text palette is GtkSourceView's Adwaita scheme

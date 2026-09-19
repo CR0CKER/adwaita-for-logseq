@@ -9,7 +9,8 @@ All notable changes to this project are documented here, in
 
 - The headerbar's search button is hidden with the left sidebar, like the main menu: when
   the sidebar is closed, and while a PDF has taken it away. Files keeps its "Search
-  Everywhere" in the sidebar header too. Ctrl+K still opens search.
+  Everywhere" in the sidebar header too. Ctrl+K still opens search. On Logseq OG the rule
+  needs `!important`: the button's tooltip wrapper carries an inline `display: inline`.
 
 ### Added
 
