@@ -5,6 +5,8 @@
  *   sidebar header:  Search (edit-find) · title · Main Menu (open-menu)
  *   content header:  sidebar toggle (sidebar-show) · Back/Forward (go-previous/next)
  *
+ * Search and the main menu belong to the sidebar header and are hidden with it.
+ *
  * The icons are Adwaita's own symbolic icons, vendored verbatim in src/icons/
  * and inlined as mask tokens by scripts/encode-icons.mjs. CSS cannot reparent
  * Logseq's buttons, so the layout is flex `order` plus absolute placement in
@@ -152,6 +154,20 @@ test('the main menu belongs to the sidebar: hidden with it, never moved into the
     'div:has(> .toggle-right-sidebar) > .toolbar-dots-btn',
   ]) {
     assert.equal(valueOf(`html[data-theme] main:not(.ls-left-sidebar-open) #head .r > ${menu}`, 'display'), 'none', menu);
+  }
+});
+
+test('search belongs to the sidebar too: hidden whenever no sidebar is on screen', () => {
+  // Files' sidebar header carries "Search Everywhere"; the content header's
+  // own search is folder-scoped, which Logseq's global search is not. So it
+  // goes with the sidebar — closed by the user, or taken away by the PDF
+  // viewer — and Ctrl+K still opens it. The hidden item is the flex item of
+  // .l: OG wraps the button in a tooltip div (ui/with-shortcut), and an
+  // empty wrapper left behind would still take .l's 6px column-gap.
+  for (const state of ['main:not(.ls-left-sidebar-open)', 'body.is-pdf-active']) {
+    for (const item of ['div:has(> #search-button)', '#search-button']) {
+      assert.equal(valueOf(`html[data-theme] ${state} #head > .l > ${item}`, 'display'), 'none', `${state} ${item}`);
+    }
   }
 });
 

@@ -5,6 +5,12 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Changed
+
+- The headerbar's search button is hidden with the left sidebar, like the main menu: when
+  the sidebar is closed, and while a PDF has taken it away. Files keeps its "Search
+  Everywhere" in the sidebar header too. Ctrl+K still opens search.
+
 ### Added
 
 - `docs/logseq-internals.md`: a "Logseq: chrome painted over content" section — the sweep

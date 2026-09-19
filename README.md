@@ -88,11 +88,17 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
   Plugins and Themes. (GNOME apps whose sidebar the user can hide, such as Calendar, fix
   the menu at the content header's end instead; this theme follows Files. Below 640px,
   where Logseq overlays the sidebar, the menu sits at the header's end while it is open.)
+  The page's own actions — Add to favorites, Copy page URL, Delete — are also on a
+  right-click on the page title, so they stay in reach with the sidebar closed.
+- **Search belongs to the sidebar too**, for the same reason: Files' sidebar header holds
+  its "Search Everywhere", and the search in its content header is a folder-scoped one that
+  Logseq has no counterpart for. It is hidden with the sidebar; **Ctrl+K** opens search
+  either way.
 - **Opening a PDF hides the sidebar, so the header collapses with it.** Logseq's PDF
   viewer takes the left ~42% of the window and removes the sidebar *and* its toggle; the
-  header keeps only the collapsed layout — search, then Back / Forward, with the plugin
-  icons and the right-sidebar toggle at the end. No sidebar header, no "Logseq" title and
-  no main menu while the PDF is open; close it and all three come back.
+  header keeps only the collapsed layout — Back / Forward, with the plugin icons and the
+  right-sidebar toggle at the end. No sidebar header, no "Logseq" title, no search button
+  and no main menu while the PDF is open; close it and they all come back.
 - **The PDF viewer's floating controls are an Adwaita OSD toolbar.** Its toolbar,
   settings, outline, search and highlight menu all sit over the page, so they take GTK's
   style for controls overlaid on content: a dark translucent ground with white icons,
@@ -107,8 +113,8 @@ screenshot. It is the same on Logseq OG and 2.x, whose header markup differs und
   ground instead of relying on the image being dark enough — and Logseq OG's habit of
   dimming the whole image to make them readable goes with it.
 - **With the sidebar closed** — or below 640px, where Logseq turns the sidebar into an
-  overlay — the header collapses as Files does when narrow: toggle, search and
-  Back/Forward first.
+  overlay — the header collapses as Files does when narrow: the toggle and Back/Forward
+  first. Search joins them only while the overlay sidebar is open.
 - **No divider directly under the header**; dividers separate groups, as in Files.
   Sidebar row icons are drawn at Files' 70% opacity (`image.sidebarrow-icon { opacity:
   0.7 }` in Nautilus's stylesheet), their labels at full strength.

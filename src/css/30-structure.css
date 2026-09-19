@@ -126,7 +126,7 @@ html[data-theme] #head > .l {
   position: relative;
   min-width: 0;
   column-gap: 6px;      /* the 6px GTK leaves between header bar buttons: */
-  padding-right: 6px;   /* toggle · search while closed, and before .r */
+  padding-right: 6px;   /* after the toggle while closed, and before .r */
 }
 
 /* Back/Forward lead the content header; everything else goes to the end. The
@@ -152,6 +152,19 @@ html[data-theme] main:not(.ls-left-sidebar-open) #head .r > .ui__dropdown-trigge
 html[data-theme] main:not(.ls-left-sidebar-open) #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn,
 html[data-theme] body.is-pdf-active #head .r > .ui__dropdown-trigger:has(.toolbar-dots-btn),
 html[data-theme] body.is-pdf-active #head .r > div:has(> .toggle-right-sidebar) > .toolbar-dots-btn {
+  display: none;
+}
+
+/* Search belongs to the sidebar header as well: Files' sidebar carries
+   "Search Everywhere", and the search in its content header is a different,
+   folder-scoped one that Logseq has no counterpart for. So it goes with the
+   sidebar in the same two states as the menu, and Ctrl+K still opens it.
+   Hidden is the flex item of .l — OG wraps the button in a tooltip div
+   (ui/with-shortcut), 2.x does not — so no empty wrapper keeps a 6px gap. */
+html[data-theme] main:not(.ls-left-sidebar-open) #head > .l > div:has(> #search-button),
+html[data-theme] main:not(.ls-left-sidebar-open) #head > .l > #search-button,
+html[data-theme] body.is-pdf-active #head > .l > div:has(> #search-button),
+html[data-theme] body.is-pdf-active #head > .l > #search-button {
   display: none;
 }
 
