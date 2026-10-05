@@ -80,6 +80,13 @@ test('every code token Logseq colours is re-pointed at the Adwaita scheme', () =
   assert.deepEqual(wrong, [], wrong.join('\n  '));
 });
 
+test('JSON keys are constants, as GtkSourceView colours json:keyname, not plain text', () => {
+  // CodeMirror marks a quoted key `cm-string cm-property`, so the property
+  // rule's `inherit` would win over the string colour and leave keys bare
+  // (issue #21). GtkSourceView's json.lang maps keyname to def:constant.
+  assert.equal(colourOf('html[data-theme] .CodeMirror .cm-string.cm-property'), 'var(--adw-text-violet)');
+});
+
 test('code blocks are an Adwaita surface, not solarized teal or cream', () => {
   assert.equal(declaredValue(css, /^html\[data-theme\] \.CodeMirror$/, 'background-color'), 'var(--adw-gray-02)');
   assert.equal(declaredValue(css, /^html\[data-theme\] \.CodeMirror$/, 'color'), 'var(--adw-gray-11)');

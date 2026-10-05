@@ -539,6 +539,36 @@ PY2
 expect_red "image action icons on the text baseline, not centred in the pill" \
   tests/static/pdf-osd.test.mjs "$t"
 
+# 38. JSON keys left to the property rule's `inherit`: CodeMirror marks them
+#     `cm-string cm-property`, so they rendered as plain text (#21).
+t="$(scratch_tree json-keys)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/27-text.css')
+s = p.read_text()
+new, n = re.subn(r"html\[data-theme\] \.CodeMirror \.cm-string\.cm-property \{[^}]*\}\n", "", s, count=1)
+assert n == 1, 'JSON key rule not found — update this mutation'
+p.write_text(new)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "JSON keys uncoloured, not json:keyname's def:constant" \
+  tests/static/text.test.mjs "$t"
+
+# 39. The block context menu's heading buttons at text-button padding: 38px
+#     each, so "Remove heading" ran past the 280px menu's clip (#21).
+t="$(scratch_tree context-menu-buttons)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+new, n = re.subn(r"html\[data-theme\] \.ls-context-menu-content \.ui__button:has\(> \.ui__icon:only-child\) \{[^}]*\}\n", "", s, count=1)
+assert n == 1, 'context menu button rule not found — update this mutation'
+p.write_text(new)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "context-menu heading buttons at text padding, clipped by the menu" \
+  tests/static/context-menu.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

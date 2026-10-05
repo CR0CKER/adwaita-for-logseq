@@ -187,7 +187,7 @@ follows that split:
 
 | In your notes | Colour | From |
 |---|---|---|
-| Code blocks | keywords orange (bold), strings/types teal, functions blue, numbers violet, comments grey, on an Adwaita surface | the Adwaita scheme — replaces Logseq's solarized code theme |
+| Code blocks | keywords orange (bold), strings/types teal, functions blue, numbers, constants and JSON keys violet, comments grey, on an Adwaita surface | the Adwaita scheme — replaces Logseq's solarized code theme |
 | `==highlights==` | yellow, dark text | the scheme's search-match colours |
 | Links, page refs, tags, block refs, task markers | the accent | libadwaita: navigation is accent-coloured |
 | Headings, inline code, quote bars | body text (default) — or teal, violet and grey with **Text colours: Text Editor** | the scheme's `def:heading`, `def:inline-code`, blockquote marker |

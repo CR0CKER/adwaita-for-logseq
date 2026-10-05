@@ -172,3 +172,11 @@ html[data-theme] .CodeMirror .cm-special,
 html[data-theme] .CodeMirror .cm-em {
   color: inherit;
 }
+
+/* json:keyname, def:constant. CodeMirror marks a quoted key `cm-string
+   cm-property`, so without this the property rule above leaves JSON keys
+   bare. CSS can't tell JSON from JavaScript here, and a quoted JS key (a
+   string in GtkSourceView) takes this colour too; quoted keys are mostly JSON. */
+html[data-theme] .CodeMirror .cm-string.cm-property {
+  color: var(--adw-text-violet);
+}
