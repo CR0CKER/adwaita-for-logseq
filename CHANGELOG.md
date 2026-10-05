@@ -5,6 +5,8 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-05
+
 ### Fixed
 
 - Logseq 2.x: "Remove heading" was cut off in the block context menu (#21). The theme gave
@@ -306,7 +308,8 @@ All notable changes to this project are documented here, in
   highlights when `logseq-awesome-ui` restyles the sidebar; on stock Logseq the
   rows sit at 22px, so the divider is 8px narrower than the highlight.
 
-[Unreleased]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/CR0CKER/adwaita-for-logseq/compare/v0.1.1...v0.2.0
