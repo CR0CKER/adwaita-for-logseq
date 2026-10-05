@@ -29,6 +29,10 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
 - **OG renders code blocks with CodeMirror 5's `cm-s-solarized`**: `#002b36` on dark,
   `#fdf6e3` on light. It does *not* use `cm-s-lsradix`, even though both are in the
   stylesheet. The editor is created lazily. Anchor code rules on `.CodeMirror`.
+- **A quoted key is `cm-string cm-property`** in CodeMirror's JavaScript/JSON mode, so a
+  rule giving `.cm-property` the text colour also strips the string colour from every JSON
+  key. GtkSourceView's `json.lang` maps `keyname` to `def:constant`. Nothing in the DOM
+  names the code block's language, so CSS cannot tell a JSON key from a quoted JS key.
 - **Task markers** (`.block-marker`, OG only) are dimmed to `opacity: .7` by Logseq. At
   that opacity every accent fails WCAG AA. `.marker-switch:hover` is (0,2,0), so a
   (0,2,1) theme rule on `.block-marker` silently removes the hover cue.
@@ -138,6 +142,7 @@ The theme must work on both. Their markup differs in ways that break OG-only sel
 | Favorites / Recent rows | `.nav-content-item .bd ul a` (not `.item`): 28px, `padding: 4px 24px`, opacity .8, `span.page-icon.ml-3` (20px box, 12px lead) | `a.link-item`, 32px, opacity .8, `.page-icon` 20px box with a 4px-padded `.icon-cp-container` |
 | "Create" (new page) | `footer.create` (`#create-button`), last in `.wrap` | none in the sidebar |
 | Keyboard-shortcut keys | tiles that inherit the font | `kbd.shui-shortcut-key`, which names Inter itself |
+| Block context menu heading row | eight icon-only `.ui__button`s, 26px each; fits | `.ls-context-menu-content`: Radix, a fixed `w-[280px]` with `overflow-hidden`. At text-button padding each button is 38px and the last ones pass the clip |
 | Image action bar | `.asset-action-btn` is `display: block`, so an icon sits on the text baseline; the whole image is dimmed behind it by `.asset-overlay` | `display: flex` already; **no overlay and no colour at all**, so icons land on the image at `opacity: .7` |
 
 - **The Home button renders only away from the home route**, and not at all with a custom

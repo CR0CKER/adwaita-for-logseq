@@ -804,6 +804,14 @@ html[data-theme] .CodeMirror .cm-em {
   color: inherit;
 }
 
+/* json:keyname, def:constant. CodeMirror marks a quoted key `cm-string
+   cm-property`, so without this the property rule above leaves JSON keys
+   bare. CSS can't tell JSON from JavaScript here, and a quoted JS key (a
+   string in GtkSourceView) takes this colour too; quoted keys are mostly JSON. */
+html[data-theme] .CodeMirror .cm-string.cm-property {
+  color: var(--adw-text-violet);
+}
+
 /* ==========================================================================
    Adwaita for Logseq — icons
 
@@ -1468,6 +1476,16 @@ html[data-theme] .settings-modal .button {
   padding: 5px 10px;
   border-radius: var(--adw-radius-button);
   font-weight: 700;
+}
+
+/* Icon-only buttons in 2.x's block context menu get GTK's image-button
+   metrics (libadwaita: min-width 24px, padding 5px left and right). The text
+   padding above made each heading button 38px, so the row of eight ran past
+   the 280px menu, which clips it: "Remove heading" was cut off (#21). */
+html[data-theme] .ls-context-menu-content .ui__button:has(> .ui__icon:only-child) {
+  min-width: 24px;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 html[data-theme] input[type="text"],

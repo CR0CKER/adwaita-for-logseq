@@ -5,6 +5,17 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Fixed
+
+- Logseq 2.x: "Remove heading" was cut off in the block context menu (#21). The theme gave
+  its eight icon-only heading buttons GTK's text-button padding, 38px each, and the 280px
+  menu clips what doesn't fit. They now use GTK's image-button padding (5px each side).
+- JSON keys in code blocks were plain text (#21). CodeMirror marks them
+  `cm-string cm-property`, and the rule leaving properties uncoloured won over the string
+  colour. They are now violet, as GNOME Text Editor colours JSON keys. A quoted key in
+  JavaScript, which Text Editor shows as a string, takes the same violet: CSS can't tell
+  the two languages apart.
+
 ## [0.3.1] - 2026-09-19
 
 ### Changed

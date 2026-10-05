@@ -644,6 +644,16 @@ html[data-theme] .settings-modal .button {
   font-weight: 700;
 }
 
+/* Icon-only buttons in 2.x's block context menu get GTK's image-button
+   metrics (libadwaita: min-width 24px, padding 5px left and right). The text
+   padding above made each heading button 38px, so the row of eight ran past
+   the 280px menu, which clips it: "Remove heading" was cut off (#21). */
+html[data-theme] .ls-context-menu-content .ui__button:has(> .ui__icon:only-child) {
+  min-width: 24px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
 html[data-theme] input[type="text"],
 html[data-theme] input[type="search"],
 html[data-theme] input[type="password"],

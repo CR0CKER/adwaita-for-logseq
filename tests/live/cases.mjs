@@ -589,6 +589,7 @@ export const cases = [
         'inline `code` and ==marked== text',
         '> a quote',
         `${fence}js\nconst x = 42; // note\nfunction f() { return "s"; }\n${fence}`,
+        `${fence}json\n{"key": "value"}\n${fence}`,
       ];
       if (!(await renderPage(cdp, page, blocks))) return NOT_PAINTING;
       try {
@@ -624,6 +625,7 @@ export const cases = [
             const c = cs('.CodeMirror .cm-' + t);
             return [t, c ? { color: c.color, weight: c.fontWeight } : null];
           })),
+          jsonKey: cs('.CodeMirror .cm-string.cm-property')?.color,
           mark: { fg: cs('.ls-block mark')?.color, bg: cs('.ls-block mark')?.backgroundColor },
           heading: cs('.ls-block h2')?.color,
           // OG: h1.title; Logseq 2.x renders the title as a block.
@@ -642,6 +644,8 @@ export const cases = [
         assert.equal(got.code[token].color, colour, `.cm-${token} colour`);
       }
       assert.equal(got.code.keyword.weight, '700', 'keywords are bold, as def:statement is');
+      assert.ok(got.jsonKey, 'no JSON key rendered — CodeMirror no longer marks it cm-string cm-property?');
+      assert.equal(got.jsonKey, t.violet, 'JSON key colour (json:keyname is def:constant)');
 
       assert.deepEqual(got.mark, { fg: t.markFg, bg: t.markBg }, '==highlight== colours');
       // Page titles (and journal dates, the same h1.title) take Text Editor's
@@ -654,6 +658,57 @@ export const cases = [
       assert.equal(got.heading, t.teal, 'block heading');
       assert.equal(got.inlineCode, t.violet, 'inline code');
       assert.equal(got.quoteBorder, t.grey, 'quote bar');
+    },
+  },
+
+  {
+    // Issue #21: 2.x's block context menu is 280px wide and clips overflow;
+    // with the general button padding its eight heading buttons ran past the
+    // edge and "Remove heading" was cut off. Check every one can be clicked.
+    name: 'block context menu: every heading button fits inside the menu and is reachable',
+    async run({ cdp }) {
+      const page = 'adwaita heading menu';
+      if (!(await renderPage(cdp, page, ['a block to give a heading']))) return NOT_PAINTING;
+      await waitFor(cdp, `Boolean([...document.querySelectorAll('.ls-block')].find((b) => b.textContent.trim() === 'a block to give a heading'))`, {
+        label: 'the block to render',
+        timeoutMs: 15000,
+      });
+      const [x, y] = await cdp.evaluateJson(`(() => {
+        const b = [...document.querySelectorAll('.ls-block')].find((e) => e.textContent.trim() === 'a block to give a heading');
+        const r = b.querySelector('.bullet-container').getBoundingClientRect();
+        return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]);
+      })()`);
+      // A right-click on the bullet opens the block menu; the first one after
+      // navigation is sometimes swallowed while the page settles, so re-press
+      // until the menu is there (a precondition, not a retried assertion).
+      for (let i = 0; i < 10; i++) {
+        if (await cdp.evaluate(`Boolean(document.querySelector('[title="Remove heading"]'))`)) break;
+        for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'right', clickCount: 1 });
+        await new Promise((r) => setTimeout(r, 800));
+      }
+      try {
+        const got = await cdp.evaluateJson(`(() => {
+          const remove = document.querySelector('[title="Remove heading"]');
+          if (!remove) return JSON.stringify(null);
+          const buttons = [...remove.parentElement.children];
+          // The nearest ancestor that clips its content is what hides an overflowing button.
+          let clip = remove.parentElement;
+          while (clip && getComputedStyle(clip).overflow === 'visible') clip = clip.parentElement;
+          const c = (clip ?? document.documentElement).getBoundingClientRect();
+          return JSON.stringify(buttons.map((b) => {
+            const r = b.getBoundingClientRect();
+            const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return { title: b.getAttribute('title'), inside: r.left >= c.left - 0.5 && r.right <= c.right + 0.5, reachable: Boolean(hit && b.contains(hit)), width: Math.round(r.width) };
+          }));
+        })()`);
+        assert.ok(got, 'the block context menu never opened, or has no "Remove heading" button');
+        assert.ok(got.length >= 8, `expected H1-H6, auto and remove; found ${got.map((b) => b.title).join(', ')}`);
+        const bad = got.filter((b) => !b.inside || !b.reachable).map((b) => `${b.title} (inside: ${b.inside}, reachable: ${b.reachable}, ${b.width}px)`);
+        assert.deepEqual(bad, [], 'heading buttons cut off by the menu');
+      } finally {
+        await cdp.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+      }
     },
   },
 
