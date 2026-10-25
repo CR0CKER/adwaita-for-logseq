@@ -715,6 +715,14 @@ html[data-theme] .ui__dropdown-menu-item:hover {
   color: var(--adw-fg);
 }
 
+/* The editor autocomplete's chosen row (what Enter picks) gets the same
+   highlight as a hovered row, as in a GTK popover. 2.x paints it gray-04 from
+   an ID selector, and in dark gray-04 is the popover's own colour, so the
+   highlight vanished (#23). */
+html[data-theme] #ui__ac-inner .menu-link.chosen {
+  background-color: var(--adw-hover);
+}
+
 html[data-theme] .ui__modal-panel,
 html[data-theme] .settings-modal,
 html[data-theme] .cp__cmdk,
