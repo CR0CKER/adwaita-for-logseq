@@ -185,6 +185,19 @@ async function openSeededPdf(cdp, page) {
   return null;
 }
 
+/**
+ * Put a case that switched to light back in dark, and hand over only once the
+ * switch has settled: it starts colour transitions, and the case after the
+ * autocomplete one measured header icons mid-fade (rgb 222, not 255).
+ */
+async function backToDark(cdp, session, applyTheme, setMode) {
+  await setMode(session, 'dark').catch(() => {});
+  await applyTheme(session, 'dark').catch(() => {});
+  await waitFor(cdp, `!document.getAnimations().some((a) => a instanceof CSSTransition)`, {
+    label: 'the colour transitions back to dark to finish', timeoutMs: 5000,
+  }).catch(() => {});
+}
+
 /** Close the viewer, whatever state the case left it in. */
 async function closePdf(cdp) {
   await cdp.evaluate(`(() => { const b = [...document.querySelectorAll('.extensions__pdf-toolbar button, .extensions__pdf-toolbar a')].pop(); b?.click(); return true; })()`).catch(() => {});
@@ -769,13 +782,7 @@ export const cases = [
         }
       } finally {
         for (let i = 0; i < 2; i++) await key('Escape', 'Escape').catch(() => {});
-        await setMode(session, 'dark').catch(() => {});
-        await applyTheme(session, 'dark').catch(() => {});
-        // The switch back starts colour transitions; the next case measured
-        // header icons mid-fade (rgb 222, not 255). Hand over once they end.
-        await waitFor(cdp, `!document.getAnimations().some((a) => a instanceof CSSTransition)`, {
-          label: 'the colour transitions back to dark to finish', timeoutMs: 5000,
-        }).catch(() => {});
+        await backToDark(cdp, session, applyTheme, setMode);
       }
       for (const [mode, got] of Object.entries(results)) {
         const popover = parseColor(got.popover).rgb;
@@ -784,6 +791,80 @@ export const cases = [
         const diff = (a, b) => Math.max(...a.map((c, i) => Math.abs(c - b[i]))) * 255;
         assert.ok(diff(chosen, popover) >= 8, `${mode}: chosen row ${toHex(chosen)} is invisible on the popover ${toHex(popover)}`);
         assert.ok(diff(chosen, hover) < 1.5, `${mode}: chosen row ${toHex(chosen)} should be the menu hover ${toHex(hover)}`);
+      }
+    },
+  },
+
+  {
+    // 2.x's Radix menus mark the item the keyboard is on with data-highlighted.
+    // Logseq painted it solarized teal under its shipped data-color="logseq",
+    // and the popover's own colour (invisible) under any accent picked in
+    // Logseq. Arrow into the real block menu under both, in dark and light.
+    // OG's menus are not Radix and ArrowDown does not move into them.
+    name: 'menus: the keyboard-highlighted item is the menu hover, whatever Logseq accent',
+    only: ['db'],
+    async run({ cdp, session, applyTheme, setMode }) {
+      const key = async (k, vk) => {
+        for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: k, code: k, windowsVirtualKeyCode: vk });
+        await new Promise((r) => setTimeout(r, 300));
+      };
+      const original = await cdp.evaluate(`document.documentElement.dataset.color ?? null`);
+      const results = {};
+      try {
+        for (const mode of ['dark', 'light']) {
+          if (mode === 'light') {
+            await setMode(session, 'light');
+            await applyTheme(session, 'light');
+          }
+          const page = `adwaita menu keys ${mode}`;
+          if (!(await renderPage(cdp, page, ['a block with a menu']))) return NOT_PAINTING;
+          const bullet = `[...document.querySelectorAll('.ls-block')].find((b) => b.textContent.trim() === 'a block with a menu')?.querySelector('.bullet-container')`;
+          await waitFor(cdp, `Boolean(${bullet})`, { label: 'the block to render', timeoutMs: 15000 });
+          for (const color of ['logseq', 'purple']) {
+            await cdp.evaluate(`document.documentElement.dataset.color = ${JSON.stringify(color)}; true`);
+            const [x, y] = await cdp.evaluateJson(`(() => { const r = ${bullet}.getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`);
+            // As in the heading-menu case, the first right-click after
+            // navigation is sometimes swallowed: re-press until the menu is
+            // there (a precondition, not a retried assertion).
+            for (let i = 0; i < 10; i++) {
+              if (await cdp.evaluate(`Boolean(document.querySelector('.ui__dropdown-menu-content .ui__dropdown-menu-item'))`)) break;
+              for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'right', clickCount: 1 });
+              await new Promise((r) => setTimeout(r, 800));
+            }
+            // Pointer off the menu, so only the keyboard decides the highlight.
+            await cdp.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 2, y: 2 });
+            await key('ArrowDown', 40);
+            results[`${mode}/${color}`] = await cdp.evaluateJson(`(() => {
+              const item = document.querySelector('.ui__dropdown-menu-content .ui__dropdown-menu-item[data-highlighted]');
+              if (!item) return JSON.stringify(null);
+              const root = getComputedStyle(document.documentElement);
+              return JSON.stringify({
+                text: item.textContent.trim().slice(0, 30),
+                bg: getComputedStyle(item).backgroundColor,
+                fg: getComputedStyle(item).color,
+                popover: getComputedStyle(item.closest('.ui__dropdown-menu-content')).backgroundColor,
+                hover: root.getPropertyValue('--adw-hover').trim(),
+                adwFg: root.getPropertyValue('--adw-fg').trim(),
+              });
+            })()`);
+            await key('Escape', 27);
+            await key('Escape', 27);
+          }
+        }
+      } finally {
+        await cdp.evaluate(`(() => { const o = ${JSON.stringify(original)}; if (o === null) delete document.documentElement.dataset.color; else document.documentElement.dataset.color = o; return true; })()`).catch(() => {});
+        await backToDark(cdp, session, applyTheme, setMode);
+      }
+      for (const [when, got] of Object.entries(results)) {
+        assert.ok(got, `${when}: ArrowDown highlighted no item in the block menu`);
+        const popover = parseColor(got.popover).rgb;
+        const bg = over(parseColor(got.bg), popover);
+        const hover = over(parseColor(got.hover), popover);
+        const diff = (a, b) => Math.max(...a.map((c, i) => Math.abs(c - b[i]))) * 255;
+        assert.ok(diff(bg, hover) < 1.5, `${when}: "${got.text}" is ${toHex(bg)}, not the menu hover ${toHex(hover)} on ${toHex(popover)}`);
+        assert.ok(diff(bg, popover) >= 8, `${when}: "${got.text}" ${toHex(bg)} is invisible on the popover ${toHex(popover)}`);
+        const fg = over(parseColor(got.fg), popover), adwFg = over(parseColor(got.adwFg), popover);
+        assert.ok(diff(fg, adwFg) < 1.5, `${when}: "${got.text}" text ${toHex(fg)}, not the foreground ${toHex(adwFg)}`);
       }
     },
   },

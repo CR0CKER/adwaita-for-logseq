@@ -12,6 +12,10 @@ All notable changes to this project are documented here, in
   that, in this theme's dark palette, is the popover's own colour. The chosen row now takes
   the menu hover colour on both builds, in light and dark, so the keyboard choice looks
   like a hovered row.
+- Logseq 2.x: the item you move to with the arrow keys in ⋮ and the block context menu
+  was a solarized-teal slab under Logseq's default accent, and had no visible highlight at
+  all in dark under any accent picked in Logseq's settings. It now takes the menu hover
+  colour, like a hovered item.
 
 ## [0.3.2] - 2026-10-05
 

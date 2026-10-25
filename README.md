@@ -343,8 +343,9 @@ reader itself handles `@media`; and `themes/adwaita.css` matches a fresh build.
 styles: stored settings winning over the theme sheet, surfaces, light/dark inversion,
 accent precedence, the search dialog's edges, divider geometry, sidebar section headers,
 button hover colour, the editor autocomplete's chosen row against its popover (dark and
-light), accent contrast, task markers (accent colour, full opacity, the
-accent hover step on hover), and text colours (code-block surface and tokens, highlights,
+light), the keyboard-highlighted item in 2.x's block menu (dark and light, under Logseq's
+default accent and a picked one), accent contrast, task markers (accent colour, full
+opacity, the accent hover step on hover), and text colours (code-block surface and tokens, highlights,
 and headings / inline code / quote bars under the "Text Editor" setting the harness seeds),
 and that no visible text or icon in the headerbar or sidebar is anything but the full
 foreground, with sidebar row icons dimmed to Files' 0.7; that every visible text in the

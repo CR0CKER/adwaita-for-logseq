@@ -1557,6 +1557,16 @@ html[data-theme] #ui__ac-inner .menu-link.chosen {
   background-color: var(--adw-hover);
 }
 
+/* The same for the item the keyboard is on in 2.x's Radix menus (⋮, the block
+   context menu). Logseq paints it solarized teal under its default
+   data-color="logseq" (focus:bg-accent, with the menu's --accent set to raw
+   Radix gray-04), and gray-04 at (0,4,3) under any accent picked in Logseq,
+   which in dark is the popover's own colour. This rule is (0,5,1). */
+html[data-theme] .ui__dropdown-menu-content .ui__dropdown-menu-item[data-radix-collection-item]:is([data-highlighted], .is-active, :focus) {
+  background-color: var(--adw-hover);
+  color: var(--adw-fg);
+}
+
 html[data-theme] .ui__modal-panel,
 html[data-theme] .settings-modal,
 html[data-theme] .cp__cmdk,
