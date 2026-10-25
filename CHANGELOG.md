@@ -5,6 +5,14 @@ All notable changes to this project are documented here, in
 
 ## [Unreleased]
 
+### Fixed
+
+- Logseq 2.x, dark: the editor autocomplete (the page search after `[[`) showed no
+  highlight on the row Enter would pick (#23). Logseq paints that row with a grey step
+  that, in this theme's dark palette, is the popover's own colour. The chosen row now takes
+  the menu hover colour on both builds, in light and dark, so the keyboard choice looks
+  like a hovered row.
+
 ## [0.3.2] - 2026-10-05
 
 ### Fixed

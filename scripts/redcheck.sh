@@ -569,6 +569,21 @@ PY2
 expect_red "context-menu heading buttons at text padding, clipped by the menu" \
   tests/static/context-menu.test.mjs "$t"
 
+# 40. The autocomplete's chosen row left to 2.x's gray-04, which in dark is the
+#     popover's own colour (#23).
+t="$(scratch_tree autocomplete-chosen)"
+python3 - "$t" <<'PY2'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1], 'src/css/30-structure.css')
+s = p.read_text()
+new, n = re.subn(r"html\[data-theme\] #ui__ac-inner \.menu-link\.chosen \{[^}]*\}\n", "", s, count=1)
+assert n == 1, 'autocomplete chosen rule not found — update this mutation'
+p.write_text(new)
+PY2
+(cd "$t" && node build.mjs >/dev/null 2>&1)
+expect_red "autocomplete chosen row invisible on the dark popover" \
+  tests/static/autocomplete.test.mjs "$t"
+
 echo
 printf '%s\n' "-----------------------------------------------"
 printf 'red as expected: %d   failed to detect: %d\n' "$pass" "$fail"

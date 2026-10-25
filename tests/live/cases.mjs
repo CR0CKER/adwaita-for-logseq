@@ -10,7 +10,7 @@
  *   only: ['og']      — skipped on other targets, with the reason printed
  */
 import assert from 'node:assert/strict';
-import { parseRgb, parseColor, contrastRatio } from '../lib/color.mjs';
+import { parseRgb, parseColor, contrastRatio, over, toHex } from '../lib/color.mjs';
 import { waitFor } from '../lib/cdp.mjs';
 import { STARTUP_SETTINGS } from '../lib/scratch.mjs';
 import { TEXT_COLOURS } from '../../src/settings-css.ts';
@@ -708,6 +708,82 @@ export const cases = [
       } finally {
         await cdp.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+      }
+    },
+  },
+
+  {
+    // Issue #23: in dark, 2.x painted the autocomplete's chosen row gray-04,
+    // which is the popover's own colour, so nothing showed which row Enter
+    // picks. Type into a real editor and measure the popup that opens.
+    name: 'editor autocomplete: the chosen row stands out from the popover, in dark and light',
+    async run({ cdp, session, applyTheme, setMode }) {
+      const key = async (k, code, text) => {
+        await cdp.call('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, ...(text ? { text } : {}) });
+        await cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code });
+        // Paced like typing. Sent back to back, before the editor had focus,
+        // they were all lost; the focus wait below is the other half.
+        await new Promise((r) => setTimeout(r, 150));
+      };
+      const results = {};
+      try {
+        for (const mode of ['dark', 'light']) {
+          if (mode === 'light') {
+            await setMode(session, 'light');
+            await applyTheme(session, 'light');
+          }
+          const page = `adwaita autocomplete ${mode}`;
+          if (!(await renderPage(cdp, page, ['link here: ']))) return NOT_PAINTING;
+          const block = `[...document.querySelectorAll('.ls-block .block-content')].find((b) => b.textContent.trim() === 'link here:')`;
+          await waitFor(cdp, `Boolean(${block})`, { label: 'the block to render', timeoutMs: 15000 });
+          const [x, y] = await cdp.evaluateJson(`(() => { const r = ${block}.getBoundingClientRect(); return JSON.stringify([r.right - 4, r.top + r.height / 2]); })()`);
+          // As with the context menu, a click right after navigation is
+          // sometimes swallowed: re-press until the editor has focus (a
+          // precondition, not a retried assertion).
+          for (let i = 0; i < 10; i++) {
+            if (await cdp.evaluate(`document.activeElement?.tagName === 'TEXTAREA'`)) break;
+            for (const type of ['mousePressed', 'mouseReleased']) await cdp.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+            await new Promise((r) => setTimeout(r, 800));
+          }
+          await waitFor(cdp, `document.activeElement?.tagName === 'TEXTAREA'`, { label: 'the block editor to take focus', timeoutMs: 2000 });
+          await key('End', 'End');
+          // `[[` opens the page search. OG lists nothing until there is a
+          // query; "content" matches a page in both builds' harness graphs.
+          for (const ch of '[[') await key('[', 'BracketLeft', ch);
+          for (const ch of 'content') await key(ch, `Key${ch.toUpperCase()}`, ch);
+          await waitFor(cdp, `Boolean(document.querySelector('#ui__ac-inner .menu-link.chosen'))`, {
+            label: 'the autocomplete popup with a chosen row', timeoutMs: 8000,
+          });
+          results[mode] = await cdp.evaluateJson(`(() => {
+            const ac = document.querySelector('#ui__ac-inner');
+            const clear = (c) => /^rgba\\(0, 0, 0, 0\\)$|^transparent$/.test(c);
+            let pop = ac;
+            while (pop && clear(getComputedStyle(pop).backgroundColor)) pop = pop.parentElement;
+            return JSON.stringify({
+              popover: getComputedStyle(pop).backgroundColor,
+              chosen: getComputedStyle(ac.querySelector('.menu-link.chosen')).backgroundColor,
+              hover: getComputedStyle(document.documentElement).getPropertyValue('--adw-hover').trim(),
+            });
+          })()`);
+          for (let i = 0; i < 2; i++) await key('Escape', 'Escape');
+        }
+      } finally {
+        for (let i = 0; i < 2; i++) await key('Escape', 'Escape').catch(() => {});
+        await setMode(session, 'dark').catch(() => {});
+        await applyTheme(session, 'dark').catch(() => {});
+        // The switch back starts colour transitions; the next case measured
+        // header icons mid-fade (rgb 222, not 255). Hand over once they end.
+        await waitFor(cdp, `!document.getAnimations().some((a) => a instanceof CSSTransition)`, {
+          label: 'the colour transitions back to dark to finish', timeoutMs: 5000,
+        }).catch(() => {});
+      }
+      for (const [mode, got] of Object.entries(results)) {
+        const popover = parseColor(got.popover).rgb;
+        const chosen = over(parseColor(got.chosen), popover);
+        const hover = over(parseColor(got.hover), popover);
+        const diff = (a, b) => Math.max(...a.map((c, i) => Math.abs(c - b[i]))) * 255;
+        assert.ok(diff(chosen, popover) >= 8, `${mode}: chosen row ${toHex(chosen)} is invisible on the popover ${toHex(popover)}`);
+        assert.ok(diff(chosen, hover) < 1.5, `${mode}: chosen row ${toHex(chosen)} should be the menu hover ${toHex(hover)}`);
       }
     },
   },

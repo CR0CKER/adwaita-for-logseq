@@ -33,6 +33,14 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
   rule giving `.cm-property` the text colour also strips the string colour from every JSON
   key. GtkSourceView's `json.lang` maps `keyname` to `def:constant`. Nothing in the DOM
   names the code block's language, so CSS cannot tell a JSON key from a quoted JS key.
+- **2.x paints selection states in a gray step that can equal the surface under them.**
+  The editor autocomplete's chosen row is
+  `#ui__ac-inner .menu-link.chosen { background-color: var(--lx-gray-04, …) }` (1,2,0).
+  The theme's `--adw-gray-04` is `#36363a` in dark, which is also `--adw-popover-bg`, so the
+  highlight disappeared (#23). In light the same step is `#ebebed` on a white popover and
+  shows. The ID selector also outranks the theme's `.menu-link:hover` (0,3,1). OG has the
+  same markup and no such rule. When mapping the gray ramp, check the selection states
+  painted on popovers, not just the surfaces.
 - **Task markers** (`.block-marker`, OG only) are dimmed to `opacity: .7` by Logseq. At
   that opacity every accent fails WCAG AA. `.marker-switch:hover` is (0,2,0), so a
   (0,2,1) theme rule on `.block-marker` silently removes the hover cue.
@@ -143,6 +151,7 @@ The theme must work on both. Their markup differs in ways that break OG-only sel
 | "Create" (new page) | `footer.create` (`#create-button`), last in `.wrap` | none in the sidebar |
 | Keyboard-shortcut keys | tiles that inherit the font | `kbd.shui-shortcut-key`, which names Inter itself |
 | Block context menu heading row | eight icon-only `.ui__button`s, 26px each; fits | `.ls-context-menu-content`: Radix, a fixed `w-[280px]` with `overflow-hidden`. At text-button padding each button is 38px and the last ones pass the clip |
+| Editor autocomplete (`[[`) | `.absolute-modal` > `#ui__ac-inner`, rows `a.menu-link`, the chosen one `.chosen`; lists nothing until a query is typed | the same rows in a `.ui__popover-content`; lists Today, Tomorrow and Yesterday before any query |
 | Image action bar | `.asset-action-btn` is `display: block`, so an icon sits on the text baseline; the whole image is dimmed behind it by `.asset-overlay` | `display: flex` already; **no overlay and no colour at all**, so icons land on the image at `opacity: .7` |
 
 - **The Home button renders only away from the home route**, and not at all with a custom
@@ -329,6 +338,10 @@ Read from the installed apps' own UI definitions (`gresource extract <binary> <p
   `elementFromPoint`.
 - **CDP input skips Electron's drag regions.** Simulate the document-order rule above.
 - **Radix menus open on `pointerdown`.** `element.click()` never opens them.
+- **Typing into the editor needs focus first.** A click that opens a block's editor right
+  after navigation is sometimes swallowed (2.x), and keys sent before the textarea has focus
+  are lost. Re-press until `document.activeElement` is the textarea, then send keys paced
+  like typing (the autocomplete case in `tests/live/cases.mjs`).
 - **A locked screen stops rendering.** The compositor stops sending frames, so
   `requestAnimationFrame` never fires and Logseq stops re-rendering: mode switches time out
   and new pages never appear. Run the live suite with the screen unlocked; cases that need
