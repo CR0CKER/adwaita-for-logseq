@@ -41,6 +41,15 @@ Measured on Logseq OG (Electron 43) and Logseq 2.0.1 (DB build), 2026-09.
   shows. The ID selector also outranks the theme's `.menu-link:hover` (0,3,1). OG has the
   same markup and no such rule. When mapping the gray ramp, check the selection states
   painted on popovers, not just the surfaces.
+- **2.x's Radix menus paint the keyboard-highlighted item two different wrong ways.** The
+  item (`.ui__dropdown-menu-item[data-radix-collection-item][data-highlighted]`, focused)
+  measured solarized teal `#00404d` under the shipped `data-color="logseq"`. From the
+  stylesheet, that is shadcn's `focus:bg-accent`, with
+  `html .ui__dropdown-menu-content { --accent: var(--rx-gray-04-hsl) }` pointing it at
+  *raw* Radix gray-04, which the theme's `--lx-*` mapping does not cover. Under any accent picked in Logseq, `html:not([data-color=logseq])
+  div[data-radix-popper-content-wrapper] div[data-radix-collection-item]:focus` (0,4,3)
+  paints `--lx-gray-04` instead: the popover's own colour in dark, as above. Mouse hover
+  was fine throughout, so only the keyboard shows either.
 - **Task markers** (`.block-marker`, OG only) are dimmed to `opacity: .7` by Logseq. At
   that opacity every accent fails WCAG AA. `.marker-switch:hover` is (0,2,0), so a
   (0,2,1) theme rule on `.block-marker` silently removes the hover cue.
@@ -151,6 +160,7 @@ The theme must work on both. Their markup differs in ways that break OG-only sel
 | "Create" (new page) | `footer.create` (`#create-button`), last in `.wrap` | none in the sidebar |
 | Keyboard-shortcut keys | tiles that inherit the font | `kbd.shui-shortcut-key`, which names Inter itself |
 | Block context menu heading row | eight icon-only `.ui__button`s, 26px each; fits | `.ls-context-menu-content`: Radix, a fixed `w-[280px]` with `overflow-hidden`. At text-button padding each button is 38px and the last ones pass the clip |
+| Keyboard in ⋮ and the block menu | not Radix; ArrowDown does not move into them | Radix: ArrowDown moves `[data-highlighted]` and focus through the items |
 | Editor autocomplete (`[[`) | `.absolute-modal` > `#ui__ac-inner`, rows `a.menu-link`, the chosen one `.chosen`; lists nothing until a query is typed | the same rows in a `.ui__popover-content`; lists Today, Tomorrow and Yesterday before any query |
 | Image action bar | `.asset-action-btn` is `display: block`, so an icon sits on the text baseline; the whole image is dimmed behind it by `.asset-overlay` | `display: flex` already; **no overlay and no colour at all**, so icons land on the image at `opacity: .7` |
 
